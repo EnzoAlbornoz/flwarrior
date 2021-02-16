@@ -6,6 +6,7 @@ import {
 } from "webpack";
 import { Configuration as WebpackDevServerConfiguration } from "webpack-dev-server";
 import HtmlWebpackPlugin from "html-webpack-plugin";
+import { TsconfigPathsPlugin as TsConfigPathsWebpackPlugin } from "tsconfig-paths-webpack-plugin";
 import { CleanWebpackPlugin } from "clean-webpack-plugin";
 import ESLintWebpackPlugin from "eslint-webpack-plugin";
 import BarWebpackPlugin from "webpackbar";
@@ -29,6 +30,12 @@ const config: Array<Configuration> = [
             extensions: [".js", ".jsx", ".ts", ".tsx", ".json"],
             alias: {
                 "react-dom": "@hot-loader/react-dom",
+                "@": path.resolve(__dirname, "./src"),
+                "@assets": path.resolve(__dirname, "./src/assets"),
+                "@pages": path.resolve(__dirname, "./src/pages"),
+                "@layout": path.resolve(__dirname, "./src/layout"),
+                "@components": path.resolve(__dirname, "./src/components"),
+                "@database": path.resolve(__dirname, "./src/database"),
             },
         },
         module: {
@@ -41,6 +48,21 @@ const config: Array<Configuration> = [
                 {
                     test: /\.css$/,
                     use: ["style-loader", "css-loader"],
+                },
+                {
+                    test: /\.svg$/,
+                    use: ["@svgr/webpack", "url-loader"],
+                },
+                {
+                    test: /\.(png|jpg|gif)$/i,
+                    use: [
+                        {
+                            loader: "url-loader",
+                            options: {
+                                limit: 8192,
+                            },
+                        },
+                    ],
                 },
             ],
         },
@@ -57,7 +79,7 @@ const config: Array<Configuration> = [
             port: 9000,
             hot: true,
             open: true,
-            // quiet: true,
+            historyApiFallback: true,
         },
         stats: {
             colors: true,
@@ -96,6 +118,29 @@ const config: Array<Configuration> = [
                 {
                     test: /\.css$/,
                     use: ["style-loader", "css-loader"],
+                },
+                {
+                    test: /\.svg$/,
+                    use: [
+                        {
+                            loader: "@svgr/webpack",
+                            options: {
+                                typescript: true,
+                            },
+                        },
+                        "url-loader",
+                    ],
+                },
+                {
+                    test: /\.(png|jpg|gif)$/i,
+                    use: [
+                        {
+                            loader: "url-loader",
+                            options: {
+                                limit: 8192,
+                            },
+                        },
+                    ],
                 },
             ],
         },

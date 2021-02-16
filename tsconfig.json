@@ -12,8 +12,20 @@
         "module": "ESNext",
         "moduleResolution": "Node",
         "resolveJsonModule": true,
-        "target": "ESNext"
+        "target": "ESNext",
+        "typeRoots": ["./node_modules/@types", "./src/@types"],
+        "baseUrl": ".",
+        "paths": {
+            "@/*": ["./src/*"],
+            "@assets/*": ["./src/assets/*"],
+            "@pages/*": ["./src/pages/*"],
+            "@layout": ["./src/layout"],
+            "@layout/*": ["./src/layout/*"],
+            "@components/*": ["./src/components/*"],
+            "@database": ["./src/database"],
+            "@database/*": ["./src/database/*"]
+        }
     },
-    "include": ["src/**/*"],
+    "include": ["./src/**/*"],
     "exclude": ["node_modules"]
 }
