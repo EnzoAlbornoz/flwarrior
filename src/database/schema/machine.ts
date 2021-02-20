@@ -19,6 +19,7 @@ export interface MachineDBEntryState {
 
 export interface MachineDBEntry {
     id: string;
+    name: string;
     type: MachineType;
     deterministic: boolean;
     states: Array<MachineDBEntryState>;

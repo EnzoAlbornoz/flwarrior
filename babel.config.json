@@ -8,6 +8,7 @@
         [
             "babel-plugin-styled-components",
             { "ssr": false, "transpileTemplateLiterals": false }
-        ]
+        ],
+        "@babel/plugin-proposal-class-properties"
     ]
 }

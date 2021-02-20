@@ -29,9 +29,9 @@ class DatabaseService {
                             ) {
                                 // Create table
                                 db.createObjectStore(
-                                    FLWarriorDBTables[tableName],
+                                    tableName as FLWarriorDBTables,
                                     {
-                                        keyPath: DBSchemas[tableName],
+                                        keyPath: DBSchemas[tableName].keyPath,
                                     }
                                 );
                             }

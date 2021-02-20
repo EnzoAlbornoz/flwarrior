@@ -8,6 +8,7 @@ export enum ExpressionType {
 export type ExpressionDBEntryKey = "id";
 export interface ExpressionDBEntry {
     id: string;
+    name: string;
     type: ExpressionType;
     refName: string;
     body: string;

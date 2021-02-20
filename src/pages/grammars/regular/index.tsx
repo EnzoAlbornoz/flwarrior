@@ -6,13 +6,13 @@ import RegisteredItemsListRaw from "@components/RegisteredItemsList";
 import Layout from "@layout";
 import styled from "styled-components";
 import IconBase from "@ant-design/icons";
-import { ReactComponent as Graph } from "@assets/graph.svg";
+import { ReactComponent as Book } from "@assets/book.svg";
 import DatabaseService from "@database";
 import { FLWarriorDBTables } from "@/database/schema";
 import useAsyncEffect from "@/utils/useAsyncEffect";
-import { MachineDBEntry } from "@/database/schema/machine";
+import { GrammarDBEntry } from "@/database/schema/grammar";
 // Define Style
-const MachinesList = styled.section`
+const GrammarsList = styled.section`
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -31,29 +31,29 @@ const RegisteredItemsList = styled(RegisteredItemsListRaw)`
     flex-direction: column;
     justify-content: space-between;
 `;
-const GraphAvatar = styled(IconBase).attrs({ component: Graph })`
+const BookAvatar = styled(IconBase).attrs({ component: Book })`
     font-size: 2em;
 `;
 // Define Component
-export default function FiniteAutomata(): JSX.Element {
+export default function RegularGrammar(): JSX.Element {
     // Setup State
-    const [machineList, setMachineList] = useState<Array<MachineDBEntry>>([]);
+    const [grammarList, setGrammarList] = useState<Array<GrammarDBEntry>>([]);
     // Fetch Context
     const history = useHistory();
     // Fetch Data
     useAsyncEffect(async () => {
         const db = await DatabaseService.getDb();
-        const machines = await db.getAll(FLWarriorDBTables.MACHINE);
+        const grammars = await db.getAll(FLWarriorDBTables.GRAMMAR);
 
-        setMachineList(machines);
-        console.log(machines);
+        setGrammarList(grammars);
+        console.log(grammars);
     }, []);
-    const machineListDataSource = useMemo(
+    const grammarListDataSource = useMemo(
         () =>
-            machineList.map((machine) => ({
-                id: machine.id,
-                name: machine.name,
-                avatar: <GraphAvatar />,
+            grammarList.map((grammar) => ({
+                id: grammar.id,
+                name: grammar.name,
+                avatar: <BookAvatar />,
                 onEdit: (itemId: string) => {
                     console.log("EDIT - ", itemId);
                 },
@@ -64,7 +64,7 @@ export default function FiniteAutomata(): JSX.Element {
                     console.log("EXPORT - ", itemId);
                 },
             })),
-        [machineList]
+        [grammarList]
     );
     // Extra
     const createAutomata = () => console.log("CREATE");
@@ -72,10 +72,10 @@ export default function FiniteAutomata(): JSX.Element {
     return (
         <>
             <Layout>
-                <MachinesList>
+                <GrammarsList>
                     <PageHeader
                         onBack={history.goBack}
-                        title="Automatos Finitos"
+                        title="Gramáticas Regulares"
                         subTitle="Listagem"
                         extra={[
                             <Button
@@ -83,12 +83,12 @@ export default function FiniteAutomata(): JSX.Element {
                                 key="button-create"
                                 onClick={createAutomata}
                             >
-                                Criar Autômato
+                                Criar Gramática
                             </Button>,
                         ]}
                     />
-                    <RegisteredItemsList dataSource={machineListDataSource} />
-                </MachinesList>
+                    <RegisteredItemsList dataSource={grammarListDataSource} />
+                </GrammarsList>
             </Layout>
         </>
     );

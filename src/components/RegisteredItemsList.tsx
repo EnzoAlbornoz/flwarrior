@@ -3,45 +3,29 @@ import { memo as memoize } from "react";
 import type { FunctionComponent, HTMLAttributes } from "react";
 import { List } from "antd";
 import ListItem from "./RegisteredItemsListItem";
+import type { IRegisteredItemsListItemProps } from "./RegisteredItemsListItem";
 // Define Types
-export type IRegisteredItemsListProps = Pick<
-    HTMLAttributes<HTMLElement>,
-    "className"
->;
+export interface IRegisteredItemsListProps
+    extends Pick<HTMLAttributes<HTMLElement>, "className"> {
+    dataSource: Array<IRegisteredItemsListItemProps>;
+}
 // Define Sizings
 // Define Component
 const RegisteredItemsList: FunctionComponent<IRegisteredItemsListProps> = ({
     className,
+    dataSource,
 }) => {
     return (
         <List
-            bordered
             className={className}
             itemLayout="horizontal"
             pagination={{
                 position: "bottom",
                 style: { textAlign: "center" },
-                pageSize: 14,
+                pageSize: 11,
             }}
             renderItem={ListItem}
-            dataSource={[
-                { name: "Binário Ímpar, múltiplo de 3", onEdit: () => {} },
-                { name: "Binário Ímpar, múltiplo de 4", onEdit: () => {} },
-                { name: "Binário Ímpar, múltiplo de 5", onEdit: () => {} },
-                { name: "Binário Ímpar, múltiplo de 6", onEdit: () => {} },
-                { name: "Binário Ímpar, múltiplo de 3", onEdit: () => {} },
-                { name: "Binário Ímpar, múltiplo de 4", onEdit: () => {} },
-                { name: "Binário Ímpar, múltiplo de 5", onEdit: () => {} },
-                { name: "Binário Ímpar, múltiplo de 6", onEdit: () => {} },
-                { name: "Binário Ímpar, múltiplo de 3", onEdit: () => {} },
-                { name: "Binário Ímpar, múltiplo de 4", onEdit: () => {} },
-                { name: "Binário Ímpar, múltiplo de 5", onEdit: () => {} },
-                { name: "Binário Ímpar, múltiplo de 7", onEdit: () => {} },
-                { name: "Binário Ímpar, múltiplo de 3", onEdit: () => {} },
-                { name: "Binário Ímpar, múltiplo de 4", onEdit: () => {} },
-                { name: "Binário Ímpar, múltiplo de 5", onEdit: () => {} },
-                { name: "Binário Ímpar, múltiplo de 7", onEdit: () => {} },
-            ]}
+            dataSource={dataSource}
         />
     );
 };

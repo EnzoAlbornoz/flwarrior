@@ -8,6 +8,7 @@ import { Configuration as WebpackDevServerConfiguration } from "webpack-dev-serv
 import HtmlWebpackPlugin from "html-webpack-plugin";
 import { TsconfigPathsPlugin as TsConfigPathsWebpackPlugin } from "tsconfig-paths-webpack-plugin";
 import { CleanWebpackPlugin } from "clean-webpack-plugin";
+import FaviconsWebpackPlugin from "favicons-webpack-plugin";
 import ESLintWebpackPlugin from "eslint-webpack-plugin";
 import BarWebpackPlugin from "webpackbar";
 import path from "path";
@@ -93,6 +94,7 @@ const config: Array<Configuration> = [
                 files: "src",
             }),
             new CleanWebpackPlugin(),
+            new FaviconsWebpackPlugin(path.resolve(__dirname, "./src/assets/knight.svg")),
             new HtmlWebpackPlugin({
                 template: path.resolve(__dirname, "./public/index.html"),
             }),
@@ -157,6 +159,7 @@ const config: Array<Configuration> = [
                 files: "src",
             }),
             new CleanWebpackPlugin(),
+            new FaviconsWebpackPlugin(path.resolve(__dirname, "./src/assets/knight.svg")),
             new HtmlWebpackPlugin({
                 template: path.resolve(__dirname, "./public/index.html"),
             }),

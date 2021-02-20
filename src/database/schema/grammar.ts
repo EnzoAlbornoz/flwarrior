@@ -10,6 +10,7 @@ export enum GrammarType {
 export type GrammarDBEntryKey = "id";
 export interface GrammarDBEntry {
     id: string;
+    name: string;
     type: GrammarType;
     alphabetNT: Array<string>;
     alphabetT: Array<string>;
