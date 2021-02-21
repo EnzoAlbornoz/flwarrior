@@ -1,6 +1,7 @@
 // Import Depndencies
 import type { FLWarriorDBTables } from "@database/schema";
 import type { DBSchema } from "idb";
+import { v4 as uuid } from "uuid";
 // Define Schema Type
 export enum MachineType {
     FINITE_STATE_MACHINE = "fsm",
@@ -9,7 +10,6 @@ export enum MachineType {
 }
 
 export type MachineMemoryDirection = "left" | "right";
-export type MachineDBEntryKey = "id";
 
 export interface MachineDBEntryState {
     id: string;
@@ -41,10 +41,28 @@ export interface MachineDBEntry {
 
 export interface MachineDBTable extends DBSchema {
     [FLWarriorDBTables.MACHINE]: {
-        key: MachineDBEntryKey;
+        key: string;
         value: MachineDBEntry;
     };
 }
+
+export function getNewMachine(
+    type: MachineType,
+    deterministic = true
+): MachineDBEntry {
+    const machineId = uuid();
+    return {
+        id: machineId,
+        type,
+        name: machineId,
+        deterministic,
+        entryAlphabet: [],
+        memoryAlphabet: [],
+        states: [],
+        transitions: [],
+    };
+}
+
 // Export Schema Concrete Object
 export default {
     keyPath: "id",

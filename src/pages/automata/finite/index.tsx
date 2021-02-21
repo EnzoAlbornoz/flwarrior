@@ -7,10 +7,15 @@ import Layout from "@layout";
 import styled from "styled-components";
 import IconBase from "@ant-design/icons";
 import { ReactComponent as Graph } from "@assets/graph.svg";
-import DatabaseService from "@database";
-import { FLWarriorDBTables } from "@/database/schema";
+import { useDatabase } from "@database";
+import { FLWarriorDBTables } from "@database/schema";
 import useAsyncEffect from "@/utils/useAsyncEffect";
-import { MachineDBEntry } from "@/database/schema/machine";
+import { saveAs } from "file-saver";
+import {
+    MachineDBEntry,
+    getNewMachine,
+    MachineType,
+} from "@database/schema/machine";
 // Define Style
 const MachinesList = styled.section`
     height: 100%;
@@ -40,13 +45,45 @@ export default function FiniteAutomata(): JSX.Element {
     const [machineList, setMachineList] = useState<Array<MachineDBEntry>>([]);
     // Fetch Context
     const history = useHistory();
+    // Define Handlers
+    const editMachine = (itemId: string) => {
+        // Go to editing page
+        history.push(`/automata/finite/edit/${itemId}`);
+    };
+    const createMachine = async () => {
+        // Instantiate Basic Machine
+        const newMachine = getNewMachine(MachineType.FINITE_STATE_MACHINE);
+        // Add Machine to database
+        const db = await useDatabase();
+        await db.add(FLWarriorDBTables.MACHINE, newMachine);
+        // Edit new machine
+        editMachine(newMachine.id);
+    };
+    const deleteMachine = async (itemId: string) => {
+        // Remove Machine from Database
+        const db = await useDatabase();
+        db.delete(FLWarriorDBTables.MACHINE, itemId);
+        // Remove Machine from Machine List
+        setMachineList(machineList.filter((machine) => machine.id !== itemId));
+    };
+    const exportMachine = async (itemId: string) => {
+        // Fetch Machine from Database
+        const db = await useDatabase();
+        const machine = await db.get(FLWarriorDBTables.MACHINE, itemId);
+        // Save as File
+        const serializedMachine = JSON.stringify(machine);
+        const machineFile = new File(
+            [serializedMachine],
+            `${machine.type}-${machine.id}.json`,
+            { type: "application/json;charset=utf-8" }
+        );
+        saveAs(machineFile);
+    };
     // Fetch Data
     useAsyncEffect(async () => {
-        const db = await DatabaseService.getDb();
+        const db = await useDatabase();
         const machines = await db.getAll(FLWarriorDBTables.MACHINE);
-
         setMachineList(machines);
-        console.log(machines);
     }, []);
     const machineListDataSource = useMemo(
         () =>
@@ -54,20 +91,12 @@ export default function FiniteAutomata(): JSX.Element {
                 id: machine.id,
                 name: machine.name,
                 avatar: <GraphAvatar />,
-                onEdit: (itemId: string) => {
-                    console.log("EDIT - ", itemId);
-                },
-                onDelete: (itemId: string) => {
-                    console.log("DELETE - ", itemId);
-                },
-                onExport: (itemId: string) => {
-                    console.log("EXPORT - ", itemId);
-                },
+                onEdit: editMachine,
+                onDelete: deleteMachine,
+                onExport: exportMachine,
             })),
         [machineList]
     );
-    // Extra
-    const createAutomata = () => console.log("CREATE");
     // Fetch Data
     return (
         <>
@@ -81,7 +110,7 @@ export default function FiniteAutomata(): JSX.Element {
                             <Button
                                 type="primary"
                                 key="button-create"
-                                onClick={createAutomata}
+                                onClick={createMachine}
                             >
                                 Criar Autômato
                             </Button>,

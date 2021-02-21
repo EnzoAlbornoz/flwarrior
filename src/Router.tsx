@@ -5,6 +5,8 @@ import { Helmet } from "react-helmet";
 import HomePage from "./pages/Home";
 import FiniteAutomataPage from "./pages/automata/finite";
 import RegularGrammarsPage from "./pages/grammars/regular";
+import RegularGrammarEditPage from "./pages/grammars/regular/edit";
+import RegularExpressionsPage from "./pages/expressions/regular";
 // Define Component
 export default function Router(): JSX.Element {
     return (
@@ -25,10 +27,14 @@ export default function Router(): JSX.Element {
                         <Helmet title="Gramáticas Regulares - FL Warrior" />
                         <RegularGrammarsPage />
                     </Route>
+                    <Route path="/grammars/regular/edit/:id" exact>
+                        <Helmet title="Editar - Gramática Regular - FL Warrior" />
+                        <RegularGrammarEditPage />
+                    </Route>
                     {/* Expressions */}
                     <Route path="/expressions/regular" exact>
                         <Helmet title="Expressões Regulares - FL Warrior" />
-                        <HomePage />
+                        <RegularExpressionsPage />
                     </Route>
                 </Switch>
             </BrowserRouter>

@@ -1,11 +1,12 @@
 import { MachineDBEntry, MachineType } from "@database/schema/machine";
-import { IState } from "./State";
+import { IState, State } from "./State";
 import Alphabet from "../Alphabet";
 import AlphabetSymbol from "../AlphabetSymbol";
 import { Tuple } from "../utils";
 
 interface IFiniteAutomaton {
     id: string;
+    name: string;
     states: Set<IState>;
     alphabet: Alphabet;
     transitions: Array<Tuple<Tuple<IState, AlphabetSymbol>, IState>>;
@@ -31,7 +32,7 @@ interface IFiniteAutomaton {
         to: IState,
         using?: AlphabetSymbol
     ) => boolean;
-
+    fromDBEntry: (grammar: MachineDBEntry) => void;
     toString: () => string;
 }
 
@@ -39,24 +40,16 @@ interface IMachine {
     id: string;
 }
 
+// class FSMachine implements IMachine {
+
+// }
+
 class FiniteStateMachine implements IFiniteAutomaton {
-    removeState: (state: IState) => void;
-
-    addTransition: (
-        state: IState,
-        reading: AlphabetSymbol,
-        target: IState
-    ) => void;
-
-    getTransitions: () => Tuple<Tuple<IState, AlphabetSymbol>, IState>[];
-
-    getEntryState: () => IState;
-
-    getExitStates: () => Set<IState>;
-
-    unExit: (state: IState) => void;
+    name: string;
 
     id: string;
+
+    removeFromExits: (state: IState) => void;
 
     states: Set<IState>;
 
@@ -80,6 +73,66 @@ class FiniteStateMachine implements IFiniteAutomaton {
 
     addToExits(state: IState) {
         state.isExit = true;
+        this.exitStates.add(state);
+    }
+
+    unExit(state: IState) {
+        state.isExit = false;
+        this.exitStates.delete(state);
+    }
+
+    unEntry() {
+        this.entry.isEntry = false;
+        this.entry = null;
+    }
+
+    removeState(state: IState): void {
+        this.removeFromExits(state);
+        this.states.delete(state);
+        if (this.entry === state) {
+            this.entry = null;
+        }
+
+        for (const [index, [[from], to]] of this.transitions.entries()) {
+            if (to === state || from === state) {
+                this.transitions.splice(index, 1);
+            }
+        }
+    }
+
+    addTransition(
+        state: IState,
+        reading: AlphabetSymbol,
+        target: IState
+    ): void {
+        const toInsert: Tuple<Tuple<IState, AlphabetSymbol>, IState> = [
+            [state, reading],
+            target,
+        ];
+        if (this.transitions.includes(toInsert))
+            console.log(
+                `Already has this transition:${state}${reading}, will do nothing`
+            );
+        else this.transitions.push(toInsert);
+    }
+
+    getTransitions(): Array<Tuple<Tuple<IState, AlphabetSymbol>, IState>> {
+        return this.transitions;
+    }
+
+    getEntryState(): IState {
+        // TODO implement return this.entry cache
+        for (const state of this.states) {
+            if (state.isEntry) {
+                return state;
+            }
+        }
+        console.log(`No Entry state found`);
+        return null;
+    }
+
+    getExitStates(): Set<IState> {
+        return this.exitStates;
     }
 
     setExitStates(newExitStates: Set<IState>): void {
@@ -101,9 +154,39 @@ class FiniteStateMachine implements IFiniteAutomaton {
         return false;
     }
 
+    fromDBEntry(machine: MachineDBEntry): void {
+        this.id = machine.id;
+        this.name = machine.name;
+        // this.type = machine.type;
+        this.states = new Set(
+            machine.states.map(
+                (dbState) =>
+                    new State(dbState.id, dbState.isEntry, dbState.isExit)
+            )
+        );
+        this.alphabet = new Alphabet(
+            new Set(
+                machine.entryAlphabet.map(
+                    (_string) => new AlphabetSymbol(_string)
+                )
+            )
+        );
+        this.transitions = machine.transitions.map((transition) => {
+            return [
+                [
+                    new State(transition.from, false, false),
+                    new AlphabetSymbol(transition.with.head),
+                ],
+                new State(transition.to.newState, false, false),
+            ];
+        });
+    }
+    // transitions: Array<Tuple<Tuple<IState, AlphabetSymbol>, IState>>;
+
     toString(): string {
         const x: MachineDBEntry = {
             id: this.id,
+            name: this.name,
             type: MachineType.FINITE_STATE_MACHINE,
             deterministic: true,
             states: Array.from(this.states.values()),

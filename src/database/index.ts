@@ -44,4 +44,9 @@ class DatabaseService {
     }
 }
 
-export default new DatabaseService();
+const singleton = new DatabaseService();
+export default singleton;
+
+export async function useDatabase(): Promise<IDBPDatabase<FLWarriorDBSchema>> {
+    return singleton.getDb();
+}

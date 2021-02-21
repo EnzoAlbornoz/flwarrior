@@ -21,7 +21,12 @@
         "react/jsx-uses-react": "off",
         "react/react-in-jsx-scope": "off",
         "react/prop-types": "off",
-        "no-restricted-syntax": ["error", "LabeledStatement", "WithStatement"]
+        "no-restricted-syntax": ["error", "LabeledStatement", "WithStatement"],
+        "no-sequences": "off",
+        "react/require-default-props": [
+            "error",
+            { "ignoreFunctionalComponents": true }
+        ]
     },
     "settings": {
         "import/ignore": [".(scss|less|css)$", ".svg$"]

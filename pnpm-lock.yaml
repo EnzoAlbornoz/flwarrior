@@ -1,9 +1,11 @@
 dependencies:
   '@ant-design/icons': 4.5.0_react-dom@17.0.1+react@17.0.1
   antd: 4.12.3_89622fd8e4ec221151a62783d49305af
+  buckets-js: 1.98.2
   dayjs: 1.10.4
   favicons: 6.2.1
   favicons-webpack-plugin: 5.0.1_favicons@6.2.1+webpack@5.23.0
+  file-saver: 2.0.5
   idb: 6.0.0
   react: 17.0.1
   react-dom: 17.0.1_react@17.0.1
@@ -19,6 +21,7 @@ devDependencies:
   '@babel/preset-typescript': 7.12.17_@babel+core@7.12.17
   '@hot-loader/react-dom': 17.0.1_react@17.0.1
   '@svgr/webpack': 5.5.0
+  '@types/file-saver': 2.0.1
   '@types/node': 14.14.29
   '@types/react': 17.0.2
   '@types/react-dev-utils': 9.0.4
@@ -1767,6 +1770,10 @@ packages:
     dev: false
     resolution:
       integrity: sha512-s76OlRaBfqtGu2ZBobnZv2NETfqsQUVfKKlOkKNGo4ArBsqiblodKsnQ3j29hCCgmpQacEfLxealV96za+tzVQ==
+  /@types/file-saver/2.0.1:
+    dev: true
+    resolution:
+      integrity: sha512-g1QUuhYVVAamfCifK7oB7G3aIl4BbOyzDOqVyUfEr4tfBKrXfeH+M+Tg7HKCXSrbzxYdhyCP7z9WbKo0R2hBCw==
   /@types/glob/7.1.3:
     dependencies:
       '@types/minimatch': 3.0.3
@@ -2809,6 +2816,10 @@ packages:
     hasBin: true
     resolution:
       integrity: sha512-vIyhWmIkULaq04Gt93txdh+j02yX/JzlyhLYbV3YQCn/zvES3JnY7TifHHvvr1w5hTDluNKMkV05cs4vy8Q7sw==
+  /buckets-js/1.98.2:
+    dev: false
+    resolution:
+      integrity: sha1-LPk2/ebQ3cJi2Jh/2hJWOZYafHM=
   /buffer-alloc-unsafe/1.1.0:
     dev: false
     resolution:
@@ -4441,6 +4452,10 @@ packages:
       node: ^10.12.0 || >=12.0.0
     resolution:
       integrity: sha512-fqoO76jZ3ZnYrXLDRxBR1YvOvc0k844kcOg40bgsPrE25LAb/PDqTY+ho64Xh2c8ZXgIKldchCFHczG2UVRcWA==
+  /file-saver/2.0.5:
+    dev: false
+    resolution:
+      integrity: sha512-P9bmyZ3h/PRG+Nzga+rbdI4OEpNDzAVyy74uVO9ATgzLK6VtAsYybF/+TOCvrc0MO793d6+42lLyZTw7/ArVzA==
   /file-type/3.9.0:
     dev: false
     engines:
@@ -9463,6 +9478,7 @@ specifiers:
   '@babel/preset-typescript': ^7.12.17
   '@hot-loader/react-dom': ^17.0.1
   '@svgr/webpack': ^5.5.0
+  '@types/file-saver': ^2.0.1
   '@types/node': ^14.14.29
   '@types/react': ^17.0.2
   '@types/react-dev-utils': ^9.0.4
@@ -9479,6 +9495,7 @@ specifiers:
   antd: ^4.12.3
   babel-loader: ^8.2.2
   babel-plugin-styled-components: ^1.12.0
+  buckets-js: ^1.98.2
   chalk: ^4.1.0
   clean-webpack-plugin: ^3.0.0
   cross-env: ^7.0.3
@@ -9495,6 +9512,7 @@ specifiers:
   eslint-webpack-plugin: ^2.5.2
   favicons: ^6.2.1
   favicons-webpack-plugin: ^5.0.1
+  file-saver: ^2.0.5
   html-webpack-plugin: ^5.1.0
   idb: ^6.0.0
   prettier: ^2.2.1
