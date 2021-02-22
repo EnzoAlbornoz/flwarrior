@@ -1,5 +1,6 @@
 // Import Dependencies
-import { PageHeader, List, Button, Typography, Modal, Input } from "antd";
+import { PageHeader, List, Button, Typography, Tag } from "antd";
+import IconBase, { SaveOutlined } from "@ant-design/icons";
 import { useState, useMemo } from "react";
 import { useParams, useHistory } from "react-router-dom";
 import styled from "styled-components";
@@ -9,7 +10,8 @@ import { useDatabase } from "@database";
 import { FLWarriorDBTables } from "@database/schema";
 import type { GrammarDBEntry } from "@database/schema/grammar";
 import type { ArrayElement } from "@/utils/ArrayElement";
-import { useModal } from "@/components/TextModalInput";
+import { useModal } from "@components/TextModalInput";
+import { ReactComponent as RightArrowRaw } from "@assets/right-arrow.svg";
 // Define Typings
 export interface ITGEditPageProps {
     id: string;
@@ -48,10 +50,45 @@ const GrammarEditGrid = styled.section`
     display: grid;
     gap: 1rem;
     grid-template-columns: 8fr 2fr;
-    grid-template-rows: auto;
+    grid-template-rows: repeat(2, 1fr);
     grid-template-areas:
         "rules alphabetT"
         "rules alphabetNT";
+`;
+const RuleHead = styled.section`
+    display: flex;
+    align-items: center;
+    font-size: 1.8em;
+`;
+const RuleBody = styled.section`
+    flex-grow: 1;
+    text-align: left;
+    font-size: 1.5rem;
+`;
+const RightArrow = styled(IconBase).attrs({ component: RightArrowRaw })`
+    margin: auto 1rem;
+`;
+const TypographySpacer = styled(Typography.Text).attrs({
+    strong: true,
+    children: "|",
+})`
+    margin: auto 0.5rem;
+`;
+const RuleBodyTag = styled(Tag)`
+    display: inline-flex;
+    font-size: 1.4rem;
+    font-weight: 600;
+    padding: 0.2rem 0.6rem;
+    margin: auto 0.2rem;
+    justify-content: space-between;
+
+    background: none;
+    border-radius: 8px;
+
+    & > span {
+        align-self: center;
+        font-size: 0.8rem;
+    }
 `;
 // Define Page
 export default function RegularGrammarEdit(): JSX.Element {
@@ -60,7 +97,6 @@ export default function RegularGrammarEdit(): JSX.Element {
     // Get Context
     const history = useHistory();
     const { id: idToEdit } = useParams<ITGEditPageProps>();
-    // Define Handlers
     // Fetch Data
     useAsyncEffect(async () => {
         const db = await useDatabase();
@@ -70,19 +106,69 @@ export default function RegularGrammarEdit(): JSX.Element {
     // Define Computed Values
     const alphabetNT = useMemo(() => grammarDb?.alphabetNT, [grammarDb]);
     const alphabetT = useMemo(() => grammarDb?.alphabetT, [grammarDb]);
-    // Components States
-    const [
-        newAlphabetTModalIsVisible,
-        setNewAlphabetTModalIsVisible,
-    ] = useState(false);
-    const [
-        newAlphabetNTModalIsVisible,
-        setNewAlphabetNTModalIsVisible,
-    ] = useState(false);
-    const [newAlphabetTModalValue, setNewAlphabetTModalValue] = useState("");
-    const [newAlphabetNTModalValue, setNewAlphabetNTModalValue] = useState("");
+    const transitions = useMemo(() => grammarDb?.transitions, [grammarDb]);
     // Components Handlers
-    // const onNewRuleHead = () =>
+    const renameGrammar = (newName: string) => {
+        setGrammarDb({ ...grammarDb, name: newName });
+    };
+    const saveGrammar = async () => {
+        // Fetch Database
+        const db = await useDatabase();
+        await db.put(FLWarriorDBTables.GRAMMAR, grammarDb);
+    };
+    const newRuleHead = (newRuleHeadSymbols: string) => {
+        setGrammarDb((grammar) => {
+            if (
+                grammar.transitions.findIndex(
+                    ({ from: f }) => f.join() === newRuleHeadSymbols
+                ) === -1
+            ) {
+                // Not Found -> Create New Rule
+                grammar.transitions.push({
+                    from: newRuleHeadSymbols.split(""),
+                    to: [],
+                });
+            }
+            return { ...grammar };
+        });
+    };
+    const deleteRuleHead = (ruleHead: string[]) => {
+        setGrammarDb((grammar) => {
+            const grammarToDelete = grammar.transitions.findIndex(
+                (t) => t.from.join("") === ruleHead.join("")
+            );
+            if (grammarToDelete >= 0) {
+                grammar.transitions.splice(grammarToDelete, 1);
+            }
+            return { ...grammar };
+        });
+    };
+    const deleteRuleBody = (ruleHead: string[], ruleBody: string[]) => {
+        setGrammarDb((grammar) => {
+            const targetRule = grammar.transitions.findIndex(
+                (t) => t.from.join("") === ruleHead.join("")
+            );
+            if (targetRule >= 0) {
+                const bodyToDelete = grammar.transitions[
+                    targetRule
+                ].to.findIndex((rb) => rb.join("") === ruleBody.join(""));
+                grammar.transitions[targetRule].to.splice(bodyToDelete, 1);
+            }
+            return { ...grammar };
+        });
+    };
+    const newRuleBody = (
+        newRuleBodySymbols: string,
+        { ruleHead }: { ruleHead: Array<string> }
+    ) => {
+        setGrammarDb((grammar) => {
+            const ruleIdx = grammar.transitions.findIndex(
+                (t) => t.from === ruleHead
+            );
+            grammar.transitions[ruleIdx].to.push(newRuleBodySymbols.split(""));
+            return { ...grammar };
+        });
+    };
     const newAlphabetTSymbol = (newSymbol: string) => {
         setGrammarDb((grammar) => {
             if (!grammar.alphabetT.includes(newSymbol)) {
@@ -91,8 +177,7 @@ export default function RegularGrammarEdit(): JSX.Element {
             return { ...grammar };
         });
     };
-    const onNewAlphabetNT = () => {
-        const newSymbol = newAlphabetNTModalValue;
+    const newAlphabetNTSymbol = (newSymbol: string) => {
         setGrammarDb((grammar) => {
             if (!grammar.alphabetNT.includes(newSymbol)) {
                 grammar.alphabetNT.push(newSymbol);
@@ -118,12 +203,42 @@ export default function RegularGrammarEdit(): JSX.Element {
             return { ...grammar };
         });
     };
+    // Setup Modals
     const [showModalAlphabetT, modalAlphabetTCH] = useModal({
         title: "Adicionar símbolo terminal",
         onSubmit: newAlphabetTSymbol,
         placeholder: "Insira o novo símbolo",
         submitText: "Adicionar",
         submitDisabled: (ci) => ci.length !== 1,
+    });
+    const [showModalAlphabetNT, modalAlphabetNTCH] = useModal({
+        title: "Adicionar símbolo não terminal",
+        onSubmit: newAlphabetNTSymbol,
+        placeholder: "Insira o novo símbolo",
+        submitText: "Adicionar",
+        submitDisabled: (ci) => ci.length !== 1,
+    });
+    const [showModalNewRuleHead, modalNewRuleHeadCH] = useModal({
+        title: "Adicionar nova cabeça de produção",
+        onSubmit: newRuleHead,
+        placeholder: "Insira a nova cabeça de produção (Ex.: S)",
+        submitText: "Adicionar",
+        submitDisabled: (ci) => ci.length < 1,
+    });
+    const [showModalNewRuleBody, modalNewRuleBodyCH] = useModal({
+        title: "Adicionar novo corpo de produção",
+        onSubmit: newRuleBody,
+        placeholder: "Insira o novo corpo de produção (Ex.: aA)",
+        submitText: "Adicionar",
+        submitDisabled: (ci) => ci.length < 1,
+    });
+
+    const [showModalRename, modalRenameCH] = useModal({
+        title: "Renomear Autômato",
+        onSubmit: renameGrammar,
+        placeholder: grammarDb?.name,
+        submitText: "Renomear",
+        submitDisabled: (ci) => !(ci.length >= 1),
     });
     // Render Page
     return (
@@ -132,11 +247,31 @@ export default function RegularGrammarEdit(): JSX.Element {
                 <GrammarEditContent>
                     <PageHeader
                         onBack={history.goBack}
-                        title={`Editar - ${idToEdit}`}
+                        title={`Editar - ${grammarDb?.name || idToEdit}`}
                         subTitle="Gramática Regular"
                         extra={[
-                            <Button key="button-new-rule">
+                            <Button
+                                key="button-rename"
+                                onClick={showModalRename}
+                                type="dashed"
+                            >
+                                Renomear
+                                {modalRenameCH}
+                            </Button>,
+                            <Button
+                                key="button-save"
+                                onClick={saveGrammar}
+                                icon={<SaveOutlined />}
+                            >
+                                Salvar
+                            </Button>,
+                            <Button
+                                type="primary"
+                                key="button-new-rule"
+                                onClick={showModalNewRuleHead}
+                            >
                                 Adicionar Regra
+                                {modalNewRuleHeadCH}
                             </Button>,
                         ]}
                     />
@@ -150,20 +285,69 @@ export default function RegularGrammarEdit(): JSX.Element {
                                 </Typography.Text>
                             }
                             style={{ gridArea: "rules" }}
-                            dataSource={[
-                                { from: ["S"], to: [["a"], ["a", "S"]] },
-                            ]}
+                            dataSource={transitions}
                             renderItem={(
                                 item: ArrayElement<
                                     GrammarDBEntry["transitions"]
                                 >,
                                 index
                             ) => (
-                                <List.Item key={index}>
-                                    {item.from.join()}
+                                <List.Item
+                                    key={index}
+                                    actions={[
+                                        <Button
+                                            type="primary"
+                                            key="new-rule-body"
+                                            onClick={() =>
+                                                showModalNewRuleBody({
+                                                    ruleHead: item.from,
+                                                })
+                                            }
+                                        >
+                                            Adicionar Corpo
+                                        </Button>,
+                                        <Button
+                                            danger
+                                            key="remove-rule"
+                                            onClick={() =>
+                                                deleteRuleHead(item.from)
+                                            }
+                                        >
+                                            Deletar Produção
+                                        </Button>,
+                                    ]}
+                                >
+                                    <RuleHead>
+                                        <Typography.Text strong>
+                                            {item.from.join()}
+                                        </Typography.Text>
+                                        <RightArrow />
+                                    </RuleHead>
+                                    <RuleBody>
+                                        {item.to.map((to, idx) => (
+                                            <>
+                                                {idx > 0 ? (
+                                                    <TypographySpacer />
+                                                ) : null}
+                                                <RuleBodyTag
+                                                    closable
+                                                    onClose={() =>
+                                                        deleteRuleBody(
+                                                            item.from,
+                                                            to
+                                                        )
+                                                    }
+                                                >
+                                                    {to.join("")}
+                                                </RuleBodyTag>
+                                            </>
+                                        ))}
+                                    </RuleBody>
                                 </List.Item>
                             )}
-                        />
+                        >
+                            {modalNewRuleBodyCH}
+                        </RulesList>
                         <AlphabetList
                             dataSource={alphabetT}
                             style={{
@@ -209,53 +393,10 @@ export default function RegularGrammarEdit(): JSX.Element {
                                     <Typography.Text>
                                         Alfabeto Não Terminal
                                     </Typography.Text>
-                                    <Button
-                                        onClick={() => (
-                                            setNewAlphabetNTModalValue(""),
-                                            setNewAlphabetNTModalIsVisible(true)
-                                        )}
-                                    >
+                                    <Button onClick={showModalAlphabetNT}>
                                         Adicionar
                                     </Button>
-                                    <Modal
-                                        title="Adicionar símbolo não terminal"
-                                        visible={newAlphabetNTModalIsVisible}
-                                        okButtonProps={{
-                                            disabled:
-                                                newAlphabetNTModalValue.length !==
-                                                1,
-                                        }}
-                                        onOk={() => (
-                                            setNewAlphabetNTModalIsVisible(
-                                                false
-                                            ),
-                                            onNewAlphabetNT()
-                                        )}
-                                        onCancel={() =>
-                                            setNewAlphabetNTModalIsVisible(
-                                                false
-                                            )
-                                        }
-                                    >
-                                        <Input
-                                            onSubmit={() =>
-                                                newAlphabetNTModalValue.length ===
-                                                1
-                                                    ? (setNewAlphabetNTModalIsVisible(
-                                                          false
-                                                      ),
-                                                      onNewAlphabetNT())
-                                                    : null
-                                            }
-                                            placeholder="Insira o novo símbolo"
-                                            value={newAlphabetNTModalValue}
-                                            onChange={(ev) =>
-                                                setNewAlphabetNTModalValue(
-                                                    ev?.target?.value
-                                                )
-                                            }
-                                        />
-                                    </Modal>
+                                    {modalAlphabetNTCH}
                                 </AlphabetListHeader>
                             }
                             renderItem={(symb) => (

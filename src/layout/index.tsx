@@ -11,9 +11,6 @@ const { Content, Header: HeaderBase, Sider } = Layout;
 const { Title: TitleBase } = Typography;
 const { SubMenu, Item: MenuItem } = Menu;
 // Define Types
-// export interface AppLayoutProps {
-//     children
-// }
 // Define Style
 const KnightIcon = styled(IconBase).attrs({ component: KnightSVG })`
     font-size: 2.5rem;
@@ -22,6 +19,8 @@ const RegexIcon = styled(IconBase).attrs({ component: RegexSVG })``;
 const RootLayout = styled(Layout)`
     min-width: 100vw;
     min-height: 100vh;
+    max-width: 100vw;
+    max-height: 100vh;
 `;
 const Title = styled(TitleBase)`
     &&& {
@@ -57,6 +56,10 @@ const Pane = styled.div`
     border-color: #f0f0f0;
     border-style: solid;
     border-radius: 2px;
+    /* Overflow */
+    & > * {
+        overflow-y: auto;
+    }
 `;
 // Define Component
 const AppLayout: FunctionComponent = ({ children }) => {

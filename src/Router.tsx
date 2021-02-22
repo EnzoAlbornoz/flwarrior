@@ -2,11 +2,12 @@
 import { BrowserRouter, Route, Switch } from "react-router-dom";
 import { Helmet } from "react-helmet";
 // Import Routes
-import HomePage from "./pages/Home";
-import FiniteAutomataPage from "./pages/automata/finite";
-import RegularGrammarsPage from "./pages/grammars/regular";
-import RegularGrammarEditPage from "./pages/grammars/regular/edit";
-import RegularExpressionsPage from "./pages/expressions/regular";
+import HomePage from "@pages/Home";
+import FiniteAutomataPage from "@pages/automata/finite";
+import FiniteAutomataEditPage from "@pages/automata/finite/edit";
+import RegularGrammarsPage from "@pages/grammars/regular";
+import RegularGrammarEditPage from "@pages/grammars/regular/edit";
+import RegularExpressionsPage from "@pages/expressions/regular";
 // Define Component
 export default function Router(): JSX.Element {
     return (
@@ -21,6 +22,10 @@ export default function Router(): JSX.Element {
                     <Route path="/automata/finite" exact>
                         <Helmet title="Autômatos Finitos - FL Warrior" />
                         <FiniteAutomataPage />
+                    </Route>
+                    <Route path="/automata/finite/edit/:id" exact>
+                        <Helmet title="Editar - Autômato Finito - FL Warrior" />
+                        <FiniteAutomataEditPage />
                     </Route>
                     {/* Grammars */}
                     <Route path="/grammars/regular" exact>

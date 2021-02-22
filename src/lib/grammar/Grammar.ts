@@ -24,9 +24,23 @@ interface IGrammar {
     ) => void;
     toString: () => string;
     fromDBEntry: (grammar: GrammarDBEntry) => void;
+    checkOwnType: () => GrammarType;
 }
 
 class Grammar implements IGrammar {
+    checkOwnType(): GrammarType {
+        // Check if Regular
+        this.terminalSymbols.symbols.forEach((symbol) => {
+            const foundNonTerminalLeft = this.productionRules.map((tuple) => {
+                return tuple[0]
+                    .map((aSymbol) => aSymbol.symbol)
+                    .join()
+                    .search(symbol.symbol);
+            });
+            if (foundNonTerminalLeft) return GrammarType.REGULAR;
+        });
+    }
+
     addNonTerminalSymbol(nonTerminalSymbol: AlphabetSymbol): void {
         this.nonTerminalSymbols.symbols.add(nonTerminalSymbol);
     }
