@@ -2,6 +2,7 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import {
     Configuration as WebpackConfiguration,
+    EnvironmentPlugin,
     HotModuleReplacementPlugin,
 } from "webpack";
 import { Configuration as WebpackDevServerConfiguration } from "webpack-dev-server";
@@ -102,6 +103,7 @@ const config: Array<Configuration> = [
                 template: path.resolve(__dirname, "./public/index.html"),
             }),
             new BarWebpackPlugin({}),
+            new EnvironmentPlugin(["PUBLIC_PATH"]),
         ],
     },
     {
@@ -171,6 +173,7 @@ const config: Array<Configuration> = [
                 template: path.resolve(__dirname, "./public/index.html"),
             }),
             new BarWebpackPlugin({}),
+            new EnvironmentPlugin(["PUBLIC_PATH"]),
         ],
     },
 ];

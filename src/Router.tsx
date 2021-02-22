@@ -12,7 +12,7 @@ import RegularExpressionsPage from "@pages/expressions/regular";
 export default function Router(): JSX.Element {
     return (
         <>
-            <BrowserRouter>
+            <BrowserRouter basename={process.env.PUBLIC_PATH}>
                 <Switch>
                     <Route path="/" exact>
                         <Helmet title="Home - FL Warrior" />
