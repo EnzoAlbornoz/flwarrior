@@ -1,7 +1,7 @@
 {
 	"name": "flm-web",
 	"scripts": {
-		"build": "cross-env TS_NODE_PROJECT=tsconfig.build.json webpack serve --hot --config-name production",
+		"build": "cross-env TS_NODE_PROJECT=tsconfig.build.json webpack build --config-name production",
 		"start": "cross-env TS_NODE_PROJECT=tsconfig.build.json webpack serve --hot --config-name development"
 	},
 	"license": "MIT",

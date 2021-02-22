@@ -34,7 +34,7 @@ export function verifyMachineDBType(machine: MachineDBEntry): MachineType {
 }
 
 export function machineIsDeterministic(machine: MachineDBEntry): boolean {
-    return machine.transitions.some(
-        (t) => t.with.head === AlphabetSymbol.EPSILON.symbol
-    );
+    return !machine.transitions.some((t) => {
+        return t.with.head === AlphabetSymbol.EPSILON.symbol;
+    });
 }

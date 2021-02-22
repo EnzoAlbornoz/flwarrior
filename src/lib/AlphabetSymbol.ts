@@ -1,5 +1,3 @@
-import { createHash } from "crypto";
-
 export default class AlphabetSymbol {
     static readonly EPSILON = new AlphabetSymbol("ε");
 
@@ -15,11 +13,13 @@ export default class AlphabetSymbol {
         return this.#symbol;
     }
 
-    hash(): string {
-        return createHash("sha256")
-            .update(this.#symbol, "utf8")
-            .digest("hex")
-            .toString();
+    async hash(): Promise<string> {
+        return new TextDecoder().decode(
+            await crypto.subtle.digest(
+                "SHA-256",
+                new TextEncoder().encode(this.#symbol)
+            )
+        );
     }
 
     equals(that: AlphabetSymbol): boolean {
