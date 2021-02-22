@@ -17,6 +17,8 @@ jobs:
           node-version: "14.x"
       - run: npm install
       - run: npm run build
+        env:
+          PUBLIC_PATH: "/flwarrior"
       - name: Deploy
         uses: crazy-max/ghaction-github-pages@v2
         with:
