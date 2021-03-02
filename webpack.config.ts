@@ -73,7 +73,6 @@ const config: Array<Configuration> = [
         output: {
             filename: "bundle.js",
             path: path.resolve(__dirname, "dist"),
-            publicPath: process.env.PUBLIC_PATH,
         },
         devServer: {
             contentBase: path.resolve(__dirname, "public"),
@@ -103,7 +102,6 @@ const config: Array<Configuration> = [
                 template: path.resolve(__dirname, "./public/index.html"),
             }),
             new BarWebpackPlugin({}),
-            new EnvironmentPlugin(["PUBLIC_PATH"]),
         ],
     },
     {
@@ -173,7 +171,6 @@ const config: Array<Configuration> = [
                 template: path.resolve(__dirname, "./public/index.html"),
             }),
             new BarWebpackPlugin({}),
-            new EnvironmentPlugin(["PUBLIC_PATH"]),
         ],
     },
 ];
