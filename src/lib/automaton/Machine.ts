@@ -1,8 +1,10 @@
-import { MachineDBEntry, MachineType } from "@database/schema/machine";
+import { MachineDBEntry, MachineType } from "../../database/schema/machine";
 import { IState, State } from "./State";
 import Alphabet from "../Alphabet";
 import AlphabetSymbol from "../AlphabetSymbol";
 import { Tuple } from "../utils";
+import { Grammar } from "../grammar/Grammar";
+import { PassThrough } from "stream";
 
 interface IFiniteAutomaton {
     id: string;
@@ -44,7 +46,7 @@ interface IMachine {
 
 // }
 
-class FiniteStateMachine implements IFiniteAutomaton {
+export class FiniteStateMachine implements IFiniteAutomaton {
     name: string;
 
     id: string;
@@ -60,6 +62,24 @@ class FiniteStateMachine implements IFiniteAutomaton {
     entry: IState;
 
     exitStates: Set<IState>;
+
+    constructor(
+            name: string,
+            id: string,
+            states: Set<IState>,
+            alphabet: Alphabet,
+            transitions:
+            Array<Tuple<Tuple<IState, AlphabetSymbol>, IState>>,
+            entry: IState,
+            exitStates: Set<IState>) {
+                this.name = name;
+                this.id = id;
+                this.states = states;
+                this.alphabet = alphabet;
+                this.transitions = transitions;
+                this.entry = entry;
+                this.exitStates = exitStates;
+    }
 
     addState(state: IState): void {
         this.states.add(state);
@@ -153,6 +173,10 @@ class FiniteStateMachine implements IFiniteAutomaton {
         }
         return false;
     }
+
+    // transformToRegularGrammar(): Grammar {
+        
+    // }
 
     fromDBEntry(machine: MachineDBEntry): void {
         this.id = machine.id;

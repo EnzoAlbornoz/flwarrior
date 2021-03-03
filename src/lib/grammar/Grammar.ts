@@ -1,4 +1,4 @@
-import { GrammarType, GrammarDBEntry } from "@database/schema/grammar";
+import { GrammarType, GrammarDBEntry } from "../../database/schema/grammar";
 import Alphabet from "../Alphabet";
 import AlphabetSymbol from "../AlphabetSymbol";
 import { Tuple, arrayCompare } from "../utils";
@@ -27,7 +27,25 @@ interface IGrammar {
     checkOwnType: () => GrammarType;
 }
 
-class Grammar implements IGrammar {
+export class Grammar implements IGrammar {
+
+    constructor(id: string,
+                nonTerminalSymbols: Alphabet,
+                terminalSymbols: Alphabet,
+                productionRules: Array<
+                Tuple<Array<AlphabetSymbol>, Set<Array<AlphabetSymbol>>>>,
+                startSymbol: AlphabetSymbol,
+                type: GrammarType,
+                name: string) {
+                    this.id = id;
+                    this.nonTerminalSymbols = nonTerminalSymbols;
+                    this.terminalSymbols = terminalSymbols;
+                    this.productionRules = productionRules;
+                    this.startSymbol = startSymbol;
+                    this.type = type;
+                    this.name = name;
+    }
+
     checkOwnType(): GrammarType {
         // Check if Regular
         this.terminalSymbols.symbols.forEach((symbol) => {
@@ -39,6 +57,7 @@ class Grammar implements IGrammar {
             });
             if (foundNonTerminalLeft) return GrammarType.REGULAR;
         });
+        return GrammarType.REGULAR;
     }
 
     addNonTerminalSymbol(nonTerminalSymbol: AlphabetSymbol): void {

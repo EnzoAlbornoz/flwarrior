@@ -1,4 +1,4 @@
-import { MachineDBEntry, MachineType } from "@database/schema/machine";
+import { MachineDBEntry, MachineType } from "../database/schema/machine";
 import AlphabetSymbol from "./AlphabetSymbol";
 
 export type Tuple<T1, T2> = [T1, T2];

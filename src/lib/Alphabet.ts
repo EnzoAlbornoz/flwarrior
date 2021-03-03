@@ -24,13 +24,13 @@ export default class Alphabet {
     }
 }
 
-console.log(
-    new Alphabet(
-        new Set([
-            new AlphabetSymbol("a"),
-            new AlphabetSymbol("b"),
-            new AlphabetSymbol("c"),
-            AlphabetSymbol.EPSILON,
-        ])
-    ).toString()
-);
+// console.log(
+//     new Alphabet(
+//         new Set([
+//             new AlphabetSymbol("a"),
+//             new AlphabetSymbol("b"),
+//             new AlphabetSymbol("c"),
+//             AlphabetSymbol.EPSILON,
+//         ])
+//     ).toString()
+// );
