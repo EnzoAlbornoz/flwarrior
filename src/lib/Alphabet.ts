@@ -23,14 +23,3 @@ export default class Alphabet {
         return symbols.map((sbl) => sbl.symbol).toString();
     }
 }
-
-console.log(
-    new Alphabet(
-        new Set([
-            new AlphabetSymbol("a"),
-            new AlphabetSymbol("b"),
-            new AlphabetSymbol("c"),
-            AlphabetSymbol.EPSILON,
-        ])
-    ).toString()
-);

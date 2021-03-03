@@ -109,7 +109,9 @@ const config: Array<Configuration> = [
         name: "production",
         mode: "production",
         // Define Entrypoints
-        entry: [path.resolve(__dirname, "./src/index.ts")],
+        entry: {
+            index: path.resolve(__dirname, "./src/index.ts"),
+        },
         resolve: {
             extensions: [".js", ".jsx", ".ts", ".tsx", ".json"],
             alias: {
@@ -169,6 +171,7 @@ const config: Array<Configuration> = [
             ),
             new HtmlWebpackPlugin({
                 template: path.resolve(__dirname, "./public/index.html"),
+                filename: "[name].html",
             }),
             new BarWebpackPlugin({}),
         ],

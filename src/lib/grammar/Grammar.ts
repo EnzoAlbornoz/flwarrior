@@ -29,16 +29,45 @@ interface IGrammar {
 
 class Grammar implements IGrammar {
     checkOwnType(): GrammarType {
-        // Check if Regular
-        this.terminalSymbols.symbols.forEach((symbol) => {
-            const foundNonTerminalLeft = this.productionRules.map((tuple) => {
-                return tuple[0]
-                    .map((aSymbol) => aSymbol.symbol)
-                    .join()
-                    .search(symbol.symbol);
-            });
-            if (foundNonTerminalLeft) return GrammarType.REGULAR;
-        });
+        // Check for type Context Sensitive (No recursive empty)
+        if (
+            !this.productionRules.every(
+                ([head, body]) =>
+                    Array.from(body).every(
+                        (b) =>
+                            head.filter(
+                                (c) => !c.equals(AlphabetSymbol.EPSILON)
+                            ).length <= b.length
+                    ) &&
+                    head.length === 1 &&
+                    !this.startSymbol.equals(head[0])
+            )
+        ) {
+            return GrammarType.UNRESTRICTED;
+        }
+        // Check for type Context Free (Head with length === 1)
+        if (!this.productionRules.every(([head]) => head.length === 1)) {
+            return GrammarType.CONTEXT_SENSITIVE;
+        }
+        // Check for type Finite State
+        if (
+            !this.productionRules.every(([_, body]) =>
+                Array.from(body).every(
+                    (pb) =>
+                        [1, 2].includes(pb.length) &&
+                        Array.from(this.terminalSymbols.symbols).some((s) =>
+                            s.equals(pb[0])
+                        ) &&
+                        (pb.length === 1 ||
+                            Array.from(this.terminalSymbols.symbols).some((s) =>
+                                s.equals(pb[0])
+                            ))
+                )
+            )
+        ) {
+            return GrammarType.CONTEXT_FREE;
+        }
+        return GrammarType.REGULAR;
     }
 
     addNonTerminalSymbol(nonTerminalSymbol: AlphabetSymbol): void {
@@ -139,7 +168,7 @@ class Grammar implements IGrammar {
                 outerIndex = innerIndex;
                 for (const toList of to) {
                     let isArrayInRightSideProduction = false;
-                    alpSymTuples[1].forEach((list) => {
+                    for (const list of alpSymTuples[1]) {
                         isArrayInRightSideProduction = arrayCompare(
                             (left: AlphabetSymbol, right: AlphabetSymbol) =>
                                 left.equals(right),
@@ -147,7 +176,7 @@ class Grammar implements IGrammar {
                             toList
                         );
                         if (isArrayInRightSideProduction) return;
-                    });
+                    }
                 }
             }
         }
@@ -188,6 +217,7 @@ class Grammar implements IGrammar {
             id: this.id,
             name: this.name,
             type: this.type,
+            startSymbol: this.startSymbol.toString(),
             alphabetNT: Array.from(
                 this.nonTerminalSymbols.symbols.values()
             ).map((alphabetSymbol) => alphabetSymbol.toString()),
@@ -212,6 +242,7 @@ class Grammar implements IGrammar {
         this.id = grammar.id;
         this.name = grammar.name;
         this.type = grammar.type;
+        this.startSymbol = new AlphabetSymbol(grammar.startSymbol);
         this.nonTerminalSymbols = new Alphabet(
             new Set(
                 grammar.alphabetNT.map((_string) => {
