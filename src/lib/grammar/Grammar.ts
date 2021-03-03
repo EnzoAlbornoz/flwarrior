@@ -1,10 +1,11 @@
+import Immutable from "immutable";
+import { v4 as genUUID } from "uuid";
 import { GrammarType, GrammarDBEntry } from "../../database/schema/grammar";
-import Alphabet from "../Alphabet";
-import AlphabetSymbol from "../AlphabetSymbol";
+import Alphabet, { IAlphabet } from "../Alphabet";
+import AlphabetSymbol, { ASymbol } from "../AlphabetSymbol";
 import { Tuple, arrayCompare } from "../utils";
-import {} from "buckets-js";
 
-interface IGrammar {
+interface IOGrammar {
     id: string;
     nonTerminalSymbols: Alphabet;
     terminalSymbols: Alphabet;
@@ -27,7 +28,7 @@ interface IGrammar {
     checkOwnType: () => GrammarType;
 }
 
-export default class Grammar implements IGrammar {
+export default class Grammar implements IOGrammar {
     constructor(
         id: string,
         nonTerminalSymbols: Alphabet,
@@ -291,3 +292,34 @@ export default class Grammar implements IGrammar {
         });
     }
 }
+
+// Immutability Port
+type IGrammarWord = Immutable.List<ASymbol>;
+interface IGrammar {
+    id: string;
+    name: string;
+    type: GrammarType;
+    startSymbol: ASymbol;
+    terminalSymbols: IAlphabet;
+    nonTerminalSymbols: IAlphabet;
+    productionRules: Immutable.Map<IGrammarWord, Immutable.Set<IGrammarWord>>;
+}
+export type IIGrammar = Immutable.Map<keyof IGrammar, IGrammar[keyof IGrammar]>;
+
+export const createGrammarFromEntry = (dbEntry: GrammarDBEntry) =>
+    Immutable.Map<IGrammar[keyof IGrammar]>({
+        id: dbEntry.id,
+        name: dbEntry.name,
+        type: dbEntry.type,
+        startSymbol: dbEntry.startSymbol,
+        terminalSymbols: Immutable.OrderedSet(dbEntry.alphabetT),
+        nonTerminalSymbols: Immutable.OrderedSet(dbEntry.alphabetNT),
+        productionRules: dbEntry.transitions.reduce((m, c) => {
+            const head = Immutable.List(c.from);
+            const body = Immutable.Set(
+                c.to.map((prod) => Immutable.List(prod))
+            );
+            m.set(head, m.get(head, Immutable.Set<IGrammarWord>()).merge(body));
+            return m;
+        }, Immutable.Map<IGrammarWord, Immutable.Set<IGrammarWord>>()),
+    });

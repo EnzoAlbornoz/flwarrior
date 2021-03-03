@@ -22,6 +22,7 @@ devDependencies:
   '@babel/preset-react': 7.12.13_@babel+core@7.12.17
   '@babel/preset-typescript': 7.12.17_@babel+core@7.12.17
   '@hot-loader/react-dom': 17.0.1_react@17.0.1
+  '@jest/types': 26.6.2
   '@svgr/webpack': 5.5.0
   '@types/deep-equal': 1.0.1
   '@types/file-saver': 2.0.1
@@ -1416,7 +1417,7 @@ packages:
     dependencies:
       '@types/istanbul-lib-coverage': 2.0.3
       '@types/istanbul-reports': 3.0.0
-      '@types/node': 14.14.29
+      '@types/node': 14.14.31
       '@types/yargs': 15.0.13
       chalk: 4.1.0
     dev: true
@@ -2160,6 +2161,10 @@ packages:
   /@types/node/14.14.29:
     resolution:
       integrity: sha512-z1PF7SVwqolmqu21eoWM82FPx699C2sCmrxTcCRotRn+2gt9Ve4dwmZsDntxgGyEHFHXYaqMcMMCdPKUeTKXsA==
+  /@types/node/14.14.31:
+    dev: true
+    resolution:
+      integrity: sha512-vFHy/ezP5qI0rFgJ7aQnjDXwAMrG0KqqIH7tQG5PPv3BWBayOPIQNBjVc/P6hhdZfMx51REc6tfDNXHUio893g==
   /@types/normalize-package-data/2.4.0:
     dev: true
     resolution:
@@ -11245,6 +11250,7 @@ specifiers:
   '@babel/preset-react': ^7.12.13
   '@babel/preset-typescript': ^7.12.17
   '@hot-loader/react-dom': ^17.0.1
+  '@jest/types': ^26.6.2
   '@svgr/webpack': ^5.5.0
   '@types/deep-equal': ^1.0.1
   '@types/file-saver': ^2.0.1

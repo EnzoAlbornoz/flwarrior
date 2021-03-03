@@ -1,4 +1,6 @@
+import { OrderedSet } from "immutable";
 import AlphabetSymbol from "./AlphabetSymbol";
+import type { ASymbol } from "./AlphabetSymbol";
 
 export default class Alphabet {
     #symbols: Set<AlphabetSymbol>;
@@ -23,3 +25,8 @@ export default class Alphabet {
         return symbols.map((sbl) => sbl.symbol).toString();
     }
 }
+
+// Immutability Port
+export type IAlphabet = OrderedSet<ASymbol>;
+export const createAlphabet = (...symbols: ASymbol[]): OrderedSet<string> =>
+    OrderedSet(symbols);
