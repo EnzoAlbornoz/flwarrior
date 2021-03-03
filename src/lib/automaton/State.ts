@@ -4,7 +4,7 @@ export interface IState {
     isExit: boolean;
 }
 
-export default class State implements IState {
+export class State implements IState {
     #id: string;
 
     #isEntry: boolean;
@@ -43,5 +43,9 @@ export default class State implements IState {
 
     equals(that: State): boolean {
         return this.#id === that.id;
+    }
+
+    toString(): string {
+        return this.#id.toString();
     }
 }
