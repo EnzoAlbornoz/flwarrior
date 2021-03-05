@@ -180,6 +180,38 @@ export default class FiniteStateMachine implements IFiniteAutomaton {
 
     // }
 
+    findOutIfHasEpsilonTransition(): boolean {
+        this.transitions.forEach(element => {
+            if (element[0][1].equals(AlphabetSymbol.EPSILON))
+                return true;
+        });
+        return false;
+    }
+
+    determinize(): void {
+
+        const hasEpsilon = this.findOutIfHasEpsilonTransition();
+        if (hasEpsilon) {
+            
+        }
+        else
+        {
+            let QAnon = [];
+            QAnon.push(this.entry); // push initial state
+            let transitionsOf
+        }
+        
+    }
+
+    findTransitionsOfState(state: IState): Array<Tuple<Tuple<IState, AlphabetSymbol>, IState>> {
+        let stateTransitions = new Array();
+        this.transitions.forEach((transition) => {
+            if (transition[0][0].equals(state))
+                stateTransitions.push(transition);
+        })
+        return stateTransitions;
+    }
+
     fromDBEntry(machine: MachineDBEntry): void {
         this.id = machine.id;
         this.name = machine.name;

@@ -2,6 +2,8 @@ export interface IState {
     id: string;
     isEntry: boolean;
     isExit: boolean;
+    equals: (that: IState) => boolean;
+    toString: () => string;
 }
 
 export class State implements IState {
