@@ -1,6 +1,10 @@
 import Immutable from "immutable";
 import { v4 as genUUID } from "uuid";
-import grammar, { GrammarType, GrammarDBEntry } from "../../database/schema/grammar";
+import {
+    GrammarType,
+    GrammarDBEntry,
+    getNewGrammar,
+} from "../../database/schema/grammar";
 import Alphabet, { IAlphabet } from "../Alphabet";
 import AlphabetSymbol, { ASymbol } from "../AlphabetSymbol";
 import { Tuple, arrayCompare } from "../utils";
@@ -307,22 +311,27 @@ interface IGrammar {
 export type IIGrammar = Immutable.Map<keyof IGrammar, IGrammar[keyof IGrammar]>;
 
 export const createGrammarFromDBEntry = (dbEntry: GrammarDBEntry): IIGrammar =>
-    Immutable.Map<IGrammar[keyof IGrammar]>({
-        id: dbEntry.id,
-        name: dbEntry.name,
-        type: dbEntry.type,
-        startSymbol: dbEntry.startSymbol,
-        terminalSymbols: Immutable.OrderedSet(dbEntry.alphabetT),
-        nonTerminalSymbols: Immutable.OrderedSet(dbEntry.alphabetNT),
-        productionRules: dbEntry.transitions.reduce((m, c) => {
-            const head = Immutable.List(c.from);
-            const body = Immutable.Set(
-                c.to.map((prod) => Immutable.List(prod))
-            );
-            m.set(head, m.get(head, Immutable.Set<IGrammarWord>()).merge(body));
-            return m;
-        }, Immutable.Map<IGrammarWord, Immutable.Set<IGrammarWord>>()),
-    }) as IIGrammar;
+    Immutable.Map(
+        Object.entries({
+            id: dbEntry.id,
+            name: dbEntry.name,
+            type: dbEntry.type,
+            startSymbol: dbEntry.startSymbol,
+            terminalSymbols: Immutable.OrderedSet(dbEntry.alphabetT),
+            nonTerminalSymbols: Immutable.OrderedSet(dbEntry.alphabetNT),
+            productionRules: dbEntry.transitions.reduce((m, c) => {
+                const head = Immutable.List(c.from);
+                const body = Immutable.Set(
+                    c.to.map((prod) => Immutable.List(prod))
+                );
+                m.set(
+                    head,
+                    m.get(head, Immutable.Set<IGrammarWord>()).merge(body)
+                );
+                return m;
+            }, Immutable.Map<IGrammarWord, Immutable.Set<IGrammarWord>>()),
+        }) as Iterable<[keyof IGrammar, IGrammar[keyof IGrammar]]>
+    );
 
 export const toDBEntry = (grammar: IIGrammar): GrammarDBEntry => {
     interface IntermediateEntry extends GrammarDBEntry {
@@ -354,16 +363,41 @@ export const addTerminalSymbol = (grammar: IIGrammar, symbol: ASymbol) =>
 export const removeTerminalSymbol = (
     grammar: IIGrammar,
     terminalSymbol: ASymbol
-) => grammar.update(
+) =>
+    grammar.update(
         "terminalSymbols",
         Immutable.OrderedSet<ASymbol>(),
         (old: Immutable.OrderedSet<ASymbol>) => old.remove(terminalSymbol)
     );
 
-
-export const removeNonTerminalSymbol = (grammar: IIGrammar, nonTerminalSymbol: ASymbol) =>
+export const removeNonTerminalSymbol = (
+    grammar: IIGrammar,
+    nonTerminalSymbol: ASymbol
+) =>
     grammar.update(
         "nonTerminalSymbols",
         Immutable.OrderedSet<ASymbol>(),
         (old: Immutable.OrderedSet<ASymbol>) => old.remove(nonTerminalSymbol)
+    );
+
+export const addProductionHead = (grammar: IIGrammar, from: Array<string>) =>
+    grammar.update(
+        "productionRules",
+        Immutable.Map<IGrammarWord, Immutable.Set<IGrammarWord>>(),
+        (rules: Immutable.Map<IGrammarWord, Immutable.Set<IGrammarWord>>) =>
+            rules.has(Immutable.List(from))
+                ? rules
+                : rules.set(Immutable.List(from), Immutable.Set())
+    );
+
+export const addProductionBody = (
+    grammar: IIGrammar,
+    from: IIGrammar,
+    to: Array<string>
+) =>
+    grammar.updateIn(
+        ["productionRules", from],
+        Immutable.Set<IGrammarWord>(),
+        (old: Immutable.Set<IGrammarWord>) =>
+            old.has(Immutable.List(to)) ? old : old.add(Immutable.List(to))
     );

@@ -1,13 +1,13 @@
 import { Tuple } from "../lib/utils";
-import Alphabet, {IAlphabet} from "../lib/Alphabet";
-import AlphabetSymbol, {ASymbol} from "../lib/AlphabetSymbol";
+import Alphabet, { IAlphabet } from "../lib/Alphabet";
+import AlphabetSymbol, { ASymbol } from "../lib/AlphabetSymbol";
 import Grammar, {
     addNonTerminalSymbol,
     addTerminalSymbol,
     createGrammarFromDBEntry,
     IIGrammar,
     removeTerminalSymbol,
-    removeNonTerminalSymbol
+    removeNonTerminalSymbol,
 } from "../lib/grammar/Grammar";
 import { GrammarType, GrammarDBEntry } from "../database/schema/grammar";
 import FiniteStateMachine from "../lib/automaton/Machine";
@@ -17,7 +17,7 @@ function buildRegularNonDeterministicWithoutEpsilonMachine(): FiniteStateMachine
     const q0 = new State("q0", true, true);
     const q1 = new State("q1", false, false);
     const q2 = new State("q2", false, true);
-    
+
     // Machine taken from https://www.javatpoint.com/automata-conversion-from-nfa-to-dfa example 1
 
     return new FiniteStateMachine(
@@ -25,20 +25,17 @@ function buildRegularNonDeterministicWithoutEpsilonMachine(): FiniteStateMachine
         "id2",
         new Set([q0, q1, q2]),
         new Alphabet(
-            new Set([
-                new AlphabetSymbol("0"),
-                new AlphabetSymbol("1"),
-            ])
+            new Set([new AlphabetSymbol("0"), new AlphabetSymbol("1")])
         ),
         [
             [[q0, new AlphabetSymbol("0")], q0],
             [[q0, new AlphabetSymbol("1")], q1],
             [[q1, new AlphabetSymbol("1")], q1],
-            [[q1, new AlphabetSymbol("0")], q1], //y States with same symbol transitions
-            [[q1, new AlphabetSymbol("0")], q2], //y States with same symbol transitions 
-            [[q2, new AlphabetSymbol("1")], q2], //x States with same symbol transitions
-            [[q2, new AlphabetSymbol("1")], q1], //x States with same symbol transitions
-            [[q2, new AlphabetSymbol("0")], q2], 
+            [[q1, new AlphabetSymbol("0")], q1], // y States with same symbol transitions
+            [[q1, new AlphabetSymbol("0")], q2], // y States with same symbol transitions
+            [[q2, new AlphabetSymbol("1")], q2], // x States with same symbol transitions
+            [[q2, new AlphabetSymbol("1")], q1], // x States with same symbol transitions
+            [[q2, new AlphabetSymbol("0")], q2],
         ],
         q0,
         new Set([q2])
@@ -174,11 +171,14 @@ test("Test Grammar add non redundant new Production Head", () => {
 });
 
 test("Test Grammar add non redundant new Production Body", () => {
-    var gram = buildRegularSadGrammar();
-    expect( () =>
-        gram.addProductionBody([new AlphabetSymbol("L")], new Set([[new AlphabetSymbol("l"), new AlphabetSymbol("L")]]))
+    const gram = buildRegularSadGrammar();
+    expect(() =>
+        gram.addProductionBody(
+            [new AlphabetSymbol("L")],
+            new Set([[new AlphabetSymbol("l"), new AlphabetSymbol("L")]])
+        )
     ).toThrow(Error);
-    
+
     // console.log(gram.productionRules);
 });
 
@@ -190,15 +190,28 @@ test("Test Grammar add redundant Production Head", () => {
 });
 
 test("Test Grammar add redundant Production Body", () => {
-    var gram = buildRegularSadGrammar();
-    gram.addProductionBody([new AlphabetSymbol("S")], new Set([[new AlphabetSymbol("l"), new AlphabetSymbol("L")]]));
+    const gram = buildRegularSadGrammar();
+    gram.addProductionBody(
+        [new AlphabetSymbol("S")],
+        new Set([[new AlphabetSymbol("l"), new AlphabetSymbol("L")]])
+    );
     expect(gram.productionRules.length).toEqual(3); // check no new production head
     expect(gram.productionRules[0][1].size).toEqual(3);
-    expect(Array.from(gram.productionRules[0][1].keys())[0][0].symbol).toEqual('a');
-    expect(Array.from(gram.productionRules[0][1].keys())[0][1].symbol).toEqual('A');
-    expect(Array.from(gram.productionRules[0][1].keys())[1][0].symbol).toEqual('ε');
-    expect(Array.from(gram.productionRules[0][1].keys())[2][0].symbol).toEqual('l');
-    expect(Array.from(gram.productionRules[0][1].keys())[2][1].symbol).toEqual('L');
+    expect(Array.from(gram.productionRules[0][1].keys())[0][0].symbol).toEqual(
+        "a"
+    );
+    expect(Array.from(gram.productionRules[0][1].keys())[0][1].symbol).toEqual(
+        "A"
+    );
+    expect(Array.from(gram.productionRules[0][1].keys())[1][0].symbol).toEqual(
+        "ε"
+    );
+    expect(Array.from(gram.productionRules[0][1].keys())[2][0].symbol).toEqual(
+        "l"
+    );
+    expect(Array.from(gram.productionRules[0][1].keys())[2][1].symbol).toEqual(
+        "L"
+    );
     // console.log(Array.from(gram.productionRules[0][1].keys())[0][0].symbol);
 });
 
@@ -239,11 +252,10 @@ test("test get transitions from state", () => {
     const transitions = dFM.findTransitionsOfState(q0);
     expect(transitions[0][0][0].equals(q0)).toBe(true);
     expect(transitions[1][0][0].equals(q0)).toBe(true);
-    expect(transitions[0][0][1].toString()).toBe('0');
-    expect(transitions[1][0][1].toString()).toBe('1');
+    expect(transitions[0][0][1].toString()).toBe("0");
+    expect(transitions[1][0][1].toString()).toBe("1");
     expect(transitions[0][1].equals(q0)).toBe(true);
-    expect(transitions[1][1].id).toEqual('q1');
-
+    expect(transitions[1][1].id).toEqual("q1");
 });
 
 test("test add symbols to new IIGrammar", () => {
@@ -270,7 +282,6 @@ test("test add symbols to new IIGrammar", () => {
 
     modifiedGrammar = addTerminalSymbol(immutableGrammar, "s");
 
-    
     expect(
         (immutableGrammar.get("nonTerminalSymbols") as IAlphabet).includes("j")
     ).toBeFalsy();
@@ -279,7 +290,6 @@ test("test add symbols to new IIGrammar", () => {
         (modifiedGrammar.get("terminalSymbols") as IAlphabet).includes("s")
     ).toBeTruthy();
 });
-
 
 test("test remove symbols to new IIGrammar", () => {
     // IIGrammar
@@ -292,7 +302,7 @@ test("test remove symbols to new IIGrammar", () => {
         transitions: [],
         type: GrammarType.REGULAR,
     });
-    
+
     let modifiedGrammar = removeTerminalSymbol(immutableGrammar, "c");
 
     expect(
@@ -302,7 +312,7 @@ test("test remove symbols to new IIGrammar", () => {
     expect(
         (modifiedGrammar.get("nonTerminalSymbols") as IAlphabet).includes("C")
     ).toBeTruthy();
-    
+
     modifiedGrammar = removeNonTerminalSymbol(modifiedGrammar, "C");
 
     expect(
