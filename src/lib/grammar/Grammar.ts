@@ -306,7 +306,7 @@ interface IGrammar {
 }
 export type IIGrammar = Immutable.Map<keyof IGrammar, IGrammar[keyof IGrammar]>;
 
-export const createGrammarFromDBEntry = (dbEntry: GrammarDBEntry): IIGrammar =>
+export const fromDBEntry = (dbEntry: GrammarDBEntry): IIGrammar =>
     Immutable.Map<IGrammar[keyof IGrammar]>({
         id: dbEntry.id,
         name: dbEntry.name,

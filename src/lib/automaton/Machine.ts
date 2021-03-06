@@ -1,10 +1,12 @@
+import Immutable from "immutable";
 import { PassThrough } from "stream";
-import { MachineDBEntry, MachineType } from "../../database/schema/machine";
-import { IState, State } from "./State";
-import Alphabet from "../Alphabet";
-import AlphabetSymbol from "../AlphabetSymbol";
+import machine, { MachineDBEntry, MachineType } from "../../database/schema/machine";
+import { IIState, IState, State } from "./State";
+import Alphabet, { IAlphabet } from "../Alphabet";
+import AlphabetSymbol, { ASymbol } from "../AlphabetSymbol";
 import { Tuple } from "../utils";
 import Grammar from "../grammar/Grammar";
+import { DynamicEntryPlugin } from "webpack";
 
 interface IFiniteAutomaton {
     id: string;
@@ -274,13 +276,71 @@ export default class FiniteStateMachine implements IFiniteAutomaton {
 
 // Immutability Port
 // export type IGrammarWord = Immutable.List<ASymbol>;
-// interface IMachine {
-//     id: string;
-//     name: string;
-//     // type: GrammarType;
-//     entry: I;
-//     terminalSymbols: IAlphabet;
-//     nonTerminalSymbols: IAlphabet;
-//     productionRules: Immutable.Map<IGrammarWord, Immutable.Set<IGrammarWord>>;
+export type ITransition = {
+    from: IState["id"]; // State ID
+    with: ASymbol;
+    to: IState["id"]; // State ID
+    stack: {
+        push: ASymbol | null;
+        pop: ASymbol  |  null;
+    };
+}
+
+export type IITransition = Immutable.Map<keyof ITransition, ITransition[keyof ITransition]>;
+
+interface IMachine {
+    id: string;
+    name: string;
+    entry: IIState;
+    states: Immutable.Map<string, IIState>;
+    alphabet: IAlphabet;
+    transitions: Immutable.Set<IITransition>;
+    exitStates: Immutable.Map<string, IIState>;
+}
+
+export type IIMachine = Immutable.Map<keyof IMachine, IMachine[keyof IMachine]>;
+
+export const fromDBEntry = (dbEntry: MachineDBEntry): IIMachine =>
+{
+    return Immutable.Map<IMachine[keyof IMachine]>({
+        id: dbEntry.id,
+        name: dbEntry.name,
+        entry: {} as IIState,
+        states: Immutable.Map(dbEntry.states.map((machineState) => {
+            return [machineState.id,
+             Immutable.Map<IState[keyof IState]>(
+                {
+                    id: machineState.id,
+                    isEntry: machineState.isEntry,
+                    isExit: machineState.isExit
+                }
+            ) as IIState]
+        })),
+        alphabet: Immutable.OrderedSet(dbEntry.entryAlphabet),
+        transitions: Immutable.Set(dbEntry.transitions.map((transition) => {
+            return Immutable.Map<ITransition[keyof ITransition]>(
+                {
+                    from: transition.from,
+                    with: transition.with.head,
+                    to: transition.to.newState,
+                    stack: {push: null, pop: null}
+                }
+            ) as IITransition;
+        })),
+        exitStates: null
+    }) as IIMachine;
+}
+
+// export const toDBEntry = (machine: IIMachine): MachineDBEntry => {
+//     interface IntermediateEntry extends MachineDBEntry {
+//         transitions: Record<string, Array<string>, Array<string>>;
+//     }
+    
+//     const intermediate = machine.toJS() as IntermediateEntry;
+//     return {
+//         ...intermediate,
+//         transitions: Object.entries(intermediate.transitions).map(
+//             ()
+//         )
+//     }
 // }
-// export type IIGrammar = Immutable.Map<keyof IGrammar, IGrammar[keyof IGrammar]>;
