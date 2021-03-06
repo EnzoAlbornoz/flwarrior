@@ -4,7 +4,7 @@ import AlphabetSymbol, { ASymbol } from "../lib/AlphabetSymbol";
 import Grammar, {
     addNonTerminalSymbol,
     addTerminalSymbol,
-    createGrammarFromDBEntry,
+    fromDBEntry as createGrammarFromDBEntry,
     IIGrammar,
     removeTerminalSymbol,
     removeNonTerminalSymbol,

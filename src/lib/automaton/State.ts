@@ -1,10 +1,12 @@
-export interface IState {
-    id: string;
-    isEntry: boolean;
-    isExit: boolean;
-    equals: (that: IState) => boolean;
-    toString: () => string;
-}
+import Immutable from "immutable";
+
+// export interface IState {
+//     id: string;
+//     isEntry: boolean;
+//     isExit: boolean;
+//     // equals: (that: IState) => boolean;
+//     // toString: () => string;
+// }
 
 export class State implements IState {
     #id: string;
@@ -51,5 +53,12 @@ export class State implements IState {
         return this.#id.toString();
     }
 }
+
+export type IState = {
+    id: string;
+    isEntry: boolean;
+    isExit: boolean;
+}
+
 // Immutability Port
-// export type IIState = 
+export type IIState = Immutable.Map<keyof IState, IState[keyof IState]>

@@ -61,6 +61,7 @@ export default class Grammar implements IOGrammar {
                     Array.from(body).every(
                         (b) =>
                             head.filter(
+                                // eslint-disable-next-line import/no-named-as-default-member
                                 (c) => !c.equals(AlphabetSymbol.EPSILON)
                             ).length <= b.length
                     ) &&
@@ -310,28 +311,23 @@ interface IGrammar {
 }
 export type IIGrammar = Immutable.Map<keyof IGrammar, IGrammar[keyof IGrammar]>;
 
-export const createGrammarFromDBEntry = (dbEntry: GrammarDBEntry): IIGrammar =>
-    Immutable.Map(
-        Object.entries({
-            id: dbEntry.id,
-            name: dbEntry.name,
-            type: dbEntry.type,
-            startSymbol: dbEntry.startSymbol,
-            terminalSymbols: Immutable.OrderedSet(dbEntry.alphabetT),
-            nonTerminalSymbols: Immutable.OrderedSet(dbEntry.alphabetNT),
-            productionRules: dbEntry.transitions.reduce((m, c) => {
-                const head = Immutable.List(c.from);
-                const body = Immutable.Set(
-                    c.to.map((prod) => Immutable.List(prod))
-                );
-                m.set(
-                    head,
-                    m.get(head, Immutable.Set<IGrammarWord>()).merge(body)
-                );
-                return m;
-            }, Immutable.Map<IGrammarWord, Immutable.Set<IGrammarWord>>()),
-        }) as Iterable<[keyof IGrammar, IGrammar[keyof IGrammar]]>
-    );
+export const fromDBEntry = (dbEntry: GrammarDBEntry): IIGrammar =>
+    Immutable.Map<IGrammar[keyof IGrammar]>({
+        id: dbEntry.id,
+        name: dbEntry.name,
+        type: dbEntry.type,
+        startSymbol: dbEntry.startSymbol,
+        terminalSymbols: Immutable.OrderedSet(dbEntry.alphabetT),
+        nonTerminalSymbols: Immutable.OrderedSet(dbEntry.alphabetNT),
+        productionRules: dbEntry.transitions.reduce((m, c) => {
+            const head = Immutable.List(c.from);
+            const body = Immutable.Set(
+                c.to.map((prod) => Immutable.List(prod))
+            );
+            m.set(head, m.get(head, Immutable.Set<IGrammarWord>()).merge(body));
+            return m;
+        }, Immutable.Map<IGrammarWord, Immutable.Set<IGrammarWord>>()),
+    }) as IIGrammar;
 
 export const toDBEntry = (grammar: IIGrammar): GrammarDBEntry => {
     interface IntermediateEntry extends GrammarDBEntry {
