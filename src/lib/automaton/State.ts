@@ -58,7 +58,7 @@ export type IState = {
     id: string;
     isEntry: boolean;
     isExit: boolean;
-}
+};
 
 // Immutability Port
-export type IIState = Immutable.Map<keyof IState, IState[keyof IState]>
+export type IIState = Immutable.Map<keyof IState, IState[keyof IState]>;

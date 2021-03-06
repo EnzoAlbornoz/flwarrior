@@ -1,12 +1,15 @@
 import Immutable from "immutable";
 import { PassThrough } from "stream";
-import machine, { MachineDBEntry, MachineType } from "../../database/schema/machine";
+import {
+    MachineDBEntry,
+    MachineType,
+    MachineMemoryDirection,
+} from "../../database/schema/machine";
 import { IIState, IState, State } from "./State";
 import Alphabet, { IAlphabet } from "../Alphabet";
 import AlphabetSymbol, { ASymbol } from "../AlphabetSymbol";
 import { Tuple } from "../utils";
 import Grammar from "../grammar/Grammar";
-import { DynamicEntryPlugin } from "webpack";
 
 interface IFiniteAutomaton {
     id: string;
@@ -183,35 +186,30 @@ export default class FiniteStateMachine implements IFiniteAutomaton {
     // }
 
     findOutIfHasEpsilonTransition(): boolean {
-        this.transitions.forEach(element => {
-            if (element[0][1].equals(AlphabetSymbol.EPSILON))
-                return true;
+        this.transitions.forEach((element) => {
+            if (element[0][1].equals(AlphabetSymbol.EPSILON)) return true;
         });
         return false;
     }
 
     determinize(): void {
-
         const hasEpsilon = this.findOutIfHasEpsilonTransition();
         if (hasEpsilon) {
-            
-        }
-        else
-        {
-            let QAnon = [];
+        } else {
+            const QAnon = [];
             QAnon.push(this.entry); // push initial state
-            let transitionsOfEntry = QAnon[0];
-            
+            const transitionsOfEntry = QAnon[0];
         }
-        
     }
 
-    findTransitionsOfState(state: IState): Array<Tuple<Tuple<IState, AlphabetSymbol>, IState>> {
-        let stateTransitions = new Array();
+    findTransitionsOfState(
+        state: IState
+    ): Array<Tuple<Tuple<IState, AlphabetSymbol>, IState>> {
+        const stateTransitions = [];
         this.transitions.forEach((transition) => {
             if (transition[0][0].equals(state))
                 stateTransitions.push(transition);
-        })
+        });
         return stateTransitions;
     }
 
@@ -282,11 +280,14 @@ export type ITransition = {
     to: IState["id"]; // State ID
     stack: {
         push: ASymbol | null;
-        pop: ASymbol  |  null;
+        pop: ASymbol | null;
     };
-}
+};
 
-export type IITransition = Immutable.Map<keyof ITransition, ITransition[keyof ITransition]>;
+export type IITransition = Immutable.Map<
+    keyof ITransition,
+    ITransition[keyof ITransition]
+>;
 
 interface IMachine {
     id: string;
@@ -300,47 +301,66 @@ interface IMachine {
 
 export type IIMachine = Immutable.Map<keyof IMachine, IMachine[keyof IMachine]>;
 
-export const fromDBEntry = (dbEntry: MachineDBEntry): IIMachine =>
-{
+export const fromDBEntry = (dbEntry: MachineDBEntry): IIMachine => {
     return Immutable.Map<IMachine[keyof IMachine]>({
         id: dbEntry.id,
         name: dbEntry.name,
         entry: {} as IIState,
-        states: Immutable.Map(dbEntry.states.map((machineState) => {
-            return [machineState.id,
-             Immutable.Map<IState[keyof IState]>(
-                {
-                    id: machineState.id,
-                    isEntry: machineState.isEntry,
-                    isExit: machineState.isExit
-                }
-            ) as IIState]
-        })),
+        states: Immutable.Map(
+            dbEntry.states.map((machineState) => {
+                return [
+                    machineState.id,
+                    Immutable.Map<IState[keyof IState]>({
+                        id: machineState.id,
+                        isEntry: machineState.isEntry,
+                        isExit: machineState.isExit,
+                    }) as IIState,
+                ];
+            })
+        ),
         alphabet: Immutable.OrderedSet(dbEntry.entryAlphabet),
-        transitions: Immutable.Set(dbEntry.transitions.map((transition) => {
-            return Immutable.Map<ITransition[keyof ITransition]>(
-                {
+        transitions: Immutable.Set(
+            dbEntry.transitions.map((transition) => {
+                return Immutable.Map<ITransition[keyof ITransition]>({
                     from: transition.from,
                     with: transition.with.head,
                     to: transition.to.newState,
-                    stack: {push: null, pop: null}
-                }
-            ) as IITransition;
-        })),
-        exitStates: null
+                    stack: { push: null, pop: null },
+                }) as IITransition;
+            })
+        ),
+        exitStates: null,
     }) as IIMachine;
-}
+};
 
-// export const toDBEntry = (machine: IIMachine): MachineDBEntry => {
-//     interface IntermediateEntry extends MachineDBEntry {
-//         transitions: Record<string, Array<string>, Array<string>>;
-//     }
-    
-//     const intermediate = machine.toJS() as IntermediateEntry;
-//     return {
-//         ...intermediate,
-//         transitions: Object.entries(intermediate.transitions).map(
-//             ()
-//         )
-//     }
-// }
+export const toDBEntry = (machine: IIMachine): MachineDBEntry => {
+    interface IntermediateEntry
+        extends Omit<MachineDBEntry, "states" | "transitions" | "exitStates"> {
+        states: Record<string, IState>;
+        transitions: Array<ITransition>;
+        exitStates: Record<string, IState>;
+    }
+
+    const intermediate = machine.toJS() as IntermediateEntry;
+    return {
+        ...intermediate,
+        states: Object.values(intermediate.states),
+        transitions: intermediate.transitions.map((t) => ({
+            from: t.from,
+            with: {
+                head: t.with,
+                memory: null,
+            },
+            to: {
+                newState: t.to,
+                writeSymbol: t.stack.pop || t.stack.push,
+                // eslint-disable-next-line no-nested-ternary
+                headDirection: (t.stack.pop
+                    ? "left"
+                    : t.stack.push
+                    ? "right"
+                    : null) as MachineMemoryDirection,
+            },
+        })),
+    };
+};
