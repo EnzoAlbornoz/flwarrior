@@ -1,6 +1,6 @@
 import Immutable from "immutable";
 import { v4 as genUUID } from "uuid";
-import { GrammarType, GrammarDBEntry } from "../../database/schema/grammar";
+import grammar, { GrammarType, GrammarDBEntry } from "../../database/schema/grammar";
 import Alphabet, { IAlphabet } from "../Alphabet";
 import AlphabetSymbol, { ASymbol } from "../AlphabetSymbol";
 import { Tuple, arrayCompare } from "../utils";
@@ -294,7 +294,7 @@ export default class Grammar implements IOGrammar {
 }
 
 // Immutability Port
-type IGrammarWord = Immutable.List<ASymbol>;
+export type IGrammarWord = Immutable.List<ASymbol>;
 interface IGrammar {
     id: string;
     name: string;
@@ -306,7 +306,7 @@ interface IGrammar {
 }
 export type IIGrammar = Immutable.Map<keyof IGrammar, IGrammar[keyof IGrammar]>;
 
-export const createGrammarFromEntry = (dbEntry: GrammarDBEntry) =>
+export const createGrammarFromDBEntry = (dbEntry: GrammarDBEntry): IIGrammar =>
     Immutable.Map<IGrammar[keyof IGrammar]>({
         id: dbEntry.id,
         name: dbEntry.name,
@@ -322,4 +322,48 @@ export const createGrammarFromEntry = (dbEntry: GrammarDBEntry) =>
             m.set(head, m.get(head, Immutable.Set<IGrammarWord>()).merge(body));
             return m;
         }, Immutable.Map<IGrammarWord, Immutable.Set<IGrammarWord>>()),
-    });
+    }) as IIGrammar;
+
+export const toDBEntry = (grammar: IIGrammar): GrammarDBEntry => {
+    interface IntermediateEntry extends GrammarDBEntry {
+        productionRules: Record<string, Array<Array<string>>>;
+    }
+    const intermediate = grammar.toJS() as IntermediateEntry;
+    return {
+        ...intermediate,
+        productionRules: Object.entries(
+            intermediate.productionRules
+        ).map(([from, to]) => ({ from, to })),
+    } as GrammarDBEntry;
+};
+
+export const addNonTerminalSymbol = (grammar: IIGrammar, symbol: ASymbol) =>
+    grammar.update(
+        "nonTerminalSymbols",
+        Immutable.OrderedSet<ASymbol>(),
+        (old: Immutable.OrderedSet<ASymbol>) => old.union([symbol])
+    );
+
+export const addTerminalSymbol = (grammar: IIGrammar, symbol: ASymbol) =>
+    grammar.update(
+        "terminalSymbols",
+        Immutable.OrderedSet<ASymbol>(),
+        (old: Immutable.OrderedSet<ASymbol>) => old.union([symbol])
+    );
+
+export const removeTerminalSymbol = (
+    grammar: IIGrammar,
+    terminalSymbol: ASymbol
+) => grammar.update(
+        "terminalSymbols",
+        Immutable.OrderedSet<ASymbol>(),
+        (old: Immutable.OrderedSet<ASymbol>) => old.remove(terminalSymbol)
+    );
+
+
+export const removeNonTerminalSymbol = (grammar: IIGrammar, nonTerminalSymbol: ASymbol) =>
+    grammar.update(
+        "nonTerminalSymbols",
+        Immutable.OrderedSet<ASymbol>(),
+        (old: Immutable.OrderedSet<ASymbol>) => old.remove(nonTerminalSymbol)
+    );

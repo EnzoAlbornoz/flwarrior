@@ -38,9 +38,9 @@ interface IFiniteAutomaton {
     toString: () => string;
 }
 
-interface IMachine {
-    id: string;
-}
+// interface IMachine {
+//     id: string;
+// }
 
 // class FSMachine implements IMachine {
 
@@ -198,7 +198,8 @@ export default class FiniteStateMachine implements IFiniteAutomaton {
         {
             let QAnon = [];
             QAnon.push(this.entry); // push initial state
-            let transitionsOf
+            let transitionsOfEntry = QAnon[0];
+            
         }
         
     }
@@ -270,3 +271,16 @@ export default class FiniteStateMachine implements IFiniteAutomaton {
         return JSON.stringify(x);
     }
 }
+
+// Immutability Port
+// export type IGrammarWord = Immutable.List<ASymbol>;
+// interface IMachine {
+//     id: string;
+//     name: string;
+//     // type: GrammarType;
+//     entry: I;
+//     terminalSymbols: IAlphabet;
+//     nonTerminalSymbols: IAlphabet;
+//     productionRules: Immutable.Map<IGrammarWord, Immutable.Set<IGrammarWord>>;
+// }
+// export type IIGrammar = Immutable.Map<keyof IGrammar, IGrammar[keyof IGrammar]>;

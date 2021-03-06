@@ -51,3 +51,5 @@ export class State implements IState {
         return this.#id.toString();
     }
 }
+// Immutability Port
+// export type IIState = 
