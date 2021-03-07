@@ -10,6 +10,7 @@ import Alphabet, { IAlphabet } from "../Alphabet";
 import AlphabetSymbol, { ASymbol } from "../AlphabetSymbol";
 import { Tuple } from "../utils";
 import Grammar from "../grammar/Grammar";
+import grammar from "@/database/schema/grammar";
 
 interface IFiniteAutomaton {
     id: string;
@@ -202,16 +203,16 @@ export default class FiniteStateMachine implements IFiniteAutomaton {
         }
     }
 
-    findTransitionsOfState(
-        state: IState
-    ): Array<Tuple<Tuple<IState, AlphabetSymbol>, IState>> {
-        const stateTransitions = [];
-        this.transitions.forEach((transition) => {
-            if (transition[0][0].equals(state))
-                stateTransitions.push(transition);
-        });
-        return stateTransitions;
-    }
+    // findTransitionsOfState(
+    //     state: IState
+    // ): Array<Tuple<Tuple<IState, AlphabetSymbol>, IState>> {
+    //     const stateTransitions = [];
+    //     this.transitions.forEach((transition) => {
+    //         if (transition[0][0].equals(state))
+    //             stateTransitions.push(transition);
+    //     });
+    //     return stateTransitions;
+    // }
 
     fromDBEntry(machine: MachineDBEntry): void {
         this.id = machine.id;
@@ -297,9 +298,32 @@ interface IMachine {
     alphabet: IAlphabet;
     transitions: Immutable.Set<IITransition>;
     exitStates: Immutable.Map<string, IIState>;
+    type: MachineType;
 }
 
 export type IIMachine = Immutable.Map<keyof IMachine, IMachine[keyof IMachine]>;
+
+
+// export const determinize = (grammar: IIMachine) => void {
+//     const hasEpsilon = this.findOutIfHasEpsilonTransition();
+//     if (hasEpsilon) {
+//     } else {
+//         const QAnon = [];
+//         QAnon.push(this.entry); // push initial state
+//         const transitionsOfEntry = QAnon[0];
+//     }
+// }
+
+export const addTransition = (machine: IIMachine, transition: ITransition): IIMachine => machine.update(
+        "transitions",
+        Immutable.Set<IITransition>(),
+        (old: Immutable.Set<IITransition>) => old.union([Immutable.Map(transition) as IITransition])
+    )
+
+export const findOutIfHasEpsilonTransition = (machine: IIMachine): boolean => {
+    return (machine.get("transitions") as Immutable.Set<IITransition>).find(
+        (transition) => transition.get("with") === 'ε') == undefined ? false : true; 
+}
 
 export const fromDBEntry = (dbEntry: MachineDBEntry): IIMachine => {
     return Immutable.Map<IMachine[keyof IMachine]>({
@@ -330,6 +354,7 @@ export const fromDBEntry = (dbEntry: MachineDBEntry): IIMachine => {
             })
         ),
         exitStates: null,
+        type: dbEntry.type
     }) as IIMachine;
 };
 
@@ -364,3 +389,4 @@ export const toDBEntry = (machine: IIMachine): MachineDBEntry => {
         })),
     };
 };
+
