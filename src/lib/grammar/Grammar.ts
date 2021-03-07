@@ -342,14 +342,20 @@ export const toDBEntry = (grammar: IIGrammar): GrammarDBEntry => {
     } as GrammarDBEntry;
 };
 
-export const addNonTerminalSymbol = (grammar: IIGrammar, symbol: ASymbol) =>
+export const addNonTerminalSymbol = (
+    grammar: IIGrammar,
+    symbol: ASymbol
+): IIGrammar =>
     grammar.update(
         "nonTerminalSymbols",
         Immutable.OrderedSet<ASymbol>(),
         (old: Immutable.OrderedSet<ASymbol>) => old.union([symbol])
     );
 
-export const addTerminalSymbol = (grammar: IIGrammar, symbol: ASymbol) =>
+export const addTerminalSymbol = (
+    grammar: IIGrammar,
+    symbol: ASymbol
+): IIGrammar =>
     grammar.update(
         "terminalSymbols",
         Immutable.OrderedSet<ASymbol>(),
@@ -359,7 +365,7 @@ export const addTerminalSymbol = (grammar: IIGrammar, symbol: ASymbol) =>
 export const removeTerminalSymbol = (
     grammar: IIGrammar,
     terminalSymbol: ASymbol
-) =>
+): IIGrammar =>
     grammar.update(
         "terminalSymbols",
         Immutable.OrderedSet<ASymbol>(),
@@ -369,14 +375,17 @@ export const removeTerminalSymbol = (
 export const removeNonTerminalSymbol = (
     grammar: IIGrammar,
     nonTerminalSymbol: ASymbol
-) =>
+): IIGrammar =>
     grammar.update(
         "nonTerminalSymbols",
         Immutable.OrderedSet<ASymbol>(),
         (old: Immutable.OrderedSet<ASymbol>) => old.remove(nonTerminalSymbol)
     );
 
-export const addProductionHead = (grammar: IIGrammar, from: Array<string>) =>
+export const addProductionHead = (
+    grammar: IIGrammar,
+    from: Array<string>
+): IIGrammar =>
     grammar.update(
         "productionRules",
         Immutable.Map<IGrammarWord, Immutable.Set<IGrammarWord>>(),
@@ -388,12 +397,32 @@ export const addProductionHead = (grammar: IIGrammar, from: Array<string>) =>
 
 export const addProductionBody = (
     grammar: IIGrammar,
-    from: IIGrammar,
+    from: IGrammarWord,
     to: Array<string>
-) =>
+): IIGrammar =>
     grammar.updateIn(
         ["productionRules", from],
         Immutable.Set<IGrammarWord>(),
         (old: Immutable.Set<IGrammarWord>) =>
             old.has(Immutable.List(to)) ? old : old.add(Immutable.List(to))
+    );
+
+export const removeProductionHead = (
+    grammar: IIGrammar,
+    from: IGrammarWord
+): IIGrammar =>
+    grammar.update(
+        "productionRules",
+        (old: Immutable.Map<IGrammarWord, Immutable.Set<IGrammarWord>>) =>
+            old.remove(from)
+    );
+
+export const removeProductionBody = (
+    grammar: IIGrammar,
+    from: IGrammarWord,
+    body: IGrammarWord
+): IIGrammar =>
+    grammar.updateIn(
+        ["productionRules", from],
+        (old: Immutable.Set<IGrammarWord>) => old.remove(body)
     );
