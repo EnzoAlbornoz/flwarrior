@@ -6,7 +6,7 @@ import {
     getNewGrammar,
 } from "../../database/schema/grammar";
 import Alphabet, { IAlphabet } from "../Alphabet";
-import AlphabetSymbol, { ASymbol } from "../AlphabetSymbol";
+import AlphabetSymbol, { ASymbol, EPSILON } from "../AlphabetSymbol";
 import { Tuple, arrayCompare } from "../utils";
 
 interface IOGrammar {
@@ -397,11 +397,11 @@ export const addProductionHead = (
 
 export const addProductionBody = (
     grammar: IIGrammar,
-    from: IGrammarWord,
+    from: Array<string>,
     to: Array<string>
 ): IIGrammar =>
     grammar.updateIn(
-        ["productionRules", from],
+        ["productionRules", Immutable.List(from)],
         Immutable.Set<IGrammarWord>(),
         (old: Immutable.Set<IGrammarWord>) =>
             old.has(Immutable.List(to)) ? old : old.add(Immutable.List(to))
@@ -409,20 +409,75 @@ export const addProductionBody = (
 
 export const removeProductionHead = (
     grammar: IIGrammar,
-    from: IGrammarWord
+    from: Array<string>
 ): IIGrammar =>
     grammar.update(
         "productionRules",
         (old: Immutable.Map<IGrammarWord, Immutable.Set<IGrammarWord>>) =>
-            old.remove(from)
+            old.remove(Immutable.List(from))
     );
 
 export const removeProductionBody = (
     grammar: IIGrammar,
-    from: IGrammarWord,
-    body: IGrammarWord
+    from: Array<string>,
+    body: Array<string>
 ): IIGrammar =>
     grammar.updateIn(
-        ["productionRules", from],
-        (old: Immutable.Set<IGrammarWord>) => old.remove(body)
+        ["productionRules", Immutable.List(from)],
+        (old: Immutable.Set<IGrammarWord>) => old.remove(Immutable.List(body))
     );
+
+export const checkOwnType = (grammar: IIGrammar): GrammarType => {
+    // Check for type Context Sensitive (No recursive empty)
+    if (
+        !(grammar.get("productionRules") as IGrammar["productionRules"]).every(
+            (body, head, rules) =>
+                // Length check of production rules
+                body
+                    .filterNot((w) => w.includes(EPSILON))
+                    .every((word) => word.size >= head.size) && // Epsilon does not occurs on body
+                (body.some((word) => word.includes(EPSILON)) || // Not referencied in any body
+                    (rules.every((rb) =>
+                        rb.every(
+                            (rbw) =>
+                                !rbw.every(
+                                    (char, key) => char === head.get(key)
+                                )
+                        )
+                    ) &&
+                        // Is initial state
+                        head.equals(grammar.get("startSymbol"))))
+        )
+    ) {
+        return GrammarType.UNRESTRICTED;
+    }
+    // Check for type Context Free (Head with length === 1)
+    if (
+        !(grammar.get("productionRules") as IGrammar["productionRules"]).every(
+            (_, head) => head.size === 1
+        )
+    ) {
+        return GrammarType.CONTEXT_SENSITIVE;
+    }
+    // Check for type Finite State
+    if (
+        !(grammar.get(
+            "productionRules"
+        ) as IGrammar["productionRules"]).every((body) =>
+            body.every(
+                (pb) =>
+                    [1, 2].includes(pb.size) &&
+                    (grammar.get(
+                        "terminalSymbols"
+                    ) as IGrammar["terminalSymbols"]).includes(pb.get(0)) &&
+                    (pb.size === 1 ||
+                        (grammar.get(
+                            "terminalSymbols"
+                        ) as IGrammar["terminalSymbols"]).includes(pb.get(1)))
+            )
+        )
+    ) {
+        return GrammarType.CONTEXT_FREE;
+    }
+    return GrammarType.REGULAR;
+};
