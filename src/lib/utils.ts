@@ -27,6 +27,7 @@ export function verifyMachineDBType(machine: MachineDBEntry): MachineType {
     return MachineType.FINITE_STATE_MACHINE;
 }
 
-export function machineIsDeterministic(machine: MachineDBEntry): boolean {
+export function machineIsDeterministic(...args: unknown[]): boolean {
+    console.log(args);
     return true;
 }
