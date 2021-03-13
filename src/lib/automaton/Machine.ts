@@ -279,10 +279,8 @@ export type ITransition = {
     from: IState["id"]; // State ID
     with: ASymbol;
     to: IState["id"]; // State ID
-    stack: {
-        push: ASymbol | null;
-        pop: ASymbol | null;
-    };
+    push: ASymbol | null;
+    pop: ASymbol | null;
 };
 
 export type IITransition = Immutable.Map<
@@ -303,7 +301,6 @@ interface IMachine {
 
 export type IIMachine = Immutable.Map<keyof IMachine, IMachine[keyof IMachine]>;
 
-
 // export const determinize = (grammar: IIMachine) => void {
 //     const hasEpsilon = this.findOutIfHasEpsilonTransition();
 //     if (hasEpsilon) {
@@ -314,16 +311,54 @@ export type IIMachine = Immutable.Map<keyof IMachine, IMachine[keyof IMachine]>;
 //     }
 // }
 
-export const addTransition = (machine: IIMachine, transition: ITransition): IIMachine => machine.update(
+export const determinize = (machine: IIMachine): IIMachine => {
+    const hasEpsilon = findOutIfHasEpsilonTransition(machine);
+    if (hasEpsilon) {
+    } else {
+        const QAnon = Immutable.Set();
+        const initialStateId = (machine.get("entry") as IIState).get("id") as string;
+        QAnon.add(initialStateId);
+        getTransitionsOfState(machine, initialStateId);
+    }
+    return machine;
+};
+
+export const addTransition = (
+    machine: IIMachine,
+    transition: ITransition
+): IIMachine =>
+    machine.update(
         "transitions",
         Immutable.Set<IITransition>(),
-        (old: Immutable.Set<IITransition>) => old.union([Immutable.Map(transition) as IITransition])
-    )
+        (old: Immutable.Set<IITransition>) =>
+            old.union([Immutable.Map(transition) as IITransition])
+    );
+
+export const getTransitionsOfState = (machine: IIMachine, from: IState["id"]): Immutable.Set<IITransition> =>
+    (machine.get("transitions") as Immutable.Set<IITransition>).filter(
+        (transition: IITransition) => transition.get("from") === from
+    );
+
+// export const getTransitionsOfStateWithSymbolAsIDSet = (machine: IIMachine, from: IState["id"], _with: ASymbol): Immutable.Set<string> => {
+//     return (machine.get("transitions") as Immutable.Set<IITransition>).filter(
+//         (transition: IITransition) => (transition.get("from") === from && transition.get("with") === _with)
+//     ).map((transition: IITransition) => transition.get("to")).map();
+// }
 
 export const findOutIfHasEpsilonTransition = (machine: IIMachine): boolean => {
     return (machine.get("transitions") as Immutable.Set<IITransition>).find(
-        (transition) => transition.get("with") === 'ε') == undefined ? false : true; 
-}
+        (transition) => transition.get("with") === "ε"
+    ) == undefined
+        ? false
+        : true;
+};
+
+export const setEntry = (machine: IIMachine, state: IState): IIMachine =>
+    machine.update(
+        "entry",
+        Immutable.Map<keyof IState, IState[keyof IState]>(),
+        (_: IIState) => Immutable.Map(state) as IIState
+    );
 
 export const fromDBEntry = (dbEntry: MachineDBEntry): IIMachine => {
     return Immutable.Map<IMachine[keyof IMachine]>({
@@ -349,12 +384,12 @@ export const fromDBEntry = (dbEntry: MachineDBEntry): IIMachine => {
                     from: transition.from,
                     with: transition.with.head,
                     to: transition.to.newState,
-                    stack: { push: null, pop: null },
+                    push: null, pop: null
                 }) as IITransition;
             })
         ),
         exitStates: null,
-        type: dbEntry.type
+        type: dbEntry.type,
     }) as IIMachine;
 };
 
@@ -378,15 +413,14 @@ export const toDBEntry = (machine: IIMachine): MachineDBEntry => {
             },
             to: {
                 newState: t.to,
-                writeSymbol: t.stack.pop || t.stack.push,
+                writeSymbol: t.pop || t.push,
                 // eslint-disable-next-line no-nested-ternary
-                headDirection: (t.stack.pop
+                headDirection: (t.pop
                     ? "left"
-                    : t.stack.push
+                    : t.push
                     ? "right"
                     : null) as MachineMemoryDirection,
             },
         })),
     };
 };
-
