@@ -26,8 +26,3 @@ export function verifyMachineDBType(machine: MachineDBEntry): MachineType {
     if (hasMemory) return MachineType.PUSHDOWN_MACHINE;
     return MachineType.FINITE_STATE_MACHINE;
 }
-
-export function machineIsDeterministic(...args: unknown[]): boolean {
-    console.log(args);
-    return true;
-}

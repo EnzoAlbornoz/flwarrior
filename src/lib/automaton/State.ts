@@ -7,3 +7,9 @@ export type IState = {
 };
 
 export type IIState = Immutable.Map<keyof IState, IState[keyof IState]>;
+
+export const getNewState = (newStateId: string): IState => ({
+    id: newStateId,
+    isEntry: false,
+    isExit: false,
+});

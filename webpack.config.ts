@@ -38,6 +38,7 @@ const config: Array<Configuration> = [
                 "@layout": path.resolve(__dirname, "./src/layout"),
                 "@components": path.resolve(__dirname, "./src/components"),
                 "@database": path.resolve(__dirname, "./src/database"),
+                "@lib": path.resolve(__dirname, "./src/lib"),
             },
         },
         module: {
@@ -122,6 +123,7 @@ const config: Array<Configuration> = [
                 "@layout": path.resolve(__dirname, "./src/layout"),
                 "@components": path.resolve(__dirname, "./src/components"),
                 "@database": path.resolve(__dirname, "./src/database"),
+                "@lib": path.resolve(__dirname, "./src/lib"),
             },
         },
         module: {
