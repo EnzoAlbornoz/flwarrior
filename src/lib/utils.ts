@@ -1,7 +1,4 @@
 import { MachineDBEntry, MachineType } from "../database/schema/machine";
-import AlphabetSymbol from "./AlphabetSymbol";
-
-export type Tuple<T1, T2> = [T1, T2];
 
 export function arrayCompare<L, R>(
     compare: (left: L, right: R) => boolean,
@@ -30,8 +27,7 @@ export function verifyMachineDBType(machine: MachineDBEntry): MachineType {
     return MachineType.FINITE_STATE_MACHINE;
 }
 
-export function machineIsDeterministic(machine: MachineDBEntry): boolean {
-    return !machine.transitions.some((t) => {
-        return t.with.head === AlphabetSymbol.EPSILON.symbol;
-    });
+export function machineIsDeterministic(...args: unknown[]): boolean {
+    console.log(args);
+    return true;
 }

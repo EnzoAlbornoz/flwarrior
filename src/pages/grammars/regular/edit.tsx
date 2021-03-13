@@ -1,5 +1,5 @@
 // Import Dependencies
-import { PageHeader, List, Button, Typography, Tag } from "antd";
+import { PageHeader, List, Button, Typography, Tag, Select } from "antd";
 import IconBase, { SaveOutlined } from "@ant-design/icons";
 import { useState, useMemo } from "react";
 import { useParams, useHistory } from "react-router-dom";
@@ -39,6 +39,11 @@ const AlphabetListHeader = styled.header`
     justify-content: space-between;
     align-items: center;
 `;
+const RuleListHeader = styled.header`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+`;
 const GrammarEditGrid = styled.section`
     /* Full Height */
     flex-grow: 1;
@@ -50,8 +55,9 @@ const GrammarEditGrid = styled.section`
     display: grid;
     gap: 1rem;
     grid-template-columns: 8fr 2fr;
-    grid-template-rows: repeat(2, 1fr);
+    grid-template-rows: 1fr 5fr 5fr;
     grid-template-areas:
+        "rules startSymbol"
         "rules alphabetT"
         "rules alphabetNT";
 `;
@@ -78,7 +84,8 @@ const RuleBodyTag = styled(Tag)`
     display: inline-flex;
     font-size: 1.4rem;
     font-weight: 600;
-    padding: 0.2rem 0.6rem;
+    padding: 0.2rem 0.8rem;
+    padding-right: 0.2rem;
     margin: auto 0.2rem;
     justify-content: space-between;
 
@@ -87,8 +94,12 @@ const RuleBodyTag = styled(Tag)`
 
     & > span {
         align-self: center;
-        font-size: 0.8rem;
+        font-size: 0.9rem;
     }
+`;
+const SelectBar = styled.section`
+    display: flex;
+    flex-direction: column;
 `;
 // Define Page
 export default function RegularGrammarEdit(): JSX.Element {
@@ -107,6 +118,7 @@ export default function RegularGrammarEdit(): JSX.Element {
     const alphabetNT = useMemo(() => grammarDb?.alphabetNT, [grammarDb]);
     const alphabetT = useMemo(() => grammarDb?.alphabetT, [grammarDb]);
     const transitions = useMemo(() => grammarDb?.transitions, [grammarDb]);
+    const startSymbol = useMemo(() => grammarDb?.startSymbol, [grammarDb]);
     // Components Handlers
     const renameGrammar = (newName: string) => {
         setGrammarDb({ ...grammarDb, name: newName });
@@ -203,6 +215,14 @@ export default function RegularGrammarEdit(): JSX.Element {
             return { ...grammar };
         });
     };
+    const setStartSymbol = (asymbol: string) => {
+        setGrammarDb((grammar) => {
+            return {
+                ...grammar,
+                startSymbol: asymbol,
+            };
+        });
+    };
     // Setup Modals
     const [showModalAlphabetT, modalAlphabetTCH] = useModal({
         title: "Adicionar símbolo terminal",
@@ -244,6 +264,14 @@ export default function RegularGrammarEdit(): JSX.Element {
     return (
         <>
             <Layout>
+                <>
+                    {/* Modals */}
+                    {modalRenameCH}
+                    {modalNewRuleHeadCH}
+                    {modalNewRuleBodyCH}
+                    {modalAlphabetTCH}
+                    {modalAlphabetNTCH}
+                </>
                 <GrammarEditContent>
                     <PageHeader
                         onBack={history.goBack}
@@ -256,7 +284,6 @@ export default function RegularGrammarEdit(): JSX.Element {
                                 type="dashed"
                             >
                                 Renomear
-                                {modalRenameCH}
                             </Button>,
                             <Button
                                 key="button-save"
@@ -265,14 +292,6 @@ export default function RegularGrammarEdit(): JSX.Element {
                             >
                                 Salvar
                             </Button>,
-                            <Button
-                                type="primary"
-                                key="button-new-rule"
-                                onClick={showModalNewRuleHead}
-                            >
-                                Adicionar Regra
-                                {modalNewRuleHeadCH}
-                            </Button>,
                         ]}
                     />
                     <GrammarEditGrid>
@@ -280,9 +299,19 @@ export default function RegularGrammarEdit(): JSX.Element {
                         <RulesList
                             bordered
                             header={
-                                <Typography.Text>
-                                    Regras de Produção
-                                </Typography.Text>
+                                <RuleListHeader>
+                                    <Typography.Text>
+                                        Regras de Produção
+                                    </Typography.Text>
+
+                                    <Button
+                                        type="primary"
+                                        key="button-new-rule"
+                                        onClick={showModalNewRuleHead}
+                                    >
+                                        Adicionar Regra
+                                    </Button>
+                                </RuleListHeader>
                             }
                             style={{ gridArea: "rules" }}
                             dataSource={transitions}
@@ -330,6 +359,7 @@ export default function RegularGrammarEdit(): JSX.Element {
                                                     <TypographySpacer />
                                                 ) : null}
                                                 <RuleBodyTag
+                                                    key={to.join()}
                                                     closable
                                                     onClose={() =>
                                                         deleteRuleBody(
@@ -345,9 +375,26 @@ export default function RegularGrammarEdit(): JSX.Element {
                                     </RuleBody>
                                 </List.Item>
                             )}
-                        >
-                            {modalNewRuleBodyCH}
-                        </RulesList>
+                        />
+                        <SelectBar style={{ gridArea: "startSymbol" }}>
+                            <Typography.Text>Simbolo Inicial</Typography.Text>
+                            <Select
+                                defaultActiveFirstOption
+                                value={startSymbol}
+                                onChange={(asymbol) =>
+                                    setStartSymbol(asymbol.toString())
+                                }
+                            >
+                                {alphabetNT?.map((asymbol) => (
+                                    <Select.Option
+                                        value={asymbol}
+                                        key={asymbol}
+                                    >
+                                        {asymbol}
+                                    </Select.Option>
+                                ))}
+                            </Select>
+                        </SelectBar>
                         <AlphabetList
                             dataSource={alphabetT}
                             style={{
@@ -362,7 +409,6 @@ export default function RegularGrammarEdit(): JSX.Element {
                                     <Button onClick={showModalAlphabetT}>
                                         Adicionar
                                     </Button>
-                                    {modalAlphabetTCH}
                                 </AlphabetListHeader>
                             }
                             renderItem={(symb) => (
@@ -396,7 +442,6 @@ export default function RegularGrammarEdit(): JSX.Element {
                                     <Button onClick={showModalAlphabetNT}>
                                         Adicionar
                                     </Button>
-                                    {modalAlphabetNTCH}
                                 </AlphabetListHeader>
                             }
                             renderItem={(symb) => (

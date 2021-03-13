@@ -37,7 +37,7 @@ export function getNewGrammar(type: GrammarType): GrammarDBEntry {
         type,
         name: grammarId,
         startSymbol: "S",
-        alphabetNT: [],
+        alphabetNT: ["S"],
         alphabetT: [],
         transitions: [],
     };

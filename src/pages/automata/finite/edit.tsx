@@ -61,12 +61,12 @@ const MachineEditGrid = styled.section`
     /* Display on Grid */
     display: grid;
     gap: 1rem;
-    grid-template-columns: 4fr 4fr 2fr;
+    grid-template-columns: 8fr 2fr;
     grid-template-rows: 1fr 5fr 6fr;
     grid-template-areas:
-        "rules rules entry"
-        "rules rules states"
-        "rules rules alphabet";
+        "rules entry"
+        "rules states"
+        "rules alphabet";
 `;
 const RuleHead = styled.section`
     display: flex;
@@ -88,12 +88,17 @@ const NewTransitionModaContent = styled.section`
     grid-template-rows: 1fr 1fr;
     grid-template-columns: repeat(3, 1fr);
 `;
+const RulesListHeader = styled.header`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+`;
 const SelectBar = styled.section`
     display: flex;
     flex-direction: column;
 `;
 // Define Page
-export default function RegularGrammarEdit(): JSX.Element {
+export default function RegularMachineEdit(): JSX.Element {
     // Setup State
     const [machineDb, setMachineDb] = useState<MachineDBEntry>();
     // Get Context
@@ -272,6 +277,12 @@ export default function RegularGrammarEdit(): JSX.Element {
     return (
         <>
             <Layout>
+                <>
+                    {/* Modals */}
+                    {modalRenameCH}
+                    {modalStateCH}
+                    {modalAlphabetSymbolCH}
+                </>
                 <MachineEditContent>
                     <PageHeader
                         onBack={history.goBack}
@@ -284,7 +295,6 @@ export default function RegularGrammarEdit(): JSX.Element {
                                 type="dashed"
                             >
                                 Renomear
-                                {modalRenameCH}
                             </Button>,
                             <Button
                                 key="button-save"
@@ -293,13 +303,6 @@ export default function RegularGrammarEdit(): JSX.Element {
                             >
                                 Salvar
                             </Button>,
-                            <Button
-                                key="button-new-rule"
-                                type="primary"
-                                onClick={showNewTransitionModal}
-                            >
-                                Adicionar Transição
-                            </Button>,
                         ]}
                     />
                     <MachineEditGrid>
@@ -307,9 +310,19 @@ export default function RegularGrammarEdit(): JSX.Element {
                         <RulesList
                             bordered
                             header={
-                                <Typography.Text>
-                                    Regras de Transição
-                                </Typography.Text>
+                                <RulesListHeader>
+                                    <Typography.Text>
+                                        Regras de Transição
+                                    </Typography.Text>
+
+                                    <Button
+                                        key="button-new-rule"
+                                        type="primary"
+                                        onClick={showNewTransitionModal}
+                                    >
+                                        Adicionar Transição
+                                    </Button>
+                                </RulesListHeader>
                             }
                             style={{ gridArea: "rules" }}
                             dataSource={transitions}
@@ -355,7 +368,6 @@ export default function RegularGrammarEdit(): JSX.Element {
                                     <Button onClick={showModalState}>
                                         Adicionar
                                     </Button>
-                                    {modalStateCH}
                                 </AlphabetListHeader>
                             }
                             renderItem={(state: MachineDBEntryState, index) => (
@@ -420,7 +432,6 @@ export default function RegularGrammarEdit(): JSX.Element {
                                     <Button onClick={showModalAlphabetSymbol}>
                                         Adicionar
                                     </Button>
-                                    {modalAlphabetSymbolCH}
                                 </AlphabetListHeader>
                             }
                             renderItem={(alphabetSymbol: string, index) => (
