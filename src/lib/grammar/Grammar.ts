@@ -5,7 +5,7 @@ import { ASymbol, EPSILON } from "../AlphabetSymbol";
 
 // Immutability Port
 export type IGrammarWord = Immutable.List<ASymbol>;
-interface IGrammar {
+export interface IGrammar {
     id: string;
     name: string;
     type: GrammarType;
@@ -46,6 +46,9 @@ export const toDBEntry = (grammar: IIGrammar): GrammarDBEntry => {
         ).map(([from, to]) => ({ from, to })),
     } as GrammarDBEntry;
 };
+
+export const rename = (grammar: IIGrammar, newName: string): IIGrammar =>
+    grammar.update("name", () => newName);
 
 export const addNonTerminalSymbol = (
     grammar: IIGrammar,
@@ -89,7 +92,7 @@ export const removeNonTerminalSymbol = (
 
 export const addProductionHead = (
     grammar: IIGrammar,
-    from: Array<string>
+    from: Array<ASymbol>
 ): IIGrammar =>
     grammar.update(
         "productionRules",
@@ -102,8 +105,8 @@ export const addProductionHead = (
 
 export const addProductionBody = (
     grammar: IIGrammar,
-    from: Array<string>,
-    to: Array<string>
+    from: Array<ASymbol>,
+    to: Array<ASymbol>
 ): IIGrammar =>
     grammar.updateIn(
         ["productionRules", Immutable.List(from)],
@@ -114,7 +117,7 @@ export const addProductionBody = (
 
 export const removeProductionHead = (
     grammar: IIGrammar,
-    from: Array<string>
+    from: Array<ASymbol>
 ): IIGrammar =>
     grammar.update(
         "productionRules",
@@ -124,13 +127,18 @@ export const removeProductionHead = (
 
 export const removeProductionBody = (
     grammar: IIGrammar,
-    from: Array<string>,
-    body: Array<string>
+    from: Array<ASymbol>,
+    body: Array<ASymbol>
 ): IIGrammar =>
     grammar.updateIn(
         ["productionRules", Immutable.List(from)],
         (old: Immutable.Set<IGrammarWord>) => old.remove(Immutable.List(body))
     );
+
+export const setStartSymbol = (
+    grammar: IIGrammar,
+    newStartSymbol: ASymbol
+): IIGrammar => grammar.update("startSymbol", () => newStartSymbol);
 
 export const checkOwnType = (grammar: IIGrammar): GrammarType => {
     // Check for type Context Sensitive (No recursive empty)

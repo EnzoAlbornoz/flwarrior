@@ -16,7 +16,7 @@ import {
     addTransition,
     ITransition,
     getTransitionsOfState,
-    setEntry as setEntryMachine,
+    setEntryState as setEntryMachine,
     getTransitionsOfStateAsIDSet,
     getAllTransitionsOfStateAsIDSet,
     determinize,
