@@ -1,9 +1,18 @@
 // Import Dependencies
-import { PageHeader, List, Button, Typography, Tag, Select } from "antd";
+import {
+    PageHeader,
+    List,
+    Button,
+    Typography,
+    Tag,
+    Select,
+    message,
+} from "antd";
 import IconBase, { SaveOutlined } from "@ant-design/icons";
 import { useState, useMemo } from "react";
 import { useParams, useHistory } from "react-router-dom";
 import styled from "styled-components";
+import Immutable from "immutable";
 import Layout from "@layout";
 import useAsyncEffect from "@/utils/useAsyncEffect";
 import { useDatabase } from "@database";
@@ -12,6 +21,23 @@ import type { GrammarDBEntry } from "@database/schema/grammar";
 import type { ArrayElement } from "@/utils/ArrayElement";
 import { useModal } from "@components/TextModalInput";
 import { ReactComponent as RightArrowRaw } from "@assets/right-arrow.svg";
+import {
+    IGrammar,
+    IGrammarWord,
+    addNonTerminalSymbol,
+    addProductionBody,
+    addProductionHead,
+    addTerminalSymbol,
+    fromDBEntry,
+    IIGrammar,
+    removeNonTerminalSymbol,
+    removeProductionBody,
+    removeProductionHead,
+    removeTerminalSymbol,
+    rename,
+    toDBEntry,
+} from "@lib/grammar/Grammar";
+import { IAlphabet } from "@/lib/Alphabet";
 // Define Typings
 export interface ITGEditPageProps {
     id: string;
@@ -104,7 +130,7 @@ const SelectBar = styled.section`
 // Define Page
 export default function RegularGrammarEdit(): JSX.Element {
     // Setup State
-    const [grammarDb, setGrammarDb] = useState<GrammarDBEntry>();
+    const [grammar, setGrammar] = useState<IIGrammar>();
     // Get Context
     const history = useHistory();
     const { id: idToEdit } = useParams<ITGEditPageProps>();
@@ -112,117 +138,63 @@ export default function RegularGrammarEdit(): JSX.Element {
     useAsyncEffect(async () => {
         const db = await useDatabase();
         const grammarEntry = await db.get(FLWarriorDBTables.GRAMMAR, idToEdit);
-        setGrammarDb(grammarEntry);
+        const grammarLib = fromDBEntry(grammarEntry);
+        setGrammar(grammarLib);
     }, []);
     // Define Computed Values
-    const alphabetNT = useMemo(() => grammarDb?.alphabetNT, [grammarDb]);
-    const alphabetT = useMemo(() => grammarDb?.alphabetT, [grammarDb]);
-    const transitions = useMemo(() => grammarDb?.transitions, [grammarDb]);
-    const startSymbol = useMemo(() => grammarDb?.startSymbol, [grammarDb]);
+    const name = useMemo(() => grammar?.get("name"), [grammar]) as string;
+    const alphabetNT = useMemo(() => grammar?.get("nonTerminalSymbols"), [
+        grammar,
+    ]) as IGrammar["nonTerminalSymbols"];
+    const alphabetT = useMemo(() => grammar?.get("terminalSymbols"), [
+        grammar,
+    ]) as IGrammar["terminalSymbols"];
+    const transitions = useMemo(() => grammar?.get("productionRules"), [
+        grammar,
+    ]) as IGrammar["productionRules"];
+    const startSymbol = useMemo(() => grammar?.get("startSymbol"), [
+        grammar,
+    ]) as IGrammar["startSymbol"];
     // Components Handlers
-    const renameGrammar = (newName: string) => {
-        setGrammarDb({ ...grammarDb, name: newName });
-    };
+    const renameGrammar = (newName: string) =>
+        setGrammar(rename(grammar, newName));
     const saveGrammar = async () => {
+        // Serialize grammar
+        const serializedGrammar = toDBEntry(grammar);
         // Fetch Database
         const db = await useDatabase();
-        await db.put(FLWarriorDBTables.GRAMMAR, grammarDb);
+        await db.put(FLWarriorDBTables.GRAMMAR, serializedGrammar);
+        message.success("Gramática salva!");
     };
-    const newRuleHead = (newRuleHeadSymbols: string) => {
-        setGrammarDb((grammar) => {
-            if (
-                grammar.transitions.findIndex(
-                    ({ from: f }) => f.join() === newRuleHeadSymbols
-                ) === -1
-            ) {
-                // Not Found -> Create New Rule
-                grammar.transitions.push({
-                    from: newRuleHeadSymbols.split(""),
-                    to: [],
-                });
-            }
-            return { ...grammar };
-        });
-    };
-    const deleteRuleHead = (ruleHead: string[]) => {
-        setGrammarDb((grammar) => {
-            const grammarToDelete = grammar.transitions.findIndex(
-                (t) => t.from.join("") === ruleHead.join("")
-            );
-            if (grammarToDelete >= 0) {
-                grammar.transitions.splice(grammarToDelete, 1);
-            }
-            return { ...grammar };
-        });
-    };
-    const deleteRuleBody = (ruleHead: string[], ruleBody: string[]) => {
-        setGrammarDb((grammar) => {
-            const targetRule = grammar.transitions.findIndex(
-                (t) => t.from.join("") === ruleHead.join("")
-            );
-            if (targetRule >= 0) {
-                const bodyToDelete = grammar.transitions[
-                    targetRule
-                ].to.findIndex((rb) => rb.join("") === ruleBody.join(""));
-                grammar.transitions[targetRule].to.splice(bodyToDelete, 1);
-            }
-            return { ...grammar };
-        });
-    };
+    const newRuleHead = (newRuleHeadSymbols: string) =>
+        setGrammar(addProductionHead(grammar, newRuleHeadSymbols.split("")));
+    const deleteRuleHead = (ruleHead: string[]) =>
+        setGrammar(removeProductionHead(grammar, ruleHead));
+    const deleteRuleBody = (ruleHead: string[], ruleBody: string[]) =>
+        setGrammar(removeProductionBody(grammar, ruleHead, ruleBody));
     const newRuleBody = (
         newRuleBodySymbols: string,
-        { ruleHead }: { ruleHead: Array<string> }
-    ) => {
-        setGrammarDb((grammar) => {
-            const ruleIdx = grammar.transitions.findIndex(
-                (t) => t.from === ruleHead
-            );
-            grammar.transitions[ruleIdx].to.push(newRuleBodySymbols.split(""));
-            return { ...grammar };
-        });
-    };
-    const newAlphabetTSymbol = (newSymbol: string) => {
-        setGrammarDb((grammar) => {
-            if (!grammar.alphabetT.includes(newSymbol)) {
-                grammar.alphabetT.push(newSymbol);
-            }
-            return { ...grammar };
-        });
-    };
-    const newAlphabetNTSymbol = (newSymbol: string) => {
-        setGrammarDb((grammar) => {
-            if (!grammar.alphabetNT.includes(newSymbol)) {
-                grammar.alphabetNT.push(newSymbol);
-            }
-            return { ...grammar };
-        });
-    };
-    const onDeleteAlphabetT = (toDeleteSymbol) => {
-        setGrammarDb((grammar) => {
-            grammar.alphabetT.splice(
-                grammar.alphabetT.findIndex((symb) => symb === toDeleteSymbol),
-                1
-            );
-            return { ...grammar };
-        });
-    };
-    const onDeleteAlphabetNT = (toDeleteSymbol) => {
-        setGrammarDb((grammar) => {
-            grammar.alphabetNT.splice(
-                grammar.alphabetNT.findIndex((symb) => symb === toDeleteSymbol),
-                1
-            );
-            return { ...grammar };
-        });
-    };
-    const setStartSymbol = (asymbol: string) => {
-        setGrammarDb((grammar) => {
-            return {
-                ...grammar,
-                startSymbol: asymbol,
-            };
-        });
-    };
+        context: { ruleHead: Array<string> }
+    ) =>
+        setGrammar(
+            addProductionBody(
+                grammar,
+                context.ruleHead,
+                newRuleBodySymbols.split("")
+            )
+        );
+    const newAlphabetTSymbol = (newSymbol: string) =>
+        setGrammar(addTerminalSymbol(grammar, newSymbol));
+
+    const newAlphabetNTSymbol = (newSymbol: string) =>
+        setGrammar(addNonTerminalSymbol(grammar, newSymbol));
+
+    const onDeleteAlphabetT = (toDeleteSymbol: string) =>
+        setGrammar(removeTerminalSymbol(grammar, toDeleteSymbol));
+    const onDeleteAlphabetNT = (toDeleteSymbol) =>
+        setGrammar(removeNonTerminalSymbol(grammar, toDeleteSymbol));
+    const setStartSymbol = (newStartSymbol: string) =>
+        setGrammar(setStartSymbol(newStartSymbol));
     // Setup Modals
     const [showModalAlphabetT, modalAlphabetTCH] = useModal({
         title: "Adicionar símbolo terminal",
@@ -256,7 +228,7 @@ export default function RegularGrammarEdit(): JSX.Element {
     const [showModalRename, modalRenameCH] = useModal({
         title: "Renomear Autômato",
         onSubmit: renameGrammar,
-        placeholder: grammarDb?.name,
+        placeholder: name,
         submitText: "Renomear",
         submitDisabled: (ci) => !(ci.length >= 1),
     });
@@ -275,7 +247,7 @@ export default function RegularGrammarEdit(): JSX.Element {
                 <GrammarEditContent>
                     <PageHeader
                         onBack={history.goBack}
-                        title={`Editar - ${grammarDb?.name || idToEdit}`}
+                        title={`Editar - ${name || idToEdit}`}
                         subTitle="Gramática Regular"
                         extra={[
                             <Button
@@ -314,11 +286,12 @@ export default function RegularGrammarEdit(): JSX.Element {
                                 </RuleListHeader>
                             }
                             style={{ gridArea: "rules" }}
-                            dataSource={transitions}
+                            dataSource={transitions?.toArray()}
                             renderItem={(
-                                item: ArrayElement<
-                                    GrammarDBEntry["transitions"]
-                                >,
+                                [head, body]: [
+                                    IGrammarWord,
+                                    Immutable.Set<IGrammarWord>
+                                ],
                                 index
                             ) => (
                                 <List.Item
@@ -329,7 +302,7 @@ export default function RegularGrammarEdit(): JSX.Element {
                                             key="new-rule-body"
                                             onClick={() =>
                                                 showModalNewRuleBody({
-                                                    ruleHead: item.from,
+                                                    ruleHead: head.toArray(),
                                                 })
                                             }
                                         >
@@ -339,7 +312,7 @@ export default function RegularGrammarEdit(): JSX.Element {
                                             danger
                                             key="remove-rule"
                                             onClick={() =>
-                                                deleteRuleHead(item.from)
+                                                deleteRuleHead(head.toArray())
                                             }
                                         >
                                             Deletar Produção
@@ -348,23 +321,23 @@ export default function RegularGrammarEdit(): JSX.Element {
                                 >
                                     <RuleHead>
                                         <Typography.Text strong>
-                                            {item.from.join()}
+                                            {head.join("")}
                                         </Typography.Text>
                                         <RightArrow />
                                     </RuleHead>
                                     <RuleBody>
-                                        {item.to.map((to, idx) => (
+                                        {body.toArray().map((to, idx) => (
                                             <>
                                                 {idx > 0 ? (
                                                     <TypographySpacer />
                                                 ) : null}
                                                 <RuleBodyTag
-                                                    key={to.join()}
+                                                    key={to.join("")}
                                                     closable
                                                     onClose={() =>
                                                         deleteRuleBody(
-                                                            item.from,
-                                                            to
+                                                            head.toArray(),
+                                                            to.toArray()
                                                         )
                                                     }
                                                 >
@@ -396,7 +369,7 @@ export default function RegularGrammarEdit(): JSX.Element {
                             </Select>
                         </SelectBar>
                         <AlphabetList
-                            dataSource={alphabetT}
+                            dataSource={alphabetT?.toArray()}
                             style={{
                                 gridArea: "alphabetT",
                             }}
@@ -411,7 +384,7 @@ export default function RegularGrammarEdit(): JSX.Element {
                                     </Button>
                                 </AlphabetListHeader>
                             }
-                            renderItem={(symb) => (
+                            renderItem={(symb: string) => (
                                 <List.Item
                                     actions={[
                                         <Button
@@ -429,7 +402,7 @@ export default function RegularGrammarEdit(): JSX.Element {
                             )}
                         />
                         <AlphabetList
-                            dataSource={alphabetNT}
+                            dataSource={alphabetNT?.toArray()}
                             style={{
                                 gridArea: "alphabetNT",
                             }}
@@ -444,7 +417,7 @@ export default function RegularGrammarEdit(): JSX.Element {
                                     </Button>
                                 </AlphabetListHeader>
                             }
-                            renderItem={(symb) => (
+                            renderItem={(symb: string) => (
                                 <List.Item
                                     actions={[
                                         <Button

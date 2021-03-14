@@ -72,143 +72,6 @@ export const removeAlphabetSymbol = (
         console.debug(`[Machine] Removing Alphabet Symbol ${symbol}`);
         return alphabet.remove(symbol);
     });
-export const determinize = (machine: IIMachine): IIMachine => {
-    const hasEpsilon = findOutIfHasEpsilonTransition(machine);
-    // const concatenateString = (a: string, b: string) => return a+b;
-    if (hasEpsilon) {
-    } else {
-        const initialStateId = (machine.get("entry") as IIState).get(
-            "id"
-        ) as string;
-        // add states as ids to set
-        let stateStack = (machine.get("states") as IIState)
-            .keySeq()
-            .reduce((accum, id) => accum.push(id), Immutable.List());
-        console.log(stateStack.toJS());
-        let stateSeenSet = (machine.get("states") as IIState)
-            .keySeq()
-            .reduce((accum, id) => accum.add(id), Immutable.Set());
-
-        let i = 0;
-        let state;
-        // for every state
-        while (!stateStack.isEmpty()) {
-            state = stateStack.last();
-            stateStack = stateStack.pop();
-            console.log(`${i++}, ${state}`);
-            // find transitions of this (these) state(s)
-            getAllTransitionsOfStateAsIDSet(machine, state).forEach((elemt) => {
-                // console.log(elemt.toJS())
-                // if ((elemt.last() as Immutable.Set<string>).isSubset(stateStack))
-                if ((elemt.last() as Immutable.Set<string>).size > 1) {
-                    console.log(stateSeenSet.toJS());
-                    if (
-                        !stateSeenSet.isSuperset([
-                            elemt.last() as Immutable.Set<string>,
-                        ])
-                    ) {
-                        console.log(stateSeenSet.toJS());
-                        console.log(
-                            (elemt.last() as Immutable.Set<string>).toJS()
-                        );
-
-                        stateSeenSet = stateSeenSet.add(elemt.last());
-                    }
-                }
-            });
-        }
-        getTransitionsOfState(machine, initialStateId);
-    }
-    return machine;
-};
-
-export const addTransition = (
-    machine: IIMachine,
-    transition: ITransition
-): IIMachine =>
-    machine.update(
-        "transitions",
-        Immutable.Set<IITransition>(),
-        (transitions: Immutable.Set<IITransition>) => {
-            console.debug(
-                `[Machine] Adding transition from ${transition.from} to ${transition.to} when ${transition.with} occours`
-            );
-            return transitions.union([
-                Immutable.Map(transition) as IITransition,
-            ]);
-        }
-    );
-
-export const removeTransition = (
-    machine: IIMachine,
-    transitionRef: ITransition
-): IIMachine =>
-    machine.update("transitions", (transitions: IMachine["transitions"]) => {
-        console.debug(
-            `[Machine] Removing transition [(${transitionRef.from}) ==(${transitionRef.with})=> (${transitionRef.to})]`
-        );
-        return transitions.remove(Immutable.Map(transitionRef) as IITransition);
-    });
-
-export const getTransitionsOfState = (
-    machine: IIMachine,
-    from: IState["id"]
-): Immutable.Set<IITransition> =>
-    (machine.get("transitions") as Immutable.Set<IITransition>).filter(
-        (transition: IITransition) => transition.get("from") === from
-    );
-
-export const setEntryState = (
-    machine: IIMachine,
-    stateRef: IState
-): IIMachine =>
-    machine
-        .update("states", (states: IMachine["states"]) =>
-            states.map((state, stateId) => {
-                if (stateId === stateRef.id) {
-                    console.debug(
-                        `[Machine] Changing entry state to ${stateRef.id}`
-                    );
-                    return state.update("isEntry", () => true);
-                }
-                return state.update("isEntry", () => false);
-            })
-        )
-        // Update Cache
-        .update("entry", () => Immutable.Map(stateRef) as IIState);
-
-export const setAsExitState = (
-    machine: IIMachine,
-    stateRef: IState
-): IIMachine =>
-    machine
-        .update("states", (states: IMachine["states"]) =>
-            states.update(stateRef.id, (state) => {
-                return state.update("isExit", () => true);
-            })
-        )
-        // Update Cache
-        .update("exitStates", (exitStates: IMachine["exitStates"]) => {
-            return exitStates.set(
-                stateRef.id,
-                Immutable.Map(stateRef) as IIState
-            );
-        });
-
-export const setAsNonExitState = (
-    machine: IIMachine,
-    stateRef: IState
-): IIMachine =>
-    machine
-        .update("states", (states: IMachine["states"]) =>
-            states.update(stateRef.id, (state) =>
-                state.update("isExit", () => false)
-            )
-        )
-        // Update Cache
-        .update("exitStates", (exitStates: IMachine["exitStates"]) =>
-            exitStates.remove(stateRef.id)
-        );
 
 export const getTransitionsOfStateAsIDSet = (
     machine: IIMachine,
@@ -261,6 +124,146 @@ export const findOutIfHasEpsilonTransition = (machine: IIMachine): boolean => {
         ) !== undefined
     );
 };
+
+export const getTransitionsOfState = (
+    machine: IIMachine,
+    from: IState["id"]
+): Immutable.Set<IITransition> =>
+    (machine.get("transitions") as Immutable.Set<IITransition>).filter(
+        (transition: IITransition) => transition.get("from") === from
+    );
+
+export const determinize = (machine: IIMachine): IIMachine => {
+    const hasEpsilon = findOutIfHasEpsilonTransition(machine);
+    // const concatenateString = (a: string, b: string) => return a+b;
+    if (hasEpsilon) {
+        // TODO
+    } else {
+        // const initialStateId = (machine.get("entry") as IIState).get(
+        //     "id"
+        // ) as string;
+        // add states as ids to set
+        let stateStack = (machine.get("states") as IIState)
+            .keySeq()
+            .reduce((accum, id) => accum.push(id), Immutable.List());
+        console.log(stateStack.toJS());
+        // let stateSeenSet = (machine.get("states") as IIState)
+        //     .keySeq()
+        //     .reduce((accum, id) => accum.add(id), Immutable.Set());
+
+        let state;
+        // for every state
+        while (!stateStack.isEmpty()) {
+            state = stateStack.last();
+            stateStack = stateStack.pop();
+            // find transitions of this (these) state(s)
+            getAllTransitionsOfStateAsIDSet(machine, state).reduce(
+                (stateSeenSet, elemt) => {
+                    if ((elemt.last() as Immutable.Set<string>).size > 1) {
+                        console.log(stateSeenSet.toJS());
+                        if (
+                            !stateSeenSet.isSuperset([
+                                elemt.last() as Immutable.Set<string>,
+                            ])
+                        ) {
+                            console.log(stateSeenSet.toJS());
+                            console.log(
+                                (elemt.last() as Immutable.Set<string>).toJS()
+                            );
+
+                            return stateSeenSet.add(elemt.last());
+                        }
+                    }
+                    return stateSeenSet;
+                },
+                (machine.get("states") as IIState)
+                    .keySeq()
+                    .reduce((accum, id) => accum.add(id), Immutable.Set())
+            );
+        }
+    }
+    return machine;
+};
+
+export const addTransition = (
+    machine: IIMachine,
+    transition: ITransition
+): IIMachine =>
+    machine.update(
+        "transitions",
+        Immutable.Set<IITransition>(),
+        (transitions: Immutable.Set<IITransition>) => {
+            console.debug(
+                `[Machine] Adding transition from ${transition.from} to ${transition.to} when ${transition.with} occours`
+            );
+            return transitions.union([
+                Immutable.Map(transition) as IITransition,
+            ]);
+        }
+    );
+
+export const removeTransition = (
+    machine: IIMachine,
+    transitionRef: ITransition
+): IIMachine =>
+    machine.update("transitions", (transitions: IMachine["transitions"]) => {
+        console.debug(
+            `[Machine] Removing transition [(${transitionRef.from}) ==(${transitionRef.with})=> (${transitionRef.to})]`
+        );
+        return transitions.remove(Immutable.Map(transitionRef) as IITransition);
+    });
+
+export const setEntryState = (
+    machine: IIMachine,
+    stateRef: IState
+): IIMachine =>
+    machine
+        .update("states", (states: IMachine["states"]) =>
+            states.map((state, stateId) => {
+                if (stateId === stateRef.id) {
+                    console.debug(
+                        `[Machine] Changing entry state to ${stateRef.id}`
+                    );
+                    return state.update("isEntry", () => true);
+                }
+                return state.update("isEntry", () => false);
+            })
+        )
+        // Update Cache
+        .update("entry", () => Immutable.Map(stateRef) as IIState);
+
+export const setAsExitState = (
+    machine: IIMachine,
+    stateRef: IState
+): IIMachine =>
+    machine
+        .update("states", (states: IMachine["states"]) =>
+            states.update(stateRef.id, (state) => {
+                return state.update("isExit", () => true);
+            })
+        )
+        // Update Cache
+        .update("exitStates", (exitStates: IMachine["exitStates"]) => {
+            return exitStates.set(
+                stateRef.id,
+                Immutable.Map(stateRef) as IIState
+            );
+        });
+
+export const setAsNonExitState = (
+    machine: IIMachine,
+    stateRef: IState
+): IIMachine =>
+    machine
+        .update("states", (states: IMachine["states"]) =>
+            states.update(stateRef.id, (state) =>
+                state.update("isExit", () => false)
+            )
+        )
+        // Update Cache
+        .update("exitStates", (exitStates: IMachine["exitStates"]) =>
+            exitStates.remove(stateRef.id)
+        );
 
 // export const determinize = (machine: IIMachine): IIMachine => {
 //     const hasEpsilon = findOutIfHasEpsilonTransition(machine);
