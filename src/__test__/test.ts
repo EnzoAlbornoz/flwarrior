@@ -26,6 +26,18 @@ import { IIState, IState } from "../lib/automaton/State";
 import machine, { MachineType } from "../database/schema/machine";
 import Immutable from "immutable";
 
+// ░░░░░░█▐▓▓░████▄▄▄█▀▄▓▓▓▌█
+// ░░░░░▄█▌▀▄▓▓▄▄▄▄▀▀▀▄▓▓▓▓▓▌█
+// ░░░▄█▀▀▄▓█▓▓▓▓▓▓▓▓▓▓▓▓▀░▓▌█
+// ░░█▀▄▓▓▓███▓▓▓███▓▓▓▄░░▄▓▐█▌
+// ░█▌▓▓▓▀▀▓▓▓▓███▓▓▓▓▓▓▓▄▀▓▓▐█
+// ░█▐██▐░▄▓▓▓▓▓▀▄░▀▓▓▓▓▓▓▓▓▓▌█▌
+// █▌███▓▓▓▓▓▓▓▓▐░░▄▓▓███▓▓▓▄▀▐█
+// █▐█▓▀░░▀▓▓▓▓▓▓▓▓▓██████▓▓▓▓▐█
+// ▌▓▄▌▀░▀░▐▀█▄▓▓██████████▓▓▓▌█▌
+// ▌▓▓▓▄▄▀▀▓▓▓▀▓▓▓▓▓▓▓▓█▓█▓█▓▓▌█▌
+// █▐▓▓▓▓▓▓▄▄▄▓▓▓▓▓▓█▓█▓█▓█▓▓▓▐:theDoge:
+
 test("test add symbols to new IIGrammar", () => {
     // IIGrammar
     const immutableGrammar = createGrammarFromDBEntry({
