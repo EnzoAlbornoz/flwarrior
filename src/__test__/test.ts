@@ -9,6 +9,7 @@ import {
 } from "../lib/grammar/Grammar";
 import { GrammarType } from "../database/schema/grammar";
 import {
+    IITransition,
     findOutIfHasEpsilonTransition,
     fromDBEntry as createMachineFromDBEntry,
     IIMachine,
@@ -16,10 +17,12 @@ import {
     ITransition,
     getTransitionsOfState,
     setEntry as setEntryMachine,
-    // getTransitionsOfStateWithSymbolAsIDSet,
+    getTransitionsOfStateAsIDSet,
+    getAllTransitionsOfStateAsIDSet,
+    determinize,
 
 } from "../lib/automaton/Machine";
-import { State, IIState, IState } from "../lib/automaton/State";
+import { IIState, IState } from "../lib/automaton/State";
 import machine, { MachineType } from "../database/schema/machine";
 import Immutable from "immutable";
 
@@ -96,7 +99,7 @@ function buildImmutableRegularNonDeterministicWithoutEpsilonMachine(): IIMachine
             { id: "q1", isEntry: false, isExit: false },
             { id: "q2", isEntry: false, isExit: true },
         ],
-        entryAlphabet: ["0, 1, ε"],
+        entryAlphabet: ["0", "1", "ε"],
         memoryAlphabet: [],
         transitions: [
             {
@@ -204,11 +207,16 @@ test("test find transitions of state", () => {
     // console.log(getTransitionsOfStateWithSymbolAsIDSet(machineWithEntry, "q1", "0"));
     // playin around
 
-    // var setu = Immutable.Set(["q1", "q2"]);
+    const setu = (machineWithEntry.get("states") as IIState).keySeq().reduce((accumSet, id) => accumSet.add(id), Immutable.Set());
+    
+    // setu.add();
+    const setup = getAllTransitionsOfStateAsIDSet(machineWithEntry, "q1");
+    console.log(setup.toJS());
+    determinize(machineWithEntry);
+    console.log(getTransitionsOfStateAsIDSet(machineWithEntry, "q1", "0").toJS());
     // var setu2 = Immutable.Set(["q2", "q1"]);
     // console.log(setu.toJS());
     // console.log(setu2.toJS());
     // console.log(setu.equals(setu2));
-
 });
 
