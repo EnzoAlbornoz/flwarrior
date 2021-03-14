@@ -115,9 +115,15 @@ export const setEntryState = (
 ): IIMachine =>
     machine
         .update("states", (states: IMachine["states"]) =>
-            states.update(stateRef.id, (state) =>
-                state.update("isEntry", () => true)
-            )
+            states.map((state, stateId) => {
+                if (stateId === stateRef.id) {
+                    console.debug(
+                        `[Machine] Changing entry state to ${stateRef.id}`
+                    );
+                    return state.update("isEntry", () => true);
+                }
+                return state.update("isEntry", () => false);
+            })
         )
         // Update Cache
         .update("entry", () => Immutable.Map(stateRef) as IIState);
@@ -128,9 +134,9 @@ export const setAsExitState = (
 ): IIMachine =>
     machine
         .update("states", (states: IMachine["states"]) =>
-            states.update(stateRef.id, (state) =>
-                state.update("isExit", () => true)
-            )
+            states.update(stateRef.id, (state) => {
+                return state.update("isExit", () => true);
+            })
         )
         // Update Cache
         .update("exitStates", (exitStates: IMachine["exitStates"]) => {
@@ -182,13 +188,6 @@ export const findOutIfHasEpsilonTransition = (machine: IIMachine): boolean => {
 //     }
 //     return machine;
 // };
-
-export const setEntry = (machine: IIMachine, state: IState): IIMachine =>
-    machine.update(
-        "entry",
-        Immutable.Map<keyof IState, IState[keyof IState]>(),
-        () => Immutable.Map(state) as IIState
-    );
 
 export const fromDBEntry = (dbEntry: MachineDBEntry): IIMachine => {
     return Immutable.Map<IMachine[keyof IMachine]>({
