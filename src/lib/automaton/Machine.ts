@@ -270,7 +270,7 @@ export const determinize = (machine: IIMachine): IIMachine => {
                             );
 
                             const clonedMachineS1 = addState(clonedMachine, {
-                                id: (elemt.last() as Immutable.Set<string>).join(),
+                                id: (elemt.last() as Immutable.Set<string>).sort().join(),
                                 isEntry: false,
                                 isExit: isAnyExitState(
                                     machine,
@@ -282,7 +282,7 @@ export const determinize = (machine: IIMachine): IIMachine => {
                                 {
                                     from: state,
                                     with: elemt.first() as ASymbol,
-                                    to: (elemt.last() as Immutable.Set<string>).join(),
+                                    to: (elemt.last() as Immutable.Set<string>).sort().join(),
                                     push: null,
                                     pop: null,
                                 } as ITransition
@@ -312,7 +312,7 @@ export const determinize = (machine: IIMachine): IIMachine => {
                         const clonedMachineS2 = addTransition(clonedMachineS1, {
                             from: state,
                             with: elemt.first() as ASymbol,
-                            to: (elemt.last() as Immutable.Set<string>).join(),
+                            to: (elemt.last() as Immutable.Set<string>).sort().join(),
                             push: null,
                             pop: null,
                         } as ITransition);
