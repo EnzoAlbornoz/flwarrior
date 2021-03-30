@@ -1,3 +1,4 @@
+import Immutable from "immutable";
 import { IAlphabet } from "../lib/Alphabet";
 import { EPSILON } from "../lib/AlphabetSymbol";
 import {
@@ -21,11 +22,9 @@ import {
     getAllTransitionsOfStateAsIDSet,
     determinize,
     findEpsilonCLosureOfState,
-
 } from "../lib/automaton/Machine";
 import { IIState, IState } from "../lib/automaton/State";
 import machine, { MachineType } from "../database/schema/machine";
-import Immutable from "immutable";
 
 // ░░░░░░█▐▓▓░████▄▄▄█▀▄▓▓▓▌█
 // ░░░░░▄█▌▀▄▓▓▄▄▄▄▀▀▀▄▓▓▓▓▓▌█
@@ -227,7 +226,7 @@ function buildImmutableRegularNonDeterministicWithEpsilonMachine(): IIMachine {
                 from: "q3",
                 with: { head: "1", memory: "" },
                 to: { newState: "q4", writeSymbol: "", headDirection: null },
-            }
+            },
         ],
     });
 }
@@ -292,7 +291,7 @@ function buildImmutableRegularNonDeterministicWithEpsilonMachine2(): IIMachine {
                 from: "q3",
                 with: { head: "0", memory: "" },
                 to: { newState: "q4", writeSymbol: "", headDirection: null },
-            }
+            },
         ],
     });
 }
@@ -304,15 +303,16 @@ test("test find Out If Has Epsilon on IIMachine", () => {
         from: "q2",
         with: EPSILON,
         to: "q2",
-        push: null, pop: null,
+        push: null,
+        pop: null,
     });
     expect(findOutIfHasEpsilonTransition(modifiedMachine)).toBe(true);
 });
 
 test("test set Entry On Machine", () => {
-    let immutableMachine = buildImmutableRegularNonDeterministicWithoutEpsilonMachine();
-    expect(immutableMachine["entry"]).toBe(undefined);
-    let machineWithEntry = setEntryMachine(immutableMachine, {
+    const immutableMachine = buildImmutableRegularNonDeterministicWithoutEpsilonMachine();
+    expect(immutableMachine.get("entry")).toBe(undefined);
+    const machineWithEntry = setEntryMachine(immutableMachine, {
         id: "q0",
         isEntry: true,
         isExit: true,
@@ -322,27 +322,39 @@ test("test set Entry On Machine", () => {
 
 test("test determinization without ε", () => {
     const immutableMachine = buildImmutableRegularNonDeterministicWithoutEpsilonMachine();
-    let machineWithEntry = setEntryMachine(immutableMachine, {
+    const machineWithEntry = setEntryMachine(immutableMachine, {
         id: "q0",
         isEntry: true,
         isExit: true,
     });
 });
 
-test("test determinization with ε 1", () =>
-{
+test("test determinization with ε 1", () => {
     const immutableMachine = buildImmutableRegularNonDeterministicWithEpsilonMachine();
-    var determinized = findEpsilonCLosureOfState(immutableMachine, "q0", Immutable.Set());
-    expect(determinized.equals(Immutable.Set([ "q0", "q1", "q2" ]))).toBe(true);
+    const determinized = findEpsilonCLosureOfState(
+        immutableMachine,
+        "q0",
+        Immutable.Set()
+    );
+    expect(determinized.equals(Immutable.Set(["q0", "q1", "q2"]))).toBe(true);
 });
 
-test("test determinization with ε 2", () =>
-{
+test("test determinization with ε 2", () => {
     const immutableMachine = buildImmutableRegularNonDeterministicWithEpsilonMachine2();
-    var determinized = findEpsilonCLosureOfState(immutableMachine, "q0", Immutable.Set());
-    expect(determinized.equals(Immutable.Set([ "q0", "q1", "q3" ]))).toBe(true);
-    var determinized = findEpsilonCLosureOfState(immutableMachine, "q2", Immutable.Set());
-    expect(determinized.equals(Immutable.Set([ "q2", "q3", "q1", "q0" ]))).toBe(true);
+    const determinized = findEpsilonCLosureOfState(
+        immutableMachine,
+        "q0",
+        Immutable.Set()
+    );
+    expect(determinized.equals(Immutable.Set(["q0", "q1", "q3"]))).toBe(true);
+    const determinized2 = findEpsilonCLosureOfState(
+        immutableMachine,
+        "q2",
+        Immutable.Set()
+    );
+    expect(determinized2.equals(Immutable.Set(["q2", "q3", "q1", "q0"]))).toBe(
+        true
+    );
 });
 
 test("test find transitions of state", () => {
@@ -352,28 +364,30 @@ test("test find transitions of state", () => {
         isEntry: true,
         isExit: true,
     });
-    let transitions = getTransitionsOfState(machineWithEntry, "q0");
+    const transitions = getTransitionsOfState(machineWithEntry, "q0");
     const last: IITransition = Immutable.Map({
         from: "q0",
         with: "0",
         to: "q0",
         push: null,
-        pop: null
+        pop: null,
     }) as IITransition;
     const expected: IITransition = Immutable.Map({
         from: "q0",
         with: "1",
         to: "q1",
         push: null,
-        pop: null
+        pop: null,
     }) as IITransition;
 
     expect(transitions.equals(Immutable.Set([last, expected]))).toBe(true);
     expect(transitions.isSubset(Immutable.Set([last, expected]))).toBe(true);
+
 });
 
-// test("production", () => {
-//     var machina = determinize(buildImmutableRegularNonDeterministicWithoutEpsilonMachine());
-//     console.log(machina.toJS());
-// })
-
+test("production", () => {
+    const machina = determinize(
+        buildImmutableRegularNonDeterministicWithoutEpsilonMachine()
+    );
+    console.log(machina.toJS());
+});

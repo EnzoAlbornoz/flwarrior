@@ -229,7 +229,7 @@ export const findEpsilonCLosureOfState = (
     from: IState["id"],
     current_iteration: Immutable.Set<string>
 ): Immutable.Set<string> => {
-    var epsilonSet = current_iteration;
+    let epsilonSet = current_iteration;
     // By definition the epsilon closure of q0 contains q0.
     epsilonSet = epsilonSet.add(from);
 
@@ -261,50 +261,43 @@ export const findEpsilonCLosureOfState = (
 
 export const determinize = (machine: IIMachine): IIMachine => {
     // clone the machine to return
-    let clonedMachineInit = machine;
+    let clonedMachine = machine;
     const hasEpsilon = findOutIfHasEpsilonTransition(machine);
-    // const concatenateString = (a: string, b: string) => return a+b;
     if (hasEpsilon) {
-        // calculate the ε-closure of each state
+        // TODO
     } else {
-        // const initialStateId = (machine.get("entry") as IIState).get(
-        //     "id"
-        // ) as string;
         // add states as ids to set
         let stateStack = (machine.get("states") as IIState)
             .keySeq()
             .reduce((accum, id) => accum.push(id), Immutable.List());
-        // console.log(stateStack.toJS());
+
         const stateSeenSetInit = (machine.get("states") as IIState)
             .keySeq()
             .reduce((accum, id) => accum.add(id), Immutable.Set());
+
+        let state;
         // for every state
         while (!stateStack.isEmpty()) {
-            const state = stateStack.last();
+            state = stateStack.last();
             stateStack = stateStack.pop();
             // find transitions of this (these) state(s)
             const {
-                stateSeenSet: resSet,
-                clonedMachine: resMachine,
+                iteratedMachine: machineIterated,
             } = getAllTransitionsOfStateAsIDSet(machine, state).reduce(
-                (accum, elemt) => {
-                    const { clonedMachine, stateSeenSet } = accum;
+                (acc, elemt) => {
+                    let { stateSeenSet, iteratedMachine } = acc;
+                    const { currState } = acc;
                     // console.log(elemt.toJS())
                     // if ((elemt.last() as Immutable.Set<string>).isSubset(stateStack))
                     if ((elemt.last() as Immutable.Set<string>).size > 1) {
-                        // console.log(stateSeenSet.toJS());
                         if (
                             !stateSeenSet.isSuperset([
                                 elemt.last() as Immutable.Set<string>,
                             ])
                         ) {
                             // new state set
-                            // console.log(stateSeenSet.toJS());
-                            // console.log(
-                            // (elemt.last() as Immutable.Set<string>).toJS()
-                            // );
 
-                            const clonedMachineS1 = addState(clonedMachine, {
+                            iteratedMachine = addState(iteratedMachine, {
                                 id: (elemt.last() as Immutable.Set<string>)
                                     .sort()
                                     .join(),
@@ -314,63 +307,61 @@ export const determinize = (machine: IIMachine): IIMachine => {
                                     elemt.last() as Immutable.Set<string>
                                 ),
                             } as IState);
-                            const clonedMachineS2 = addTransition(
-                                clonedMachineS1,
-                                {
-                                    from: state,
-                                    with: elemt.first() as ASymbol,
-                                    to: (elemt.last() as Immutable.Set<string>)
-                                        .sort()
-                                        .join(),
-                                    push: null,
-                                    pop: null,
-                                } as ITransition
-                            );
+                            iteratedMachine = addTransition(iteratedMachine, {
+                                from: currState,
+                                with: elemt.first() as ASymbol,
+                                to: (elemt.last() as Immutable.Set<string>)
+                                    .sort()
+                                    .join(),
+                                push: null,
+                                pop: null,
+                            } as ITransition);
 
-                            const stateSeenSetS1 = stateSeenSet.add(
-                                elemt.last()
+                            stateSeenSet = stateSeenSet.add(elemt.last());
+                        } else {
+                            // already exists state set, but new state or symbol takes to it
+                            // must modify transitions of this state
+                            (elemt.last() as Immutable.Set<string>).forEach(
+                                (element) => {
+                                    iteratedMachine = removeTransition(
+                                        iteratedMachine,
+                                        {
+                                            from: currState,
+                                            with: elemt.first() as ASymbol,
+                                            to: element as ASymbol,
+                                            push: null,
+                                            pop: null,
+                                        } as ITransition
+                                    );
+                                }
                             );
-                            return {
-                                stateSeenSet: stateSeenSetS1,
-                                clonedMachine: clonedMachineS2,
-                            };
+                            iteratedMachine = addTransition(iteratedMachine, {
+                                from: currState,
+                                with: elemt.first() as ASymbol,
+                                to: (elemt.last() as Immutable.Set<string>)
+                                    .sort()
+                                    .join(),
+                                push: null,
+                                pop: null,
+                            } as ITransition);
                         }
-                        // already exists state set, but new state or symbol takes to it
-                        // must modify transitions of this state
-                        const clonedMachineS1 = (elemt.last() as Immutable.Set<string>).reduce(
-                            (clonedMachineParam, element) =>
-                                removeTransition(clonedMachineParam, {
-                                    from: state,
-                                    with: elemt.first() as ASymbol,
-                                    to: element as ASymbol,
-                                    push: null,
-                                    pop: null,
-                                } as ITransition),
-                            clonedMachine
-                        );
-                        const clonedMachineS2 = addTransition(clonedMachineS1, {
-                            from: state,
-                            with: elemt.first() as ASymbol,
-                            to: (elemt.last() as Immutable.Set<string>)
-                                .sort()
-                                .join(),
-                            push: null,
-                            pop: null,
-                        } as ITransition);
-
-                        return { stateSeenSet, clonedMachine: clonedMachineS2 };
                     }
-                    return { stateSeenSet, clonedMachine };
+                    return {
+                        stateSeenSet,
+                        iteratedMachine,
+                        currState,
+                    };
                 },
                 {
                     stateSeenSet: stateSeenSetInit,
-                    clonedMachine: clonedMachineInit,
+                    iteratedMachine: clonedMachine,
+                    currState: state,
                 }
             );
-            clonedMachineInit = resMachine;
+            clonedMachine = machineIterated;
         }
     }
-    return machine;
+    return clonedMachine;
 };
 
 export const fromDBEntry = (dbEntry: MachineDBEntry): IIMachine => {
@@ -408,17 +399,23 @@ export const fromDBEntry = (dbEntry: MachineDBEntry): IIMachine => {
 };
 
 export const toDBEntry = (machine: IIMachine): MachineDBEntry => {
-    interface IntermediateEntry
-        extends Omit<MachineDBEntry, "states" | "transitions" | "exitStates"> {
+    interface IMachineJS {
+        id: string;
+        name: string;
+        entry: IState;
         states: Record<string, IState>;
+        alphabet: Array<string>;
         transitions: Array<ITransition>;
         exitStates: Record<string, IState>;
+        type: MachineType;
     }
 
-    const intermediate = machine.toJS() as IntermediateEntry;
+    const intermediate = machine.toJS() as IMachineJS;
     return {
-        ...intermediate,
+        id: intermediate.id,
+        name: intermediate.name,
         states: Object.values(intermediate.states),
+        entryAlphabet: intermediate.alphabet,
         transitions: intermediate.transitions.map((t) => ({
             from: t.from,
             with: {
@@ -436,5 +433,8 @@ export const toDBEntry = (machine: IIMachine): MachineDBEntry => {
                     : null) as MachineMemoryDirection,
             },
         })),
+        type: intermediate.type,
+        memoryAlphabet: null,
+        deterministic: true,
     };
 };

@@ -7,6 +7,7 @@ import {
     Checkbox,
     Modal,
     Select,
+    Space,
 } from "antd";
 import IconBase, { SaveOutlined } from "@ant-design/icons";
 import { useState, useMemo } from "react";
@@ -35,6 +36,7 @@ import {
     setAsExitState,
     setAsNonExitState,
     IITransition,
+    determinize,
 } from "@lib/automaton/Machine";
 import { getNewState, IIState, IState } from "@/lib/automaton/State";
 // Define Typings
@@ -188,6 +190,11 @@ export default function RegularMachineEdit(): JSX.Element {
                 ? setAsExitState(machine, stateRef)
                 : setAsNonExitState(machine, stateRef)
         );
+    // Special Functions
+    const determinizeMachine = () => {
+        console.log("bruh");
+        setMachine(determinize(machine));
+    };
     // Setup Modals
     const [showModalState, modalStateCH] = useModal({
         title: "Adicionar estado",
@@ -264,13 +271,22 @@ export default function RegularMachineEdit(): JSX.Element {
                                         Regras de Transição
                                     </Typography.Text>
 
-                                    <Button
-                                        key="button-new-rule"
-                                        type="primary"
-                                        onClick={showNewTransitionModal}
-                                    >
-                                        Adicionar Transição
-                                    </Button>
+                                    <Space>
+                                        <Button
+                                            key="button-determinize"
+                                            type="primary"
+                                            onClick={determinizeMachine}
+                                        >
+                                            Determinizar
+                                        </Button>
+                                        <Button
+                                            key="button-new-rule"
+                                            type="primary"
+                                            onClick={showNewTransitionModal}
+                                        >
+                                            Adicionar Transição
+                                        </Button>
+                                    </Space>
                                 </RulesListHeader>
                             }
                             style={{ gridArea: "rules" }}
@@ -363,7 +379,7 @@ export default function RegularMachineEdit(): JSX.Element {
                                     )
                                 }
                             >
-                                {states?.map((state) => (
+                                {states?.valueSeq()?.map((state) => (
                                     <Select.Option
                                         value={state.get("id") as string}
                                         key={state.get("id") as string}
