@@ -224,13 +224,48 @@ export const setAsNonExitState = (
             exitStates.remove(stateRef.id)
         );
 
+export const findEpsilonCLosureOfState = (
+    machine: IIMachine,
+    from: IState["id"],
+    current_iteration: Immutable.Set<string>
+): Immutable.Set<string> => {
+    var epsilonSet = current_iteration;
+    // By definition the epsilon closure of q0 contains q0.
+    epsilonSet = epsilonSet.add(from);
+
+    // Add states which are reachable by ε
+    (machine.get("states") as Immutable.Map<string, IIState>)
+        .keySeq()
+        .forEach((state) => {
+            (getTransitionsOfState(
+                machine,
+                state
+            ) as Immutable.Set<IITransition>).forEach((transition) => {
+                if (
+                    transition.get("with") === EPSILON &&
+                    !current_iteration.contains(transition.get("to"))
+                ) {
+                    // add ε-closure of the state reachable by ε.
+                    epsilonSet = epsilonSet.union(
+                        findEpsilonCLosureOfState(
+                            machine,
+                            transition.get("to"),
+                            epsilonSet
+                        )
+                    );
+                }
+            });
+        });
+    return epsilonSet;
+};
+
 export const determinize = (machine: IIMachine): IIMachine => {
     // clone the machine to return
     let clonedMachineInit = machine;
     const hasEpsilon = findOutIfHasEpsilonTransition(machine);
     // const concatenateString = (a: string, b: string) => return a+b;
     if (hasEpsilon) {
-        // TODO
+        // calculate the ε-closure of each state
     } else {
         // const initialStateId = (machine.get("entry") as IIState).get(
         //     "id"
@@ -239,7 +274,7 @@ export const determinize = (machine: IIMachine): IIMachine => {
         let stateStack = (machine.get("states") as IIState)
             .keySeq()
             .reduce((accum, id) => accum.push(id), Immutable.List());
-        console.log(stateStack.toJS());
+        // console.log(stateStack.toJS());
         const stateSeenSetInit = (machine.get("states") as IIState)
             .keySeq()
             .reduce((accum, id) => accum.add(id), Immutable.Set());
@@ -257,20 +292,22 @@ export const determinize = (machine: IIMachine): IIMachine => {
                     // console.log(elemt.toJS())
                     // if ((elemt.last() as Immutable.Set<string>).isSubset(stateStack))
                     if ((elemt.last() as Immutable.Set<string>).size > 1) {
-                        console.log(stateSeenSet.toJS());
+                        // console.log(stateSeenSet.toJS());
                         if (
                             !stateSeenSet.isSuperset([
                                 elemt.last() as Immutable.Set<string>,
                             ])
                         ) {
                             // new state set
-                            console.log(stateSeenSet.toJS());
-                            console.log(
-                                (elemt.last() as Immutable.Set<string>).toJS()
-                            );
+                            // console.log(stateSeenSet.toJS());
+                            // console.log(
+                            // (elemt.last() as Immutable.Set<string>).toJS()
+                            // );
 
                             const clonedMachineS1 = addState(clonedMachine, {
-                                id: (elemt.last() as Immutable.Set<string>).sort().join(),
+                                id: (elemt.last() as Immutable.Set<string>)
+                                    .sort()
+                                    .join(),
                                 isEntry: false,
                                 isExit: isAnyExitState(
                                     machine,
@@ -282,7 +319,9 @@ export const determinize = (machine: IIMachine): IIMachine => {
                                 {
                                     from: state,
                                     with: elemt.first() as ASymbol,
-                                    to: (elemt.last() as Immutable.Set<string>).sort().join(),
+                                    to: (elemt.last() as Immutable.Set<string>)
+                                        .sort()
+                                        .join(),
                                     push: null,
                                     pop: null,
                                 } as ITransition
@@ -312,7 +351,9 @@ export const determinize = (machine: IIMachine): IIMachine => {
                         const clonedMachineS2 = addTransition(clonedMachineS1, {
                             from: state,
                             with: elemt.first() as ASymbol,
-                            to: (elemt.last() as Immutable.Set<string>).sort().join(),
+                            to: (elemt.last() as Immutable.Set<string>)
+                                .sort()
+                                .join(),
                             push: null,
                             pop: null,
                         } as ITransition);
