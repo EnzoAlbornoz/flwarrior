@@ -307,44 +307,34 @@ export const determinize = (machine: IIMachine): IIMachine => {
                                     elemt.last() as Immutable.Set<string>
                                 ),
                             } as IState);
-                            iteratedMachine = addTransition(iteratedMachine, {
-                                from: currState,
-                                with: elemt.first() as ASymbol,
-                                to: (elemt.last() as Immutable.Set<string>)
-                                    .sort()
-                                    .join(),
-                                push: null,
-                                pop: null,
-                            } as ITransition);
-
+                            // add this new state to the set
                             stateSeenSet = stateSeenSet.add(elemt.last());
-                        } else {
-                            // already exists state set, but new state or symbol takes to it
-                            // must modify transitions of this state
-                            (elemt.last() as Immutable.Set<string>).forEach(
-                                (element) => {
-                                    iteratedMachine = removeTransition(
-                                        iteratedMachine,
-                                        {
-                                            from: currState,
-                                            with: elemt.first() as ASymbol,
-                                            to: element as ASymbol,
-                                            push: null,
-                                            pop: null,
-                                        } as ITransition
-                                    );
-                                }
-                            );
-                            iteratedMachine = addTransition(iteratedMachine, {
-                                from: currState,
-                                with: elemt.first() as ASymbol,
-                                to: (elemt.last() as Immutable.Set<string>)
-                                    .sort()
-                                    .join(),
-                                push: null,
-                                pop: null,
-                            } as ITransition);
                         }
+                        // already exists state set, but new state or symbol takes to it
+                        // must modify transitions of this state
+                        iteratedMachine = addTransition(iteratedMachine, {
+                            from: currState,
+                            with: elemt.first() as ASymbol,
+                            to: (elemt.last() as Immutable.Set<string>)
+                                .sort()
+                                .join(),
+                            push: null,
+                            pop: null,
+                        } as ITransition);
+                        (elemt.last() as Immutable.Set<string>).forEach(
+                            (element) => {
+                                iteratedMachine = removeTransition(
+                                    iteratedMachine,
+                                    {
+                                        from: currState,
+                                        with: elemt.first() as ASymbol,
+                                        to: element as ASymbol,
+                                        push: null,
+                                        pop: null,
+                                    } as ITransition
+                                );
+                            }
+                        );
                     }
                     return {
                         stateSeenSet,
