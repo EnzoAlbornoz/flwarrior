@@ -191,7 +191,10 @@ export default function RegularMachineEdit(): JSX.Element {
                 : setAsNonExitState(machine, stateRef)
         );
     // Special Functions
-    const determineMachine = () => setMachine(determinize(machine));
+    const determinizeMachine = () => {
+        console.log("bruh");
+        setMachine(determinize(machine));
+    };
     // Setup Modals
     const [showModalState, modalStateCH] = useModal({
         title: "Adicionar estado",
@@ -272,7 +275,7 @@ export default function RegularMachineEdit(): JSX.Element {
                                         <Button
                                             key="button-determinize"
                                             type="primary"
-                                            onClick={determineMachine}
+                                            onClick={determinizeMachine}
                                         >
                                             Determinizar
                                         </Button>
