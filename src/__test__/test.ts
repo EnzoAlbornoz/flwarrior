@@ -20,6 +20,7 @@ import {
     getTransitionsOfStateAsIDSet,
     getAllTransitionsOfStateAsIDSet,
     determinize,
+    findEpsilonCLosureOfState,
 
 } from "../lib/automaton/Machine";
 import { IIState, IState } from "../lib/automaton/State";
@@ -158,6 +159,116 @@ function buildImmutableRegularNonDeterministicWithoutEpsilonMachine(): IIMachine
     });
 }
 
+function buildImmutableRegularNonDeterministicWithEpsilonMachine(): IIMachine {
+    return createMachineFromDBEntry({
+        id: "test",
+        name: "test",
+        deterministic: true,
+        type: MachineType.FINITE_STATE_MACHINE,
+        states: [
+            { id: "q0", isEntry: true, isExit: false },
+            { id: "q1", isEntry: false, isExit: false },
+            { id: "q2", isEntry: false, isExit: false },
+            { id: "q3", isEntry: false, isExit: false },
+            { id: "q4", isEntry: false, isExit: true },
+        ],
+        entryAlphabet: ["0", "1", "ε"],
+        memoryAlphabet: [],
+        transitions: [
+            {
+                from: "q0",
+                with: { head: "ε", memory: "" },
+                to: { newState: "q1", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q0",
+                with: { head: "ε", memory: "" },
+                to: { newState: "q2", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q1",
+                with: { head: "0", memory: "" },
+                to: { newState: "q3", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q2",
+                with: { head: "1", memory: "" },
+                to: { newState: "q3", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q3",
+                with: { head: "1", memory: "" },
+                to: { newState: "q4", writeSymbol: "", headDirection: null },
+            }
+        ],
+    });
+}
+
+function buildImmutableRegularNonDeterministicWithEpsilonMachine2(): IIMachine {
+    return createMachineFromDBEntry({
+        id: "test",
+        name: "test",
+        deterministic: true,
+        type: MachineType.FINITE_STATE_MACHINE,
+        states: [
+            { id: "q0", isEntry: true, isExit: false },
+            { id: "q1", isEntry: false, isExit: false },
+            { id: "q2", isEntry: false, isExit: false },
+            { id: "q3", isEntry: false, isExit: false },
+            { id: "q4", isEntry: false, isExit: true },
+        ],
+        entryAlphabet: ["0", "1", "ε"],
+        memoryAlphabet: [],
+        transitions: [
+            {
+                from: "q0",
+                with: { head: "ε", memory: "" },
+                to: { newState: "q1", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q0",
+                with: { head: "1", memory: "" },
+                to: { newState: "q4", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q0",
+                with: { head: "ε", memory: "" },
+                to: { newState: "q3", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q1",
+                with: { head: "0", memory: "" },
+                to: { newState: "q1", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q1",
+                with: { head: "1", memory: "" },
+                to: { newState: "q4", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q1",
+                with: { head: "1", memory: "" },
+                to: { newState: "q2", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q1",
+                with: { head: "ε", memory: "" },
+                to: { newState: "q0", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q2",
+                with: { head: "ε", memory: "" },
+                to: { newState: "q1", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q3",
+                with: { head: "0", memory: "" },
+                to: { newState: "q4", writeSymbol: "", headDirection: null },
+            }
+        ],
+    });
+}
+
 test("test find Out If Has Epsilon on IIMachine", () => {
     const immutableMachine = buildImmutableRegularNonDeterministicWithoutEpsilonMachine();
     expect(findOutIfHasEpsilonTransition(immutableMachine)).toBe(false);
@@ -181,13 +292,29 @@ test("test set Entry On Machine", () => {
     expect((machineWithEntry.get("entry") as IIState).get("id")).toBe("q0");
 });
 
-test("test determinization", () => {
+test("test determinization without ε", () => {
     const immutableMachine = buildImmutableRegularNonDeterministicWithoutEpsilonMachine();
     let machineWithEntry = setEntryMachine(immutableMachine, {
         id: "q0",
         isEntry: true,
         isExit: true,
     });
+});
+
+test("test determinization with ε 1", () =>
+{
+    const immutableMachine = buildImmutableRegularNonDeterministicWithEpsilonMachine();
+    var determinized = findEpsilonCLosureOfState(immutableMachine, "q0", Immutable.Set());
+    expect(determinized.equals(Immutable.Set([ "q0", "q1", "q2" ]))).toBe(true);
+});
+
+test("test determinization with ε 2", () =>
+{
+    const immutableMachine = buildImmutableRegularNonDeterministicWithEpsilonMachine2();
+    var determinized = findEpsilonCLosureOfState(immutableMachine, "q0", Immutable.Set());
+    expect(determinized.equals(Immutable.Set([ "q0", "q1", "q3" ]))).toBe(true);
+    var determinized = findEpsilonCLosureOfState(immutableMachine, "q2", Immutable.Set());
+    expect(determinized.equals(Immutable.Set([ "q2", "q3", "q1", "q0" ]))).toBe(true);
 });
 
 test("test find transitions of state", () => {
@@ -223,9 +350,9 @@ test("test find transitions of state", () => {
     
     // setu.add();
     const setup = getAllTransitionsOfStateAsIDSet(machineWithEntry, "q1");
-    console.log(setup.toJS());
+    // console.log(setup.toJS());
     determinize(machineWithEntry);
-    console.log(getTransitionsOfStateAsIDSet(machineWithEntry, "q1", "0").toJS());
+    // console.log(getTransitionsOfStateAsIDSet(machineWithEntry, "q1", "0").toJS());
     // var setu2 = Immutable.Set(["q2", "q1"]);
     // console.log(setu.toJS());
     // console.log(setu2.toJS());
