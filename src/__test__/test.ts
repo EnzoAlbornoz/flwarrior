@@ -159,6 +159,34 @@ function buildImmutableRegularNonDeterministicWithoutEpsilonMachine(): IIMachine
     });
 }
 
+function buildImmutableRegularNonDeterministicWithoutEpsilonMachine2(): IIMachine {
+    return createMachineFromDBEntry({
+        id: "test",
+        name: "test",
+        deterministic: true,
+        type: MachineType.FINITE_STATE_MACHINE,
+        states: [
+            { id: "q0", isEntry: true, isExit: true },
+            { id: "q1", isEntry: false, isExit: false },
+            { id: "q2", isEntry: false, isExit: false },
+        ],
+        entryAlphabet: ["a"],
+        memoryAlphabet: [],
+        transitions: [
+            {
+                from: "q0",
+                with: { head: "a", memory: "" },
+                to: { newState: "q1", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q0",
+                with: { head: "a", memory: "" },
+                to: { newState: "q2", writeSymbol: "", headDirection: null },
+            },
+        ],
+    });
+}
+
 function buildImmutableRegularNonDeterministicWithEpsilonMachine(): IIMachine {
     return createMachineFromDBEntry({
         id: "test",
@@ -342,20 +370,10 @@ test("test find transitions of state", () => {
 
     expect(transitions.equals(Immutable.Set([last, expected]))).toBe(true);
     expect(transitions.isSubset(Immutable.Set([last, expected]))).toBe(true);
-
-    // console.log(getTransitionsOfStateWithSymbolAsIDSet(machineWithEntry, "q1", "0"));
-    // playin around
-
-    const setu = (machineWithEntry.get("states") as IIState).keySeq().reduce((accumSet, id) => accumSet.add(id), Immutable.Set());
-    
-    // setu.add();
-    const setup = getAllTransitionsOfStateAsIDSet(machineWithEntry, "q1");
-    // console.log(setup.toJS());
-    determinize(machineWithEntry);
-    // console.log(getTransitionsOfStateAsIDSet(machineWithEntry, "q1", "0").toJS());
-    // var setu2 = Immutable.Set(["q2", "q1"]);
-    // console.log(setu.toJS());
-    // console.log(setu2.toJS());
-    // console.log(setu.equals(setu2));
 });
+
+// test("production", () => {
+//     var machina = determinize(buildImmutableRegularNonDeterministicWithoutEpsilonMachine());
+//     console.log(machina.toJS());
+// })
 
