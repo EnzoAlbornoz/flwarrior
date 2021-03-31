@@ -22,6 +22,7 @@ import {
     getAllTransitionsOfStateAsIDSet,
     determinize,
     findEpsilonCLosureOfState,
+    getAllTransitionsOfStateAsIDMapSplitOnCharacter,
 } from "../lib/automaton/Machine";
 import { IIState, IState } from "../lib/automaton/State";
 import machine, { MachineType } from "../database/schema/machine";
@@ -186,6 +187,67 @@ function buildImmutableRegularNonDeterministicWithoutEpsilonMachine2(): IIMachin
     });
 }
 
+function buildImmutableRegularNonDeterministicWithoutEpsilonMachine4(): IIMachine {
+    return createMachineFromDBEntry({
+        id: "test",
+        name: "test",
+        deterministic: true,
+        type: MachineType.FINITE_STATE_MACHINE,
+        states: [
+            { id: "q0", isEntry: true, isExit: false },
+            { id: "q1", isEntry: false, isExit: true },
+            { id: "q2", isEntry: false, isExit: true },
+            { id: "q3", isEntry: false, isExit: false },
+            { id: "q4", isEntry: false, isExit: false },
+        ],
+        entryAlphabet: ["0", "1"],
+        memoryAlphabet: [],
+        transitions: [
+            {
+                from: "q0",
+                with: { head: "0", memory: "" },
+                to: { newState: "q1", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q0",
+                with: { head: "1", memory: "" },
+                to: { newState: "q2", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q1",
+                with: { head: "0", memory: "" },
+                to: { newState: "q1", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q1",
+                with: { head: "0", memory: "" },
+                to: { newState: "q3", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q1",
+                with: { head: "1", memory: "" },
+                to: { newState: "q1", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q2",
+                with: { head: "0", memory: "" },
+                to: { newState: "q2", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q2",
+                with: { head: "1", memory: "" },
+                to: { newState: "q2", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q2",
+                with: { head: "1", memory: "" },
+                to: { newState: "q4", writeSymbol: "", headDirection: null },
+            },
+        ],
+    });
+}
+
+
 function buildImmutableRegularNonDeterministicWithEpsilonMachine(): IIMachine {
     return createMachineFromDBEntry({
         id: "test",
@@ -296,6 +358,70 @@ function buildImmutableRegularNonDeterministicWithEpsilonMachine2(): IIMachine {
     });
 }
 
+function buildImmutableRegularNonDeterministicWithoutEpsilonMachine3(): IIMachine {
+    return createMachineFromDBEntry({
+        id: "test",
+        name: "test",
+        deterministic: true,
+        type: MachineType.FINITE_STATE_MACHINE,
+        states: [
+            { id: "p", isEntry: true, isExit: false },
+            { id: "q", isEntry: false, isExit: true },
+            { id: "r", isEntry: false, isExit: false },
+            { id: "s", isEntry: false, isExit: true },
+            ],
+        entryAlphabet: ["0", "1", "ε"],
+        memoryAlphabet: [],
+        transitions: [
+            {
+                from: "p",
+                with: { head: "0", memory: "" },
+                to: { newState: "q", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "p",
+                with: { head: "1", memory: "" },
+                to: { newState: "q", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "p",
+                with: { head: "0", memory: "" },
+                to: { newState: "s", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q",
+                with: { head: "0", memory: "" },
+                to: { newState: "r", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q",
+                with: { head: "1", memory: "" },
+                to: { newState: "q", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q",
+                with: { head: "1", memory: "" },
+                to: { newState: "r", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "r",
+                with: { head: "0", memory: "" },
+                to: { newState: "s", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "r",
+                with: { head: "1", memory: "" },
+                to: { newState: "p", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "s",
+                with: { head: "1", memory: "" },
+                to: { newState: "p", writeSymbol: "", headDirection: null },
+            },
+        ],
+    });
+}
+
 test("test find Out If Has Epsilon on IIMachine", () => {
     const immutableMachine = buildImmutableRegularNonDeterministicWithoutEpsilonMachine();
     expect(findOutIfHasEpsilonTransition(immutableMachine)).toBe(false);
@@ -385,9 +511,14 @@ test("test find transitions of state", () => {
 
 });
 
-test("production", () => {
-    const machina = determinize(
-        buildImmutableRegularNonDeterministicWithoutEpsilonMachine()
-    );
-    console.log(machina.toJS());
-});
+// test("production", () => {
+//     const machina = determinize(
+//         buildImmutableRegularNonDeterministicWithoutEpsilonMachine4()
+//     );
+//     // const machina2 = getAllTransitionsOfStateAsIDSet(
+//     //     buildImmutableRegularNonDeterministicWithoutEpsilonMachine3(), 'q'
+//     // );
+//     console.log(machina.toJS());
+//     // console.log(machina2.toJS());
+
+// });
