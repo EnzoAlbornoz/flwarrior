@@ -20,6 +20,7 @@ import {
     determinize,
     findEpsilonCLosureOfState,
     getEpsilonClosureOfAllStates,
+    IMachine,
 } from "../lib/automaton/Machine";
 import { IIState } from "../lib/automaton/State";
 import { MachineType } from "../database/schema/machine";
@@ -613,9 +614,8 @@ test("test set Entry On Machine", () => {
 });
 
 test("test determinization without ε", () => {
-    let immutableMachine = determinize(
-        buildImmutableRegularNonDeterministicWithoutEpsilonMachine3()
-    );
+    const mac1 = buildImmutableRegularNonDeterministicWithoutEpsilonMachine3();
+    let immutableMachine = determinize(mac1);
     expect(
         (immutableMachine.get("transitions") as Immutable.Set<IITransition>)
             .sort()
@@ -1070,13 +1070,6 @@ test("test determinization with ε", () => {
                 Immutable.Map({
                     from: "q",
                     with: "c",
-                    to: "q",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
-                    from: "q",
-                    with: "c",
                     to: "p",
                     push: null,
                     pop: null,
@@ -1085,20 +1078,6 @@ test("test determinization with ε", () => {
                     from: "q,r",
                     with: "c",
                     to: "p,q",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
-                    from: "p",
-                    with: "b",
-                    to: "q",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
-                    from: "q",
-                    with: "a",
-                    to: "q",
                     push: null,
                     pop: null,
                 }),
@@ -1209,44 +1188,9 @@ test("test determinization with ε", () => {
         (machine.get("transitions") as Immutable.Set<IITransition>).equals(
             Immutable.Set([
                 Immutable.Map({
-                    from: "q3",
-                    with: "a",
-                    to: "q3",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
-                    from: "q1",
-                    with: "b",
-                    to: "q3",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
-                    from: "q0",
-                    with: "a",
-                    to: "q4",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
                     from: "q2,q3,q4",
                     with: "a",
                     to: "q1,q3,q4",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
-                    from: "q0",
-                    with: "a",
-                    to: "q3",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
-                    from: "q3",
-                    with: "b",
-                    to: "q2",
                     push: null,
                     pop: null,
                 }),
@@ -1272,34 +1216,6 @@ test("test determinization with ε", () => {
                     pop: null,
                 }),
                 Immutable.Map({
-                    from: "q1",
-                    with: "b",
-                    to: "q4",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
-                    from: "q4",
-                    with: "a",
-                    to: "q4",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
-                    from: "q1",
-                    with: "a",
-                    to: "q4",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
-                    from: "q1",
-                    with: "a",
-                    to: "q3",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
                     from: "q2,q3,q4",
                     with: "b",
                     to: "q2,q3,q4",
@@ -1307,93 +1223,9 @@ test("test determinization with ε", () => {
                     pop: null,
                 }),
                 Immutable.Map({
-                    from: "q0",
-                    with: "b",
-                    to: "q2",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
-                    from: "q2",
-                    with: "b",
-                    to: "q3",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
                     from: "q0,q1,q3,q4",
                     with: "a",
                     to: "q0,q1,q3,q4",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
-                    from: "q1",
-                    with: "a",
-                    to: "q1",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
-                    from: "q2",
-                    with: "b",
-                    to: "q2",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
-                    from: "q3",
-                    with: "b",
-                    to: "q3",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
-                    from: "q3",
-                    with: "a",
-                    to: "q1",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
-                    from: "q4",
-                    with: "b",
-                    to: "q2",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
-                    from: "q3",
-                    with: "b",
-                    to: "q4",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
-                    from: "q3",
-                    with: "a",
-                    to: "q4",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
-                    from: "q2",
-                    with: "b",
-                    to: "q4",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
-                    from: "q4",
-                    with: "a",
-                    to: "q3",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
-                    from: "q0",
-                    with: "a",
-                    to: "q0",
                     push: null,
                     pop: null,
                 }),
@@ -1408,13 +1240,6 @@ test("test determinization with ε", () => {
                     from: "q1,q3,q4",
                     with: "b",
                     to: "q2,q3,q4",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
-                    from: "q0",
-                    with: "a",
-                    to: "q1",
                     push: null,
                     pop: null,
                 }),

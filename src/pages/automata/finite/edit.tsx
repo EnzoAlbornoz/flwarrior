@@ -37,8 +37,11 @@ import {
     setAsNonExitState,
     IITransition,
     determinize,
+    minimize,
+    isMachineDeterministic,
 } from "@lib/automaton/Machine";
 import { getNewState, IIState, IState } from "@/lib/automaton/State";
+import { EPSILON } from "@/lib/AlphabetSymbol";
 // Define Typings
 export interface ITGEditPageProps {
     id: string;
@@ -147,6 +150,12 @@ export default function RegularMachineEdit(): JSX.Element {
             ),
         [machine]
     );
+    const isDeterministic = useMemo(() => {
+        if (machine) {
+            return isMachineDeterministic(machine);
+        }
+        return false;
+    }, [machine]);
     // Components Handlers
     const renameMachine = (newName: string) =>
         setMachine(rename(machine, newName));
@@ -165,7 +174,9 @@ export default function RegularMachineEdit(): JSX.Element {
         setMachine(removeState(machine, stateRef));
 
     const addNewAlphabetSymbol = (newSymbol: string) =>
-        setMachine(addAlphabetSymbol(machine, newSymbol));
+        setMachine(
+            addAlphabetSymbol(machine, newSymbol === "&" ? EPSILON : newSymbol)
+        );
 
     const deleteAlphabetSymbol = (symbol: string) =>
         setMachine(removeAlphabetSymbol(machine, symbol));
@@ -191,9 +202,8 @@ export default function RegularMachineEdit(): JSX.Element {
                 : setAsNonExitState(machine, stateRef)
         );
     // Special Functions
-    const determinizeMachine = () => {
-        setMachine(determinize(machine));
-    };
+    const determinizeMachine = () => setMachine(determinize(machine));
+    const minimizeMachine = () => setMachine(minimize(machine));
     // Setup Modals
     const [showModalState, modalStateCH] = useModal({
         title: "Adicionar estado",
@@ -271,6 +281,14 @@ export default function RegularMachineEdit(): JSX.Element {
                                     </Typography.Text>
 
                                     <Space>
+                                        <Button
+                                            key="button-minimize"
+                                            type="primary"
+                                            onClick={minimizeMachine}
+                                            disabled={!isDeterministic}
+                                        >
+                                            Minimizar
+                                        </Button>
                                         <Button
                                             key="button-determinize"
                                             type="primary"
