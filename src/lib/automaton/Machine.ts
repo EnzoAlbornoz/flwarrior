@@ -367,7 +367,6 @@ export const determinize = (machine: IIMachine): IIMachine => {
         .reduce((accum, id) => accum.push(id), Immutable.List());
 
     let stateSeenSet = Immutable.Set();
-
     let state;
     // for every state
     while (!stateStack.isEmpty()) {
@@ -381,10 +380,6 @@ export const determinize = (machine: IIMachine): IIMachine => {
             hasEpsilon ? clonedMachine : machine,
             state
         )) {
-            // let { stateSeenSet, iteratedMachine } = acc;
-            // const { currState } = acc;
-            // if ((elemt as Immutable.Set<string>).isSubset(stateStack))
-            // if ( state.split().length > 1)
             if (!elemt.isEmpty()) {
                 const newStateId = (elemt as Immutable.Set<string>)
                     .sort()
@@ -443,17 +438,7 @@ export const determinize = (machine: IIMachine): IIMachine => {
                                 );
                             }
                         }
-
-                        // clonedMachine = addTransition(clonedMachine,
-                        //     {
-                        //         from: newStateId,
-                        //         with: key as string,
-                        //         to: (value as Immutable.Set<string>).sort().join(), // wrong
-                        //         push: null,
-                        //         pop: null
-                        //     } as ITransition);
                     }
-
                     // Now we remove the transitions which pointed to the states we just merged
                     if ((elemt as Immutable.Set<string>).toArray().length !== 1)
                         for (const element of elemt as Immutable.Set<string>) {
@@ -491,21 +476,8 @@ export const determinize = (machine: IIMachine): IIMachine => {
                     } as ITransition);
                 }
             }
-            // return {
-            //     stateSeenSet,
-            //     iteratedMachine,
-            //     currState,
-            // };
         }
-        // ,
-        // {
-        //     stateSeenSet: stateSeenSetInit,
-        //     iteratedMachine: clonedMachine,
-        //     currState: state,
-        // }
-        // clonedMachine = machineIterated;
     }
-    // }
     return clonedMachine;
 };
 
@@ -735,7 +707,7 @@ export const removeUnreachableStates = (machine: IIMachine): IIMachine => {
     return machineReachable;
 };
 
-export const removeDeadStates = (machine: IIMachine) => {
+export const removeDeadStates = (machine: IIMachine): IIMachine => {
     // Detect Not Dead States
     const notDeadStates = (machine.get(
         "transitions"
