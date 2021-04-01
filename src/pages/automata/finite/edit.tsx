@@ -192,7 +192,6 @@ export default function RegularMachineEdit(): JSX.Element {
         );
     // Special Functions
     const determinizeMachine = () => {
-        console.log("bruh");
         setMachine(determinize(machine));
     };
     // Setup Modals

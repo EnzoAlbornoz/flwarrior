@@ -256,23 +256,21 @@ test("[getStatesThatReachStateInSetBy] Test Working", () => {
     // SUT
     const states = getStatesThatReachStateInSetBy(machine2, toStates, "0");
     // Assert
-    expect(states.size).toBe(2);
+    expect(states.size).toBe(3);
 });
 
 test("[getEquivalentClasses] Test Working", () => {
     // Setup
     // SUT
     const equivalentClasses = getEquivalentClasses(machine2);
-    console.log(equivalentClasses.toJS());
     // Assert
-    expect(equivalentClasses.size).toBe(2);
+    expect(equivalentClasses.size).toBe(3);
 });
 
 test("[minimize] Test Working", () => {
     // Setup
     // SUT
     const minimizedMachine = minimize(machine2);
-    console.log(minimizedMachine.toJS());
     // Assert
     expect((minimizedMachine.get("states") as IMachine["states"]).size).toBe(2);
 });
