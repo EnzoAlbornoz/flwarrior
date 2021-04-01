@@ -355,22 +355,24 @@ export const determinize = (machine: IIMachine): IIMachine => {
 };
 
 export const fromDBEntry = (dbEntry: MachineDBEntry): IIMachine => {
+    const states = Immutable.Map(
+        dbEntry.states.map((machineState) => {
+            return [
+                machineState.id,
+                Immutable.Map<IState[keyof IState]>({
+                    id: machineState.id,
+                    isEntry: machineState.isEntry,
+                    isExit: machineState.isExit,
+                }) as IIState,
+            ];
+        })
+    );
+
     return Immutable.Map<IMachine[keyof IMachine]>({
         id: dbEntry.id,
         name: dbEntry.name,
-        entry: {} as IIState,
-        states: Immutable.Map(
-            dbEntry.states.map((machineState) => {
-                return [
-                    machineState.id,
-                    Immutable.Map<IState[keyof IState]>({
-                        id: machineState.id,
-                        isEntry: machineState.isEntry,
-                        isExit: machineState.isExit,
-                    }) as IIState,
-                ];
-            })
-        ),
+        entry: states.find((state) => !!state.get("isEntry")),
+        states,
         alphabet: Immutable.OrderedSet(dbEntry.entryAlphabet),
         transitions: Immutable.Set(
             dbEntry.transitions.map((transition) => {
@@ -383,7 +385,7 @@ export const fromDBEntry = (dbEntry: MachineDBEntry): IIMachine => {
                 }) as IITransition;
             })
         ),
-        exitStates: Immutable.Map() as IMachine["exitStates"],
+        exitStates: states.filter((state) => !!state.get("isExit")),
         type: dbEntry.type,
     }) as IIMachine;
 };
@@ -427,4 +429,254 @@ export const toDBEntry = (machine: IIMachine): MachineDBEntry => {
         memoryAlphabet: null,
         deterministic: true,
     };
+};
+
+export const getReachableStates = (
+    machine: IIMachine,
+    specificState?: IIState
+): Immutable.Set<IIState> => {
+    // Setup
+    const initalState = specificState ?? (machine.get("entry") as IIState);
+    let reachableStates = Immutable.Set<IIState>([initalState]);
+    let newStates = Immutable.Set<IIState>([initalState]);
+    // Iterate Over New States (Processing List)
+    do {
+        // Create Temp Set
+        let temp = Immutable.Set<IIState>();
+        newStates.forEach((fromState) => {
+            const fromStateReachable = (machine.get(
+                "transitions"
+            ) as IMachine["transitions"])
+                .filter(
+                    (transition) =>
+                        transition.get("from") === fromState.get("id")
+                )
+                .map((transitionFromSpecificState) =>
+                    (machine.get("states") as IMachine["states"]).get(
+                        transitionFromSpecificState.get("to")
+                    )
+                );
+            temp = temp.union(fromStateReachable);
+        });
+        newStates = temp.subtract(reachableStates);
+        reachableStates = reachableStates.union(newStates);
+    } while (!newStates.isEmpty());
+
+    return reachableStates;
+};
+
+export const getUnreachableStates = (
+    machine: IIMachine
+): Immutable.Set<IIState> =>
+    (machine.get("states") as IMachine["states"])
+        .toSet()
+        .subtract(getReachableStates(machine));
+
+export const getStatesThatReachStateInSetBy = (
+    machine: IIMachine,
+    toStates: Immutable.Set<IIState>,
+    alphabetSymbol: ASymbol
+): Immutable.Set<IIState> => {
+    // Fetch Machine Data
+    const states = machine.get("states") as IMachine["states"];
+    const transitions = machine.get("transitions") as IMachine["transitions"];
+    // Iterate to find out what states can reach the given state
+    const statesThatReach = transitions.reduce((stateSet, transition) => {
+        if (
+            toStates.includes(states.get(transition.get("to"))) &&
+            transition.get("with") === alphabetSymbol
+        ) {
+            return stateSet.add(states.get(transition.get("from")));
+        }
+        return stateSet;
+    }, Immutable.Set<IIState>());
+    return statesThatReach;
+};
+
+export const getEquivalentClasses = (
+    machine: IIMachine
+): Immutable.Set<Immutable.Set<IIState>> => {
+    // Based on Hopcroft´s Algorithm
+    // Pre-Setup
+    const allStates = (machine.get("states") as IMachine["states"]).toSet();
+    const exitSet = (machine.get(
+        "exitStates"
+    ) as IMachine["exitStates"]).toSet();
+    // Algorithm Setup
+    let P = Immutable.Set([exitSet, allStates.subtract(exitSet)]);
+    let W = Immutable.Set([exitSet]);
+    // While Working (W) not empty
+    while (!W.isEmpty()) {
+        // Choose and remove a set A in W
+        const A = W.first<Immutable.Set<IIState>>();
+        W = W.delete(A);
+        // Iterate over alphabet
+        for (const alphabetSymbol of machine.get(
+            "alphabet"
+        ) as IMachine["alphabet"]) {
+            // Get states that can reach a state in A with alphabetSymbol
+            const X = getStatesThatReachStateInSetBy(
+                machine,
+                A,
+                alphabetSymbol
+            );
+            // Y is a set in P which X ∩ Y is nonempty
+            const grpY = P.filter(
+                (Y) => !X.intersect(Y).isEmpty() && !Y.subtract(X).isEmpty()
+            );
+
+            // console.log("Group Y \n", grpY.toJS());
+
+            for (const Y of grpY) {
+                const XintersectsY = X.intersect(Y);
+                const YsubtractX = Y.subtract(X);
+                P = P.delete(Y).add(XintersectsY).add(YsubtractX);
+
+                if (W.includes(Y)) {
+                    W = W.delete(Y).add(XintersectsY).add(YsubtractX);
+                } else if (XintersectsY.size <= YsubtractX.size) {
+                    W = W.add(XintersectsY);
+                } else {
+                    W = W.add(YsubtractX);
+                }
+            }
+        }
+    }
+    // Return Partitions
+    return P;
+};
+
+export const removeUnreachableStates = (machine: IIMachine): IIMachine => {
+    // Get Only Reachable States
+    const reachableStates = Immutable.Map<string, IIState>(
+        getReachableStates(machine).map((state) => [
+            state.get("id") as string,
+            state,
+        ])
+    );
+    // Remove Unreacheable States and Its transactions
+    let machineReachable = machine.set("states", reachableStates);
+    // Recompute Entry
+    machineReachable = machine.set(
+        "entry",
+        reachableStates.find((state) => state.get("isEntry") as boolean)
+    );
+    // Recompute Exit States
+    machineReachable = machine.set(
+        "exitStates",
+        reachableStates.filter((state) => state.get("isExit") as boolean)
+    );
+    // Recompute Transitions
+    machineReachable = machineReachable.update(
+        "transitions",
+        (transitions: IMachine["transitions"]) =>
+            transitions.filter((transition) =>
+                (machineReachable.get("states") as IMachine["states"]).has(
+                    transition.get("to")
+                )
+            )
+    );
+    // Return Recomputed Machine
+    return machineReachable;
+};
+
+export const removeDeadStates = (machine: IIMachine) => {
+    // Detect Not Dead States
+    const notDeadStates = (machine.get(
+        "transitions"
+    ) as IMachine["transitions"])
+        .reduce(
+            (notDeads, transition) =>
+                transition.get("from") !== transition.get("to")
+                    ? notDeads.add(
+                          (machine.get("states") as IMachine["states"]).get(
+                              transition.get("from")
+                          )
+                      )
+                    : notDeads,
+            Immutable.Set<IIState>()
+        )
+        .union((machine.get("exitStates") as IMachine["exitStates"]).toSet());
+    // Update Entry State
+    const notDeadMachine = machine
+        .set(
+            "states",
+            notDeadStates.toMap().mapKeys((state) => state.get("id") as string)
+        )
+        .set(
+            "entry",
+            notDeadStates.find((state) => state.get("isEntry") as boolean)
+        )
+        .update("transitions", (transitions: IMachine["transitions"]) =>
+            transitions.filter((transition) =>
+                notDeadStates.find(
+                    (state) => state.get("id") === transition.get("to")
+                )
+            )
+        );
+    // Return Not Dead Machine
+    return notDeadMachine;
+};
+
+export const minimize = (machine: IIMachine): IIMachine => {
+    // Remove Unreacheable States
+    const reacheableMachine = removeUnreachableStates(machine);
+    // Remove Dead States
+    const notDeadMachine = removeDeadStates(reacheableMachine);
+    // Union Equivalent Clases
+    const equivalentClasses = getEquivalentClasses(notDeadMachine);
+    // Transform Equivalent Classes In States
+    const newStatesMapping = Immutable.Map<Immutable.Set<IIState>, IIState>(
+        equivalentClasses.toIndexedSeq().map((eqClass, idx) => [
+            eqClass,
+            Immutable.Map({
+                id: `q${idx}`,
+                isEntry: eqClass.some((state) => !!state.get("isEntry")),
+                isExit: eqClass.some((state) => !!state.get("isExit")),
+            }) as IIState,
+        ])
+    );
+    const newStates = newStatesMapping.mapKeys(
+        (_, newState) => newState.get("id") as string
+    );
+    // Get a translation table from old States to new States
+    const newStatesIdMapping: Immutable.Map<string, string> = Immutable.Map(
+        newStatesMapping.flatMap((newState, oldStates) =>
+            oldStates
+                .toKeyedSeq()
+                .mapEntries(([oldState]) => [
+                    oldState.get("id") as string,
+                    newState.get("id") as string,
+                ])
+        )
+    );
+    // Compute new Transitions
+    const newTransitions = Immutable.Set<IITransition>(
+        (notDeadMachine.get("transitions") as IMachine["transitions"]).reduce(
+            (accTransitions, transition) => {
+                return accTransitions.add(
+                    transition
+                        .update("from", (from) => newStatesIdMapping.get(from))
+                        .update("to", (to) => newStatesIdMapping.get(to))
+                );
+            },
+            Immutable.Set()
+        )
+    );
+    // Compute new Entry State
+    const newEntryState = newStates.find(
+        (newState) => newState.get("isEntry") as boolean
+    );
+    // Compute new Exit States
+    const newExitStates = newStates.filter(
+        (newState) => newState.get("isExit") as boolean
+    );
+    // Get Minimized Machine
+    const minimizedMachine = notDeadMachine
+        .set("states", newStates)
+        .set("entry", newEntryState)
+        .set("exitStates", newExitStates)
+        .set("transitions", newTransitions);
+    // Return Minimized Machine
+    return minimizedMachine;
 };

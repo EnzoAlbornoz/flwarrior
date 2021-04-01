@@ -382,7 +382,6 @@ test("test find transitions of state", () => {
 
     expect(transitions.equals(Immutable.Set([last, expected]))).toBe(true);
     expect(transitions.isSubset(Immutable.Set([last, expected]))).toBe(true);
-
 });
 
 test("production", () => {
