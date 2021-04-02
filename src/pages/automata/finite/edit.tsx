@@ -8,6 +8,8 @@ import {
     Modal,
     Select,
     Space,
+    Tooltip,
+    message,
 } from "antd";
 import IconBase, { SaveOutlined } from "@ant-design/icons";
 import { useState, useMemo } from "react";
@@ -167,8 +169,12 @@ export default function RegularMachineEdit(): JSX.Element {
         const db = await useDatabase();
         await db.put(FLWarriorDBTables.MACHINE, serializedMachine);
     };
-    const newState = (stateName: string) =>
-        setMachine(addState(machine, getNewState(stateName)));
+    const newState = (stateName: string) => {
+        if (stateName.includes(",")) {
+            return message.error("Estados não podem conter vírgulas.", 3);
+        }
+        return setMachine(addState(machine, getNewState(stateName)));
+    };
 
     const deleteState = (stateRef: IState) =>
         setMachine(removeState(machine, stateRef));
@@ -254,6 +260,23 @@ export default function RegularMachineEdit(): JSX.Element {
                         title={`Editar - ${name || idToEdit}`}
                         subTitle="Autômato Finito"
                         extra={[
+                            <Tooltip title="Minimiza automatos determinísticos (Desabilitado em AFNDs)">
+                                <Button
+                                    key="button-minimize"
+                                    type="primary"
+                                    onClick={minimizeMachine}
+                                    disabled={!isDeterministic}
+                                >
+                                    Minimizar
+                                </Button>
+                            </Tooltip>,
+                            <Button
+                                key="button-determinize"
+                                type="primary"
+                                onClick={determinizeMachine}
+                            >
+                                Determinizar
+                            </Button>,
                             <Button
                                 key="button-rename"
                                 onClick={showModalRename}
@@ -281,21 +304,6 @@ export default function RegularMachineEdit(): JSX.Element {
                                     </Typography.Text>
 
                                     <Space>
-                                        <Button
-                                            key="button-minimize"
-                                            type="primary"
-                                            onClick={minimizeMachine}
-                                            disabled={!isDeterministic}
-                                        >
-                                            Minimizar
-                                        </Button>
-                                        <Button
-                                            key="button-determinize"
-                                            type="primary"
-                                            onClick={determinizeMachine}
-                                        >
-                                            Determinizar
-                                        </Button>
                                         <Button
                                             key="button-new-rule"
                                             type="primary"
