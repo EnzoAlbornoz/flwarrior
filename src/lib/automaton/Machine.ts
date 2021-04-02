@@ -159,11 +159,11 @@ export const isMachineDeterministic = (machine: IIMachine): boolean => {
             transition.get("with"),
         ]);
         if (stateTransitionSet.includes(transitionId)) {
-            console.log(
-                `Broke on transition ${transitionId.toJS()} where it goes to ${transition.get(
-                    "to"
-                )}`
-            );
+            // console.log(
+            //     `Broke on transition ${transitionId.toJS()} where it goes to ${transition.get(
+            //         "to"
+            //     )}`
+            // );
             return false;
         }
         stateTransitionSet = stateTransitionSet.add(transitionId);
@@ -505,6 +505,19 @@ export const removeDeadStates = (machine: IIMachine): IIMachine => {
     // Return Not Dead Machine
     return notDeadMachine;
 };
+
+export const updateExitStatesCache = (machine: IIMachine): IIMachine => {
+    return machine.set(
+        "exitStates",
+        (machine.get("states") as Immutable.Map<string, IIState>).filter(
+            (state) => !!state.get("isExit")
+        )
+    );
+};
+
+// export const union = (machine1: IIMachine, machine2: IIMachine): IIMachine => {
+//     // by definition to union 2 FSMs we go from the the 
+// }
 
 export const determinize = (machine: IIMachine): IIMachine => {
     // Dont do anything if already determinized

@@ -21,6 +21,8 @@ import {
     findEpsilonCLosureOfState,
     getEpsilonClosureOfAllStates,
     IMachine,
+    updateExitStatesCache,
+    minimize,
 } from "../lib/automaton/Machine";
 import { IIState } from "../lib/automaton/State";
 import { MachineType } from "../database/schema/machine";
@@ -1337,4 +1339,66 @@ test("test find transitions of state", () => {
 
     expect(transitions.equals(Immutable.Set([last, expected]))).toBe(true);
     expect(transitions.isSubset(Immutable.Set([last, expected]))).toBe(true);
+});
+
+test("test update exitstates Cache", () => {
+    let machine = buildImmutableRegularNonDeterministicWithEpsilonMachine4();
+    expect(
+        (machine.get("exitStates") as Immutable.Map<string, IIState>).equals(
+            Immutable.Map({
+                q1: Immutable.Map({ id: "q1", isEntry: false, isExit: true }),
+                q2: Immutable.Map({ id: "q2", isEntry: false, isExit: true }),
+            })
+        )
+    ).toBe(true);
+    machine = determinize(machine);
+    expect(
+        (machine.get("exitStates") as Immutable.Map<string, IIState>).equals(
+            Immutable.Map({
+                "q2,q3,q4": Immutable.Map({
+                    id: "q2,q3,q4",
+                    isEntry: false,
+                    isExit: true,
+                }),
+                "q0,q1,q3,q4": Immutable.Map({
+                    id: "q0,q1,q3,q4",
+                    isEntry: false,
+                    isExit: true,
+                }),
+                "q1,q3,q4": Immutable.Map({
+                    id: "q1,q3,q4",
+                    isEntry: false,
+                    isExit: true,
+                }),
+            })
+        )
+    ).toBe(true);
+    machine = updateExitStatesCache(machine);
+    expect(
+        (machine.get("exitStates") as Immutable.Map<string, IIState>).equals(
+            Immutable.Map({
+                "q2,q3,q4": Immutable.Map({
+                    id: "q2,q3,q4",
+                    isEntry: false,
+                    isExit: true,
+                }),
+                "q0,q1,q3,q4": Immutable.Map({
+                    id: "q0,q1,q3,q4",
+                    isEntry: false,
+                    isExit: true,
+                }),
+                "q1,q3,q4": Immutable.Map({
+                    id: "q1,q3,q4",
+                    isEntry: false,
+                    isExit: true,
+                }),
+                // "dead state", useful to test the update method
+                "q2,q3": Immutable.Map({
+                    id: "q2,q3",
+                    isEntry: false,
+                    isExit: true,
+                }),
+            })
+        )
+    ).toBe(true);
 });
