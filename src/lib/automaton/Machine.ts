@@ -140,10 +140,8 @@ export const getAllTransitionsOfStateAsIDMapSplitOnCharacter = (
 };
 
 export const findOutIfHasEpsilonTransition = (machine: IIMachine): boolean => {
-    return (
-        (machine.get("transitions") as Immutable.Set<IITransition>).find(
-            (transition) => transition.get("with") === "ε"
-        ) !== undefined
+    return !!(machine.get("transitions") as Immutable.Set<IITransition>).find(
+        (transition) => transition.get("with") === "ε"
     );
 };
 
@@ -517,18 +515,16 @@ export const updateExitStatesCache = (machine: IIMachine): IIMachine => {
     );
 };
 
-// export const intersect = (
-//     machine1: IIMachine,
-//     machine2: IIMachine
-// ): IIMachine => {
-// Start by constructing automata which recognise the complement of these automata:
-// Take the union of these resultant automata:
-// Remove useless and unreachable states:
-// Minimise automaton:
-// Construct an automaton accepting the complement of the language recognised by the minimised automaton:
-// };
+export const updateEntryStateCache = (machine: IIMachine): IIMachine => {
+    return machine.set(
+        "entry",
+        (machine.get("states") as Immutable.Map<string, IIState>).find(
+            (state) => !!state.get("isEntry")
+        )
+    );
+};
 
-export const unionAlphabets = (
+export const unionAlphabetsPlusEpsilon = (
     machine1: IIMachine,
     machine2: IIMachine
 ): IIMachine => {
@@ -536,17 +532,69 @@ export const unionAlphabets = (
     return clonedMachine.set(
         "alphabet",
         (machine1.get("alphabet") as IAlphabet).union(
-            machine2.get("alphabet") as IAlphabet
+            machine2.get("alphabet") as IAlphabet,
+            Immutable.OrderedSet(EPSILON)
         ) as IAlphabet
     );
 };
 
-export const complement = (machine: IIMachine): IIMachine => {
+export const complement = (
+    machine: IIMachine,
+    deadStateId = "_DSFC_"
+): IIMachine => {
+    // must be DFA
+    if (!isMachineDeterministic(machine)) {
+        console.error("asked for complement on non-deterministic machine");
+        return machine;
+    }
+    let clonedMachine = machine;
+    // Before we simply switch accepting with non accepting states
+    // We have to first create a dead state and make every state that doesn't
+    // have transitions with all symbols go to it with the unused symbols.
+    // first create new state
+    const newDeadState = {
+        id: deadStateId,
+        isEntry: false,
+        isExit: false,
+    } as IState;
+    // insert it into machine
+    clonedMachine = addState(clonedMachine, newDeadState);
+    let createdTransitionToThisState = false;
+    // find states where there aren't transitions with a symbol
+    const numberOfSymbolsInAlphabet = (clonedMachine.get(
+        "alphabet"
+    ) as IAlphabet).size;
+    for (const [state, value] of machine.get("states") as Immutable.Map<
+        string,
+        IIState
+    >) {
+        const symbolToStateSetMap = getAllTransitionsOfStateAsIDMapSplitOnCharacter(
+            clonedMachine,
+            state
+        );
+        for (const [symbol, toSetStates] of symbolToStateSetMap) {
+            if (toSetStates.isEmpty()) {
+                // this means there isn't a transition from state with symbol
+                // create a transition from state to the new "dead" state using with symbol
+                clonedMachine = addTransition(clonedMachine, {
+                    from: state,
+                    with: symbol,
+                    to: newDeadState.id,
+                    pop: null,
+                    push: null,
+                } as ITransition);
+                createdTransitionToThisState = true;
+            }
+        }
+    }
+
+    // if we didn't add any transitions then we must remove the created state
+    if (!createdTransitionToThisState)
+        clonedMachine = removeState(clonedMachine, newDeadState);
     // All states which were final, will no longer be
     // and those that were not, will now be
-    let clonedMachine = machine;
     // calculate and put in cache the final states
-    clonedMachine = updateExitStatesCache(machine);
+    clonedMachine = updateExitStatesCache(clonedMachine);
     // set all states as final
     for (const [key, value] of clonedMachine.get("states") as Immutable.Map<
         string,
@@ -583,6 +631,7 @@ export const complement = (machine: IIMachine): IIMachine => {
             )
         ) as IIMachine;
     }
+    clonedMachine = updateEntryStateCache(clonedMachine);
     clonedMachine = updateExitStatesCache(clonedMachine);
     return clonedMachine;
 };
@@ -600,18 +649,17 @@ export const union = (
         string,
         IIState
     >).size;
-
+    // first machine should be shorter
     let clonedMachine = machine1Size > machine2Size ? machine2 : machine1;
+    // first machine should be longer
     let clonedMachine2 = machine1Size > machine2Size ? machine1 : machine2;
-    // The alphabet of the new machine is the union of the alphabets
-    clonedMachine = unionAlphabets(clonedMachine, clonedMachine2);
-
+    // The alphabet of the new machine is the union of the alphabets + epsilon
+    clonedMachine2 = unionAlphabetsPlusEpsilon(clonedMachine2, clonedMachine);
     // saving the names of the modified states
     let modifiedNames = Immutable.Map<string, string>();
     // The states of the new machine is the union of their states
-
     // If there are states with the same name, we should rename them
-    for (const [key, value] of clonedMachine2.get("states") as Immutable.Map<
+    for (const [key] of clonedMachine2.get("states") as Immutable.Map<
         string,
         IIState
     >) {
@@ -675,14 +723,6 @@ export const union = (
                     string,
                     IIState
                 >).set(key.concat(renameToken), newState)
-            );
-        } else {
-            clonedMachine2 = clonedMachine2.set(
-                "states",
-                (clonedMachine2.get("states") as Immutable.Map<
-                    string,
-                    IIState
-                >).set(key, value)
             );
         }
     }
@@ -968,6 +1008,99 @@ export const determinize = (machine: IIMachine): IIMachine => {
         : removeUnreachableStates(clonedMachine);
 };
 
+export const minimize = (machine: IIMachine): IIMachine => {
+    // Remove Unreacheable States
+    const reacheableMachine = removeUnreachableStates(machine);
+    // Remove Dead States
+    const notDeadMachine = removeDeadStates(reacheableMachine);
+    // Union Equivalent Clases
+    const equivalentClasses = getEquivalentClasses(notDeadMachine);
+    // Transform Equivalent Classes In States
+    const newStatesMapping = Immutable.Map<Immutable.Set<IIState>, IIState>(
+        equivalentClasses.toIndexedSeq().map((eqClass, idx) => [
+            eqClass,
+            Immutable.Map({
+                id: `q${idx}`,
+                isEntry: eqClass.some((state) => !!state.get("isEntry")),
+                isExit: eqClass.some((state) => !!state.get("isExit")),
+            }) as IIState,
+        ])
+    );
+    const newStates = newStatesMapping.mapKeys(
+        (_, newState) => newState.get("id") as string
+    );
+    // Get a translation table from old States to new States
+    const newStatesIdMapping: Immutable.Map<string, string> = Immutable.Map(
+        newStatesMapping.flatMap((newState, oldStates) =>
+            oldStates
+                .toKeyedSeq()
+                .mapEntries(([oldState]) => [
+                    oldState.get("id") as string,
+                    newState.get("id") as string,
+                ])
+        )
+    );
+    // Compute new Transitions
+    const newTransitions = Immutable.Set<IITransition>(
+        (notDeadMachine.get("transitions") as IMachine["transitions"]).reduce(
+            (accTransitions, transition) => {
+                return accTransitions.add(
+                    transition
+                        .update("from", (from) => newStatesIdMapping.get(from))
+                        .update("to", (to) => newStatesIdMapping.get(to))
+                );
+            },
+            Immutable.Set()
+        )
+    );
+    // Compute new Entry State
+    const newEntryState = newStates.find(
+        (newState) => newState.get("isEntry") as boolean
+    );
+    // Compute new Exit States
+    const newExitStates = newStates.filter(
+        (newState) => newState.get("isExit") as boolean
+    );
+    // Get Minimized Machine
+    const minimizedMachine = notDeadMachine
+        .set("states", newStates)
+        .set("entry", newEntryState)
+        .set("exitStates", newExitStates)
+        .set("transitions", newTransitions);
+    // Return Minimized Machine
+    return minimizedMachine;
+};
+
+export const intersect = (
+    machine1: IIMachine,
+    machine2: IIMachine
+): IIMachine => {
+    // return machine1;
+    // Start by constructing automata which recognise the complement of these automata:
+    // must first determinize
+    let clonedMachine1 = determinize(machine1);
+    let clonedMachine2 = determinize(machine2);
+    // now we compute the complement
+    clonedMachine1 = complement(machine1, "rola");
+    clonedMachine2 = complement(machine2, "podre");
+
+    // Take the union of these resultant automata:
+    let machineUnion = union(clonedMachine1, clonedMachine2);
+    // console.log(machineUnion.toJS());
+    // Remove useless and unreachable states:
+    machineUnion = removeDeadStates(removeUnreachableStates(machineUnion));
+    // console.log(machineUnion.toJS());
+    // determinize automaton
+    machineUnion = determinize(machineUnion);
+    // Minimise automaton:
+    machineUnion = minimize(machineUnion);
+    // console.log(machineUnion.toJS());
+
+    // Construct an automaton accepting the complement of the language recognised by the minimised automaton:
+    machineUnion = complement(machineUnion, "GORDO");
+    return minimize(machineUnion);
+};
+
 export const fromDBEntry = (dbEntry: MachineDBEntry): IIMachine => {
     const states = Immutable.Map(
         dbEntry.states.map((machineState) => {
@@ -1043,67 +1176,4 @@ export const toDBEntry = (machine: IIMachine): MachineDBEntry => {
         memoryAlphabet: null,
         deterministic: isMachineDeterministic(machine),
     };
-};
-
-export const minimize = (machine: IIMachine): IIMachine => {
-    // Remove Unreacheable States
-    const reacheableMachine = removeUnreachableStates(machine);
-    // Remove Dead States
-    const notDeadMachine = removeDeadStates(reacheableMachine);
-    // Union Equivalent Clases
-    const equivalentClasses = getEquivalentClasses(notDeadMachine);
-    // Transform Equivalent Classes In States
-    const newStatesMapping = Immutable.Map<Immutable.Set<IIState>, IIState>(
-        equivalentClasses.toIndexedSeq().map((eqClass, idx) => [
-            eqClass,
-            Immutable.Map({
-                id: `q${idx}`,
-                isEntry: eqClass.some((state) => !!state.get("isEntry")),
-                isExit: eqClass.some((state) => !!state.get("isExit")),
-            }) as IIState,
-        ])
-    );
-    const newStates = newStatesMapping.mapKeys(
-        (_, newState) => newState.get("id") as string
-    );
-    // Get a translation table from old States to new States
-    const newStatesIdMapping: Immutable.Map<string, string> = Immutable.Map(
-        newStatesMapping.flatMap((newState, oldStates) =>
-            oldStates
-                .toKeyedSeq()
-                .mapEntries(([oldState]) => [
-                    oldState.get("id") as string,
-                    newState.get("id") as string,
-                ])
-        )
-    );
-    // Compute new Transitions
-    const newTransitions = Immutable.Set<IITransition>(
-        (notDeadMachine.get("transitions") as IMachine["transitions"]).reduce(
-            (accTransitions, transition) => {
-                return accTransitions.add(
-                    transition
-                        .update("from", (from) => newStatesIdMapping.get(from))
-                        .update("to", (to) => newStatesIdMapping.get(to))
-                );
-            },
-            Immutable.Set()
-        )
-    );
-    // Compute new Entry State
-    const newEntryState = newStates.find(
-        (newState) => newState.get("isEntry") as boolean
-    );
-    // Compute new Exit States
-    const newExitStates = newStates.filter(
-        (newState) => newState.get("isExit") as boolean
-    );
-    // Get Minimized Machine
-    const minimizedMachine = notDeadMachine
-        .set("states", newStates)
-        .set("entry", newEntryState)
-        .set("exitStates", newExitStates)
-        .set("transitions", newTransitions);
-    // Return Minimized Machine
-    return minimizedMachine;
 };

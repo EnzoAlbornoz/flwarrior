@@ -25,8 +25,10 @@ import {
     updateExitStatesCache,
     minimize,
     union,
-    unionAlphabets,
+    unionAlphabetsPlusEpsilon,
     complement,
+    intersect,
+    removeUnreachableStates,
 } from "../lib/automaton/Machine";
 import { IIState } from "../lib/automaton/State";
 import { MachineType } from "../database/schema/machine";
@@ -658,7 +660,7 @@ function buildImmutableRegularDeterministicWithoutEpsilonMachineForIntersection2
             { id: "A", isEntry: false, isExit: false },
             { id: "B", isEntry: false, isExit: false },
         ],
-        entryAlphabet: ["a"],
+        entryAlphabet: ["a", "b"],
         memoryAlphabet: [],
         transitions: [
             {
@@ -1435,13 +1437,22 @@ test("test update exitstates Cache", () => {
 });
 
 test("test union alphabet", () => {
-    const machine1 = buildImmutableRegularNonDeterministicWithEpsilonMachine4();
-    const machine2 = buildImmutableRegularNonDeterministicWithEpsilonMachine2();
-    const machine = unionAlphabets(machine1, machine2);
+    let machine1 = buildImmutableRegularNonDeterministicWithEpsilonMachine4();
+    let machine2 = buildImmutableRegularNonDeterministicWithEpsilonMachine2();
+    let machine = unionAlphabetsPlusEpsilon(machine1, machine2);
     expect(
         (machine.get("alphabet") as IAlphabet)
             .sort()
             .equals(Immutable.Set(["a", "b", "ε", "0", "1"]).sort())
+    ).toBe(true);
+
+    machine1 = buildImmutableRegularNonDeterministicWithoutEpsilonMachine();
+    machine2 = buildImmutableRegularNonDeterministicWithoutEpsilonMachine2();
+    machine = unionAlphabetsPlusEpsilon(machine1, machine2);
+    expect(
+        (machine.get("alphabet") as IAlphabet)
+            .sort()
+            .equals(Immutable.Set(["a", "ε", "0", "1"]).sort())
     ).toBe(true);
 });
 
@@ -1467,7 +1478,6 @@ test("test union on machines", () => {
             })
         )
     ).toBe(true);
-
     expect(
         (machine.get("states") as Immutable.Map<string, IIState>).equals(
             Immutable.Map({
@@ -1613,8 +1623,8 @@ test("test union on machines", () => {
     ).toBe(true);
 });
 
-test("prodcution", () => {
-    const machine = complement(
+test("test complement on machine", () => {
+    let machine = complement(
         buildImmutableRegularDeterministicWithoutEpsilonMachineForIntersection()
     );
     expect(
@@ -1653,4 +1663,90 @@ test("prodcution", () => {
             })
         )
     ).toBe(true);
+    machine = complement(
+        buildImmutableRegularDeterministicWithoutEpsilonMachineForIntersection2()
+    );
+    expect(
+        (machine.get("exitStates") as Immutable.Map<string, IIState>).equals(
+            Immutable.Map({
+                A: Immutable.Map({ id: "A", isEntry: false, isExit: true }),
+                B: Immutable.Map({ id: "B", isEntry: false, isExit: true }),
+                _DSFC_: Immutable.Map({
+                    id: "_DSFC_",
+                    isEntry: false,
+                    isExit: true,
+                }),
+            })
+        )
+    ).toBe(true);
+    expect(
+        (machine.get("transitions") as Immutable.Set<IITransition>).equals(
+            Immutable.Set([
+                Immutable.Map({
+                    from: "S",
+                    with: "a",
+                    to: "A",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "A",
+                    with: "a",
+                    to: "A",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "A",
+                    with: "b",
+                    to: "B",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "B",
+                    with: "b",
+                    to: "B",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "S",
+                    with: "b",
+                    to: "_DSFC_",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
+                    from: "B",
+                    with: "a",
+                    to: "_DSFC_",
+                    pop: null,
+                    push: null,
+                }),
+            ])
+        )
+    ).toBe(true);
+
+    expect(
+        (machine.get("states") as Immutable.Map<string, IIState>).equals(
+            Immutable.Map({
+                S: Immutable.Map({ id: "S", isEntry: true, isExit: false }),
+                A: Immutable.Map({ id: "A", isEntry: false, isExit: true }),
+                B: Immutable.Map({ id: "B", isEntry: false, isExit: true }),
+                _DSFC_: Immutable.Map({
+                    id: "_DSFC_",
+                    isEntry: false,
+                    isExit: true,
+                }),
+            })
+        )
+    ).toBe(true);
 });
+
+// test("test intersect on DFA", () => {
+//     const machine1 = buildImmutableRegularDeterministicWithoutEpsilonMachineForIntersection();
+//     const machine2 = buildImmutableRegularDeterministicWithoutEpsilonMachineForIntersection2();
+//     const machine = intersect(machine1, machine2);
+//     console.log(machine.toJS());
+// });
