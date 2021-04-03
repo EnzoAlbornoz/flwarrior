@@ -5,7 +5,11 @@ import Immutable from "immutable";
 import { EPSILON } from "../AlphabetSymbol";
 import { IIMachine, IMachine } from "../automaton/Machine";
 import { IIState } from "../automaton/State";
-import { IGrammar, IIGrammar } from "../grammar/Grammar";
+import {
+    fromDBEntry as grammarFromDBEntry,
+    IGrammar,
+    IIGrammar,
+} from "../grammar/Grammar";
 // Define Helpers
 const UNICODE_UPPER_A_OFFSET = 0x0041;
 const ALPHABET_SIZE = 26;
@@ -35,7 +39,7 @@ export function* generateGrammarIds(
     }
 }
 // Define Funtions
-export default function convertDeterministicFiniteStateMachineToRegularGrammar(
+export default function convertFiniteStateMachineToRegularGrammar(
     machine: IIMachine,
     renameAll = true
 ): IIGrammar {
@@ -137,13 +141,12 @@ export default function convertDeterministicFiniteStateMachineToRegularGrammar(
             ),
         ]
     );
-    const grammar = Immutable.Map({
-        ...getNewGrammar(GrammarType.REGULAR),
-        nonTerminalSymbols: grammarNonTerminalSymbols,
-        terminalSymbols: grammarTerminalSymbols,
-        startSymbol: grammarInitialSymbol,
-        productionRules: grammarProductionRules,
-    }) as IIGrammar;
+    let grammar = grammarFromDBEntry(getNewGrammar(GrammarType.REGULAR));
+    grammar = grammar
+        .set("nonTerminalSymbols", grammarNonTerminalSymbols)
+        .set("terminalSymbols", grammarTerminalSymbols)
+        .set("startSymbol", grammarInitialSymbol)
+        .set("productionRules", grammarProductionRules);
     // Return Builded Grammar
     return grammar;
 }

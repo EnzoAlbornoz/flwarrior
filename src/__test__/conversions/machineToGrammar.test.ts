@@ -3,7 +3,7 @@ import Immutable from "immutable";
 import { inspect } from "util";
 import { getNewMachine, MachineType } from "@/database/schema/machine";
 import { IGrammar } from "@/lib/grammar/Grammar";
-import { convertDeterministicFiniteStateMachineToRegularGrammar } from "../../lib/conversion";
+import { convertFiniteStateMachineToRegularGrammar } from "../../lib/conversion";
 import { fromDBEntry as machineFromDB } from "../../lib/automaton/Machine";
 // Defne Setup
 const machine1 = machineFromDB({
@@ -130,13 +130,10 @@ const machine1 = machineFromDB({
     ],
 });
 // Execute Tests
-test("[convertDeterministicFiniteStateMachineToRegularGrammar]", () => {
+test("[convertFiniteStateMachineToRegularGrammar]", () => {
     // Setup
     // SUT
-    const grammar = convertDeterministicFiniteStateMachineToRegularGrammar(
-        machine1,
-        false
-    );
+    const grammar = convertFiniteStateMachineToRegularGrammar(machine1, false);
     // Assert
     expect(
         (grammar.get("productionRules") as IGrammar["productionRules"]).equals(

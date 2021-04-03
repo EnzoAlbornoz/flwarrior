@@ -16,39 +16,6 @@ export interface IGrammar {
 }
 export type IIGrammar = Immutable.Map<keyof IGrammar, IGrammar[keyof IGrammar]>;
 
-export const fromDBEntry = (dbEntry: GrammarDBEntry): IIGrammar =>
-    Immutable.Map<IGrammar[keyof IGrammar]>({
-        id: dbEntry.id,
-        name: dbEntry.name,
-        type: dbEntry.type,
-        startSymbol: dbEntry.startSymbol,
-        terminalSymbols: Immutable.OrderedSet(dbEntry.alphabetT),
-        nonTerminalSymbols: Immutable.OrderedSet(dbEntry.alphabetNT),
-        productionRules: dbEntry.transitions.reduce((m, c) => {
-            const head = Immutable.List(c.from);
-            const body = Immutable.Set(
-                c.to.map((prod) => Immutable.List(prod))
-            );
-            return m.set(
-                head,
-                m.get(head, Immutable.Set<IGrammarWord>()).merge(body)
-            );
-        }, Immutable.Map<IGrammarWord, Immutable.Set<IGrammarWord>>()),
-    }) as IIGrammar;
-
-export const toDBEntry = (grammar: IIGrammar): GrammarDBEntry => {
-    interface IntermediateEntry extends GrammarDBEntry {
-        productionRules: Record<string, Array<Array<string>>>;
-    }
-    const intermediate = grammar.toJS() as IntermediateEntry;
-    return {
-        ...intermediate,
-        productionRules: Object.entries(
-            intermediate.productionRules
-        ).map(([from, to]) => ({ from, to })),
-    } as GrammarDBEntry;
-};
-
 export const rename = (grammar: IIGrammar, newName: string): IIGrammar =>
     grammar.update("name", () => newName);
 
@@ -209,4 +176,48 @@ export const checkOwnType = (grammar: IIGrammar): GrammarType => {
         return GrammarType.CONTEXT_FREE;
     }
     return GrammarType.REGULAR;
+};
+
+export const fromDBEntry = (dbEntry: GrammarDBEntry): IIGrammar =>
+    Immutable.Map<IGrammar[keyof IGrammar]>({
+        id: dbEntry.id,
+        name: dbEntry.name,
+        type: dbEntry.type,
+        startSymbol: dbEntry.startSymbol,
+        terminalSymbols: Immutable.OrderedSet(dbEntry.alphabetT),
+        nonTerminalSymbols: Immutable.OrderedSet(dbEntry.alphabetNT),
+        productionRules: dbEntry.transitions.reduce((m, c) => {
+            const head = Immutable.List(c.from);
+            const body = Immutable.Set(
+                c.to.map((prod) => Immutable.List(prod))
+            );
+            return m.set(
+                head,
+                m.get(head, Immutable.Set<IGrammarWord>()).merge(body)
+            );
+        }, Immutable.Map<IGrammarWord, Immutable.Set<IGrammarWord>>()),
+    }) as IIGrammar;
+
+export const toDBEntry = (grammar: IIGrammar): GrammarDBEntry => {
+    // Fetch Type of Grammar
+    const grammarType = checkOwnType(grammar);
+
+    return {
+        id: grammar.get("id") as string,
+        name: grammar.get("name") as string,
+        type: grammarType,
+        startSymbol: grammar.get("startSymbol") as string,
+        alphabetT: (grammar.get(
+            "terminalSymbols"
+        ) as IGrammar["terminalSymbols"]).toArray(),
+        alphabetNT: (grammar.get(
+            "nonTerminalSymbols"
+        ) as IGrammar["nonTerminalSymbols"]).toArray(),
+        transitions: (grammar.get(
+            "productionRules"
+        ) as IGrammar["productionRules"])
+            .entrySeq()
+            .map(([head, bodies]) => ({ from: head, to: bodies }))
+            .toJS() as GrammarDBEntry["transitions"],
+    } as GrammarDBEntry;
 };

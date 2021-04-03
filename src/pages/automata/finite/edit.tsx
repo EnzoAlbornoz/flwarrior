@@ -44,6 +44,8 @@ import {
 } from "@lib/automaton/Machine";
 import { getNewState, IIState, IState } from "@/lib/automaton/State";
 import { EPSILON } from "@/lib/AlphabetSymbol";
+import { convertFiniteStateMachineToRegularGrammar } from "@/lib/conversion";
+import { toDBEntry as grammarToDBEntry } from "@lib/grammar/Grammar";
 // Define Typings
 export interface ITGEditPageProps {
     id: string;
@@ -210,6 +212,19 @@ export default function RegularMachineEdit(): JSX.Element {
     // Special Functions
     const determinizeMachine = () => setMachine(determinize(machine));
     const minimizeMachine = () => setMachine(minimize(machine));
+    const convertToGrammar = async () => {
+        // Convert To Grammar
+        const grammar = convertFiniteStateMachineToRegularGrammar(
+            machine,
+            true
+        );
+        // Save New Grammar
+        const serializedGrammar = grammarToDBEntry(grammar);
+        const db = await useDatabase();
+        await db.put(FLWarriorDBTables.GRAMMAR, serializedGrammar);
+        // Go to Grammar Editor Page
+        return history.push(`/grammars/regular/edit/${serializedGrammar.id}`);
+    };
     // Setup Modals
     const [showModalState, modalStateCH] = useModal({
         title: "Adicionar estado",
@@ -260,7 +275,22 @@ export default function RegularMachineEdit(): JSX.Element {
                         title={`Editar - ${name || idToEdit}`}
                         subTitle="Autômato Finito"
                         extra={[
-                            <Tooltip title="Minimiza automatos determinísticos (Desabilitado em AFNDs)">
+                            <Tooltip
+                                title="Converte a maquina para a gramática equivalente (Desabilitado em AFNDs)"
+                                key="button-conver-grammar-tooltip"
+                            >
+                                <Button
+                                    key="convert-grammar"
+                                    onClick={convertToGrammar}
+                                    disabled={!isDeterministic}
+                                >
+                                    Converter - Gramática
+                                </Button>
+                            </Tooltip>,
+                            <Tooltip
+                                title="Minimiza automatos determinísticos (Desabilitado em AFNDs)"
+                                key="button-minimize-tooltip"
+                            >
                                 <Button
                                     key="button-minimize"
                                     type="primary"
