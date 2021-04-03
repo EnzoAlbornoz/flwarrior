@@ -1,3 +1,4 @@
+import { inspect } from "util";
 import Immutable from "immutable";
 import { IAlphabet } from "../lib/Alphabet";
 import { EPSILON } from "../lib/AlphabetSymbol";
@@ -1121,6 +1122,8 @@ test("test determinization with ε", () => {
             )
     ).toBe(true);
 
+    console.log(inspect(machine.toJS(), { colors: true, depth: null }));
+
     expect(
         (machine.get("transitions") as Immutable.Set<IITransition>).equals(
             Immutable.Set([
@@ -1139,13 +1142,6 @@ test("test determinization with ε", () => {
                     pop: null,
                 }),
                 Immutable.Map({
-                    from: "q",
-                    with: "c",
-                    to: "p",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
                     from: "q,r",
                     with: "c",
                     to: "p,q",
@@ -1160,13 +1156,6 @@ test("test determinization with ε", () => {
                     pop: null,
                 }),
                 Immutable.Map({
-                    from: "q",
-                    with: "a",
-                    to: "p",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
                     from: "p,q",
                     with: "b",
                     to: "q,r",
@@ -1174,23 +1163,9 @@ test("test determinization with ε", () => {
                     pop: null,
                 }),
                 Immutable.Map({
-                    from: "p",
-                    with: "c",
-                    to: "r",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
                     from: "p,q",
                     with: "a",
                     to: "p,q",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
-                    from: "q",
-                    with: "b",
-                    to: "r",
                     push: null,
                     pop: null,
                 }),

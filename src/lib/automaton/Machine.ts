@@ -459,10 +459,10 @@ export const removeUnreachableStates = (machine: IIMachine): IIMachine => {
     machineReachable = machineReachable.update(
         "transitions",
         (transitions: IMachine["transitions"]) =>
-            transitions.filter((transition) =>
-                (machineReachable.get("states") as IMachine["states"]).has(
-                    transition.get("to")
-                )
+            transitions.filter(
+                (transition) =>
+                    reachableStates.has(transition.get("to")) &&
+                    reachableStates.has(transition.get("from"))
             )
     );
     // Return Recomputed Machine
