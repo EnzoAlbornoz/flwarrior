@@ -540,6 +540,52 @@ export const unionAlphabets = (
     );
 };
 
+export const complement = (machine: IIMachine): IIMachine => {
+    // All states which were final, will no longer be
+    // and those that were not, will now be
+    let clonedMachine = machine;
+    // calculate and put in cache the final states
+    clonedMachine = updateExitStatesCache(machine);
+    // set all states as final
+    for (const [key, value] of clonedMachine.get("states") as Immutable.Map<
+        string,
+        IIState
+    >) {
+        const modifiedValue = {
+            id: value.get("id"),
+            isEntry: value.get("isEntry"),
+            isExit: true,
+        } as IState;
+        clonedMachine = clonedMachine.set(
+            "states",
+            (clonedMachine.get("states") as Immutable.Map<string, IIState>).set(
+                key,
+                Immutable.Map(modifiedValue) as IIState
+            )
+        ) as IIMachine;
+    }
+    // set all states which were final as not final
+    for (const [key, value] of clonedMachine.get("exitStates") as Immutable.Map<
+        string,
+        IIState
+    >) {
+        const modifiedValue = {
+            id: value.get("id"),
+            isEntry: value.get("isEntry"),
+            isExit: false,
+        } as IState;
+        clonedMachine = clonedMachine.set(
+            "states",
+            (clonedMachine.get("states") as Immutable.Map<string, IIState>).set(
+                key,
+                Immutable.Map(modifiedValue) as IIState
+            )
+        ) as IIMachine;
+    }
+    clonedMachine = updateExitStatesCache(clonedMachine);
+    return clonedMachine;
+};
+
 export const union = (
     machine1: IIMachine,
     machine2: IIMachine,

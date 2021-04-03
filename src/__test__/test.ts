@@ -25,6 +25,7 @@ import {
     minimize,
     union,
     unionAlphabets,
+    complement,
 } from "../lib/automaton/Machine";
 import { IIState } from "../lib/automaton/State";
 import { MachineType } from "../database/schema/machine";
@@ -616,6 +617,72 @@ test("test set Entry On Machine", () => {
     });
     expect((machineWithEntry.get("entry") as IIState).get("id")).toBe("q1");
 });
+
+// taken from http://www.cs.um.edu.mt/gordon.pace/Research/Software/Relic/Transformations/FSA/intersection.html
+function buildImmutableRegularDeterministicWithoutEpsilonMachineForIntersection(): IIMachine {
+    return createMachineFromDBEntry({
+        id: "test",
+        name: "test",
+        deterministic: true,
+        type: MachineType.FINITE_STATE_MACHINE,
+        states: [
+            { id: "S", isEntry: true, isExit: false },
+            { id: "A", isEntry: false, isExit: true },
+        ],
+        entryAlphabet: ["a"],
+        memoryAlphabet: [],
+        transitions: [
+            {
+                from: "S",
+                with: { head: "a", memory: "" },
+                to: { newState: "A", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "A",
+                with: { head: "a", memory: "" },
+                to: { newState: "S", writeSymbol: "", headDirection: null },
+            },
+        ],
+    });
+}
+// also taken from http://www.cs.um.edu.mt/gordon.pace/Research/Software/Relic/Transformations/FSA/intersection.html
+function buildImmutableRegularDeterministicWithoutEpsilonMachineForIntersection2(): IIMachine {
+    return createMachineFromDBEntry({
+        id: "test",
+        name: "test",
+        deterministic: true,
+        type: MachineType.FINITE_STATE_MACHINE,
+        states: [
+            { id: "S", isEntry: true, isExit: true },
+            { id: "A", isEntry: false, isExit: false },
+            { id: "B", isEntry: false, isExit: false },
+        ],
+        entryAlphabet: ["a"],
+        memoryAlphabet: [],
+        transitions: [
+            {
+                from: "S",
+                with: { head: "a", memory: "" },
+                to: { newState: "A", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "A",
+                with: { head: "a", memory: "" },
+                to: { newState: "A", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "A",
+                with: { head: "b", memory: "" },
+                to: { newState: "B", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "B",
+                with: { head: "b", memory: "" },
+                to: { newState: "B", writeSymbol: "", headDirection: null },
+            },
+        ],
+    });
+}
 
 test("test determinization without ε", () => {
     const mac1 = buildImmutableRegularNonDeterministicWithoutEpsilonMachine3();
@@ -1580,6 +1647,53 @@ test("test union on machines", () => {
                     push: null,
                 }),
             ])
+        )
+    ).toBe(true);
+});
+
+test("prodcution", () => {
+    const machine = complement(
+        buildImmutableRegularDeterministicWithoutEpsilonMachineForIntersection()
+    );
+    console.log(
+        complement(
+            buildImmutableRegularNonDeterministicWithEpsilonMachine4()
+        ).toJS()
+    );
+    expect(
+        (machine.get("exitStates") as Immutable.Map<string, IIState>).equals(
+            Immutable.Map({
+                S: Immutable.Map({ id: "S", isEntry: true, isExit: true }),
+            })
+        )
+    ).toBe(true);
+    expect(
+        (machine.get("transitions") as Immutable.Set<IITransition>).equals(
+            Immutable.Set([
+                Immutable.Map({
+                    from: "S",
+                    with: "a",
+                    to: "A",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "A",
+                    with: "a",
+                    to: "S",
+                    push: null,
+                    pop: null,
+                }),
+            ])
+        )
+    ).toBe(true);
+
+    expect(
+        (machine.get("states") as Immutable.Map<string, IIState>).equals(
+            Immutable.Map({
+                S: Immutable.Map({ id: "S", isEntry: true, isExit: true }),
+                A: Immutable.Map({ id: "A", isEntry: false, isExit: false }),
+            })
         )
     ).toBe(true);
 });
