@@ -1655,11 +1655,6 @@ test("prodcution", () => {
     const machine = complement(
         buildImmutableRegularDeterministicWithoutEpsilonMachineForIntersection()
     );
-    console.log(
-        complement(
-            buildImmutableRegularNonDeterministicWithEpsilonMachine4()
-        ).toJS()
-    );
     expect(
         (machine.get("exitStates") as Immutable.Map<string, IIState>).equals(
             Immutable.Map({
