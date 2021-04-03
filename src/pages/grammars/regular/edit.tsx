@@ -7,6 +7,7 @@ import {
     Tag,
     Select,
     message,
+    Tooltip,
 } from "antd";
 import IconBase, { SaveOutlined } from "@ant-design/icons";
 import { useState, useMemo } from "react";
@@ -17,8 +18,6 @@ import Layout from "@layout";
 import useAsyncEffect from "@/utils/useAsyncEffect";
 import { useDatabase } from "@database";
 import { FLWarriorDBTables } from "@database/schema";
-import type { GrammarDBEntry } from "@database/schema/grammar";
-import type { ArrayElement } from "@/utils/ArrayElement";
 import { useModal } from "@components/TextModalInput";
 import { ReactComponent as RightArrowRaw } from "@assets/right-arrow.svg";
 import {
@@ -37,7 +36,8 @@ import {
     rename,
     toDBEntry,
 } from "@lib/grammar/Grammar";
-import { IAlphabet } from "@/lib/Alphabet";
+import { toDBEntry as machineToDBEntry } from "@/lib/automaton/Machine";
+import { convertRegularGrammarToNonDeterministicFiniteMachine } from "@/lib/conversion";
 // Define Typings
 export interface ITGEditPageProps {
     id: string;
@@ -195,6 +195,20 @@ export default function RegularGrammarEdit(): JSX.Element {
         setGrammar(removeNonTerminalSymbol(grammar, toDeleteSymbol));
     const setStartSymbol = (newStartSymbol: string) =>
         setGrammar(setStartSymbol(newStartSymbol));
+    // Special Functions
+    const convertToMachine = async () => {
+        // Convert To Machine
+        const machine = convertRegularGrammarToNonDeterministicFiniteMachine(
+            grammar,
+            true
+        );
+        // Save New Machine
+        const serializedMachine = machineToDBEntry(machine);
+        const db = await useDatabase();
+        await db.put(FLWarriorDBTables.MACHINE, serializedMachine);
+        // Go to Machine Editor Page
+        return history.push(`/automata/finite/edit/${serializedMachine.id}`);
+    };
     // Setup Modals
     const [showModalAlphabetT, modalAlphabetTCH] = useModal({
         title: "Adicionar símbolo terminal",
@@ -250,6 +264,17 @@ export default function RegularGrammarEdit(): JSX.Element {
                         title={`Editar - ${name || idToEdit}`}
                         subTitle="Gramática Regular"
                         extra={[
+                            <Tooltip
+                                title="Converte a gramática para um AFND"
+                                key="convert-machine-tooltip"
+                            >
+                                <Button
+                                    key="button-convert-machine"
+                                    onClick={convertToMachine}
+                                >
+                                    Converter - Autômato
+                                </Button>
+                            </Tooltip>,
                             <Button
                                 key="button-rename"
                                 onClick={showModalRename}
