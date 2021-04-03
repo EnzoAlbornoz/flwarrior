@@ -29,8 +29,10 @@ export const fromDBEntry = (dbEntry: GrammarDBEntry): IIGrammar =>
             const body = Immutable.Set(
                 c.to.map((prod) => Immutable.List(prod))
             );
-            m.set(head, m.get(head, Immutable.Set<IGrammarWord>()).merge(body));
-            return m;
+            return m.set(
+                head,
+                m.get(head, Immutable.Set<IGrammarWord>()).merge(body)
+            );
         }, Immutable.Map<IGrammarWord, Immutable.Set<IGrammarWord>>()),
     }) as IIGrammar;
 
@@ -144,22 +146,34 @@ export const checkOwnType = (grammar: IIGrammar): GrammarType => {
     // Check for type Context Sensitive (No recursive empty)
     if (
         !(grammar.get("productionRules") as IGrammar["productionRules"]).every(
-            (body, head, rules) =>
-                // Length check of production rules
-                body
-                    .filterNot((w) => w.includes(EPSILON))
-                    .every((word) => word.size >= head.size) && // Epsilon does not occurs on body
-                (body.some((word) => word.includes(EPSILON)) || // Not referencied in any body
-                    (rules.every((rb) =>
-                        rb.every(
-                            (rbw) =>
-                                !rbw.every(
-                                    (char, key) => char === head.get(key)
+            (bodies, head, rules) => {
+                // Check if Initial States
+                if (
+                    head.join() ===
+                    (grammar.get("startSymbol") as IGrammar["startSymbol"])
+                ) {
+                    // Check Initial State Rules
+                    if (head.includes(EPSILON)) {
+                        // Check Head is not target of any production
+                        return rules.every(
+                            (nestedBodies, nestedHead) =>
+                                !nestedHead.equals(head) ||
+                                nestedBodies.every((nestedBody) =>
+                                    nestedBody.join().includes(head.join())
                                 )
-                        )
-                    ) &&
-                        // Is initial state
-                        head.equals(grammar.get("startSymbol"))))
+                        );
+                    }
+                    // Only Check Size
+                    return bodies.every(
+                        (body) =>
+                            head.size <= body.size && !body.includes(EPSILON)
+                    );
+                }
+                // Check Normal Body
+                return bodies.every(
+                    (body) => head.size <= body.size && !body.includes(EPSILON)
+                );
+            }
         )
     ) {
         return GrammarType.UNRESTRICTED;
@@ -185,8 +199,10 @@ export const checkOwnType = (grammar: IIGrammar): GrammarType => {
                     ) as IGrammar["terminalSymbols"]).includes(pb.get(0)) &&
                     (pb.size === 1 ||
                         (grammar.get(
-                            "terminalSymbols"
-                        ) as IGrammar["terminalSymbols"]).includes(pb.get(1)))
+                            "nonTerminalSymbols"
+                        ) as IGrammar["nonTerminalSymbols"]).includes(
+                            pb.get(1)
+                        ))
             )
         )
     ) {
