@@ -1,4 +1,5 @@
 import Immutable from "immutable";
+import { STATUS_CODES } from "node:http";
 import {
     MachineDBEntry,
     MachineType,
@@ -515,9 +516,217 @@ export const updateExitStatesCache = (machine: IIMachine): IIMachine => {
     );
 };
 
-// export const union = (machine1: IIMachine, machine2: IIMachine): IIMachine => {
-//     // by definition to union 2 FSMs we go from the the 
-// }
+// export const intersect = (
+//     machine1: IIMachine,
+//     machine2: IIMachine
+// ): IIMachine => {
+// Start by constructing automata which recognise the complement of these automata:
+// Take the union of these resultant automata:
+// Remove useless and unreachable states:
+// Minimise automaton:
+// Construct an automaton accepting the complement of the language recognised by the minimised automaton:
+// };
+
+export const unionAlphabets = (
+    machine1: IIMachine,
+    machine2: IIMachine
+): IIMachine => {
+    const clonedMachine = machine1;
+    return clonedMachine.set(
+        "alphabet",
+        (machine1.get("alphabet") as IAlphabet).union(
+            machine2.get("alphabet") as IAlphabet
+        ) as IAlphabet
+    );
+};
+
+export const union = (
+    machine1: IIMachine,
+    machine2: IIMachine,
+    renameToken = "_FROM_UNION"
+): IIMachine => {
+    const machine1Size = (machine1.get("states") as Immutable.Map<
+        string,
+        IIState
+    >).size;
+    const machine2Size = (machine2.get("states") as Immutable.Map<
+        string,
+        IIState
+    >).size;
+
+    let clonedMachine = machine1Size > machine2Size ? machine2 : machine1;
+    let clonedMachine2 = machine1Size > machine2Size ? machine1 : machine2;
+    // The alphabet of the new machine is the union of the alphabets
+    clonedMachine = unionAlphabets(clonedMachine, clonedMachine2);
+
+    // saving the names of the modified states
+    let modifiedNames = Immutable.Map<string, string>();
+    // The states of the new machine is the union of their states
+
+    // If there are states with the same name, we should rename them
+    for (const [key, value] of clonedMachine2.get("states") as Immutable.Map<
+        string,
+        IIState
+    >) {
+        if (
+            (clonedMachine.get("states") as Immutable.Map<string, IIState>).has(
+                key
+            )
+        ) {
+            // construct the new state
+            const newState = Immutable.Map({
+                id: ((clonedMachine.get("states") as Immutable.Map<
+                    string,
+                    IIState
+                >)
+                    .get(key)
+                    .get("id") as string).concat(renameToken),
+                isEntry: !!(clonedMachine.get("states") as Immutable.Map<
+                    string,
+                    IIState
+                >)
+                    .get(key)
+                    .get("isEntry"),
+                isExit: !!(clonedMachine.get("states") as Immutable.Map<
+                    string,
+                    IIState
+                >)
+                    .get(key)
+                    .get("isExit"),
+            } as IState) as IIState;
+
+            // saving the modified states for later
+            modifiedNames = modifiedNames.set(
+                (clonedMachine.get("states") as Immutable.Map<string, IIState>)
+                    .get(key)
+                    .get("id") as string,
+                ((clonedMachine.get("states") as Immutable.Map<string, IIState>)
+                    .get(key)
+                    .get("id") as string).concat(renameToken)
+            );
+
+            // rename the state on the second machine
+            clonedMachine = clonedMachine.set(
+                "states",
+                (clonedMachine.get("states") as Immutable.Map<
+                    string,
+                    IIState
+                >).set(key.concat(renameToken), newState)
+            );
+            // delete the old state
+            clonedMachine = clonedMachine.set(
+                "states",
+                (clonedMachine.get("states") as Immutable.Map<
+                    string,
+                    IIState
+                >).remove(key)
+            );
+            // append back this renamed state to the other machine
+            clonedMachine2 = clonedMachine2.set(
+                "states",
+                (clonedMachine2.get("states") as Immutable.Map<
+                    string,
+                    IIState
+                >).set(key.concat(renameToken), newState)
+            );
+        } else {
+            clonedMachine2 = clonedMachine2.set(
+                "states",
+                (clonedMachine2.get("states") as Immutable.Map<
+                    string,
+                    IIState
+                >).set(key, value)
+            );
+        }
+    }
+
+    // In this machine where the names of the states have been altered
+    // We should rename each transition with the new name
+    for (const transition of clonedMachine2.get(
+        "transitions"
+    ) as Immutable.Set<IITransition>) {
+        // build new transition
+        const newTransition = {
+            from: modifiedNames.get(
+                transition.get("from"),
+                transition.get("from")
+            ),
+            with: transition.get("with"),
+            to: modifiedNames.get(transition.get("to"), transition.get("to")),
+            pop: null,
+            push: null,
+        } as ITransition;
+        clonedMachine2 = removeTransition(
+            clonedMachine2,
+            transition.toObject() as ITransition
+        );
+        clonedMachine2 = addTransition(clonedMachine2, newTransition);
+    }
+
+    // Perform union of transitions of each machine
+    clonedMachine2 = clonedMachine2.set(
+        "transitions",
+        (clonedMachine2.get(
+            "transitions"
+        ) as Immutable.Set<IITransition>).union(
+            clonedMachine.get("transitions") as Immutable.Set<IITransition>
+        )
+    );
+
+    // get the entry states of the machines. ClonedMachine2 already contains the states which are entry from both
+    const entryStates = Immutable.List(
+        (clonedMachine2.get("states") as Immutable.Map<string, IIState>).filter(
+            (state) => !!state.get("isEntry")
+        )
+    );
+    if (entryStates.size !== 2)
+        // eslint-disable-next-line no-console
+        console.error("didn't find 2 entry states in the machines provided");
+
+    // These states lose the entry attribute they had
+    for (const [key, value] of entryStates) {
+        // build new state
+        const newState = Immutable.Map({
+            id: value.get("id"),
+            isEntry: false,
+            isExit: value.get("isExit"),
+        } as IState) as IIState;
+
+        // set it in the machine
+        clonedMachine2 = clonedMachine2.set(
+            "states",
+            (clonedMachine2.get("states") as Immutable.Map<
+                string,
+                IIState
+            >).set(key, newState)
+        );
+    }
+
+    // create a new initial state
+    const newInitialState = {
+        id: "newUnionInitialState",
+        isEntry: true,
+        isExit: false,
+    } as IState;
+    // add it to the machine
+    clonedMachine2 = addState(clonedMachine2, newInitialState);
+
+    // add transitions from this state, with epsilon, to the states which were entry states of the machine
+    for (const [key, value] of entryStates) {
+        clonedMachine2 = addTransition(clonedMachine2, {
+            from: newInitialState.id,
+            with: EPSILON,
+            to: key,
+            pop: null,
+            push: null,
+        } as ITransition);
+    }
+    // set the entry state attribute
+    clonedMachine2 = setEntryState(clonedMachine2, newInitialState);
+    // update exitStates cache
+    clonedMachine2 = updateExitStatesCache(clonedMachine2);
+    return clonedMachine2;
+};
 
 export const determinize = (machine: IIMachine): IIMachine => {
     // Dont do anything if already determinized

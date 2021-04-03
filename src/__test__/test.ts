@@ -23,6 +23,8 @@ import {
     IMachine,
     updateExitStatesCache,
     minimize,
+    union,
+    unionAlphabets,
 } from "../lib/automaton/Machine";
 import { IIState } from "../lib/automaton/State";
 import { MachineType } from "../database/schema/machine";
@@ -1399,6 +1401,185 @@ test("test update exitstates Cache", () => {
                     isExit: true,
                 }),
             })
+        )
+    ).toBe(true);
+});
+
+test("test union alphabet", () => {
+    const machine1 = buildImmutableRegularNonDeterministicWithEpsilonMachine4();
+    const machine2 = buildImmutableRegularNonDeterministicWithEpsilonMachine2();
+    const machine = unionAlphabets(machine1, machine2);
+    expect(
+        (machine.get("alphabet") as IAlphabet)
+            .sort()
+            .equals(Immutable.Set(["a", "b", "ε", "0", "1"]).sort())
+    ).toBe(true);
+});
+
+test("test union on machines", () => {
+    const machine1 = buildImmutableRegularNonDeterministicWithoutEpsilonMachine();
+    const machine2 = buildImmutableRegularNonDeterministicWithEpsilonMachine();
+    const machine = union(machine1, machine2);
+    expect(machine.equals(union(machine2, machine1))).toBe(true);
+    expect(
+        (machine.get("exitStates") as Immutable.Map<string, IIState>).equals(
+            Immutable.Map({
+                q4: Immutable.Map({ id: "q4", isEntry: false, isExit: true }),
+                q2_FROM_UNION: Immutable.Map({
+                    id: "q2_FROM_UNION",
+                    isEntry: false,
+                    isExit: true,
+                }),
+                q0_FROM_UNION: Immutable.Map({
+                    id: "q0_FROM_UNION",
+                    isEntry: false,
+                    isExit: true,
+                }),
+            })
+        )
+    ).toBe(true);
+
+    expect(
+        (machine.get("states") as Immutable.Map<string, IIState>).equals(
+            Immutable.Map({
+                q1: Immutable.Map({ id: "q1", isEntry: false, isExit: false }),
+                q2: Immutable.Map({ id: "q2", isEntry: false, isExit: false }),
+                q3: Immutable.Map({ id: "q3", isEntry: false, isExit: false }),
+                q4: Immutable.Map({ id: "q4", isEntry: false, isExit: true }),
+                q2_FROM_UNION: Immutable.Map({
+                    id: "q2_FROM_UNION",
+                    isEntry: false,
+                    isExit: true,
+                }),
+                q1_FROM_UNION: Immutable.Map({
+                    id: "q1_FROM_UNION",
+                    isEntry: false,
+                    isExit: false,
+                }),
+                q0_FROM_UNION: Immutable.Map({
+                    id: "q0_FROM_UNION",
+                    isEntry: false,
+                    isExit: true,
+                }),
+                newUnionInitialState: Immutable.Map({
+                    id: "newUnionInitialState",
+                    isEntry: true,
+                    isExit: false,
+                }),
+                q0: Immutable.Map({ id: "q0", isEntry: false, isExit: false }),
+            })
+        )
+    ).toBe(true);
+
+    expect(
+        (machine.get("transitions") as Immutable.Set<IITransition>).equals(
+            Immutable.Set([
+                Immutable.Map({
+                    from: "q1",
+                    with: "0",
+                    to: "q2",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "newUnionInitialState",
+                    with: "ε",
+                    to: "q0",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
+                    from: "newUnionInitialState",
+                    with: "ε",
+                    to: "q0_FROM_UNION",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
+                    from: "q2",
+                    with: "1",
+                    to: "q1",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q0",
+                    with: "1",
+                    to: "q1",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q2",
+                    with: "0",
+                    to: "q2",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q2",
+                    with: "1",
+                    to: "q2",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q0_FROM_UNION",
+                    with: "ε",
+                    to: "q1_FROM_UNION",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
+                    from: "q1_FROM_UNION",
+                    with: "0",
+                    to: "q3",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
+                    from: "q0",
+                    with: "0",
+                    to: "q0",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q3",
+                    with: "1",
+                    to: "q4",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
+                    from: "q2_FROM_UNION",
+                    with: "1",
+                    to: "q3",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
+                    from: "q1",
+                    with: "1",
+                    to: "q1",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q1",
+                    with: "0",
+                    to: "q1",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q0_FROM_UNION",
+                    with: "ε",
+                    to: "q2_FROM_UNION",
+                    pop: null,
+                    push: null,
+                }),
+            ])
         )
     ).toBe(true);
 });
