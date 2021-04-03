@@ -137,12 +137,6 @@ test("[convertDeterministicFiniteStateMachineToRegularGrammar]", () => {
         machine1,
         false
     );
-    const grammar1 = convertDeterministicFiniteStateMachineToRegularGrammar(
-        machine1,
-        true
-    );
-    console.log(inspect(grammar.toJS(), { colors: true, depth: null }));
-    console.log(inspect(grammar1.toJS(), { colors: true, depth: null }));
     // Assert
     expect(
         (grammar.get("productionRules") as IGrammar["productionRules"]).equals(

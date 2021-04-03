@@ -1122,8 +1122,6 @@ test("test determinization with ε", () => {
             )
     ).toBe(true);
 
-    console.log(inspect(machine.toJS(), { colors: true, depth: null }));
-
     expect(
         (machine.get("transitions") as Immutable.Set<IITransition>).equals(
             Immutable.Set([
@@ -1209,11 +1207,6 @@ test("test determinization with ε", () => {
                 }) as IIState,
                 Immutable.Map({
                     id: "q0,q1,q3,q4",
-                    isEntry: false,
-                    isExit: true,
-                }) as IIState,
-                Immutable.Map({
-                    id: "q2,q3",
                     isEntry: false,
                     isExit: true,
                 }) as IIState,
@@ -1433,12 +1426,6 @@ test("test update exitstates Cache", () => {
                 }),
                 "q1,q3,q4": Immutable.Map({
                     id: "q1,q3,q4",
-                    isEntry: false,
-                    isExit: true,
-                }),
-                // "dead state", useful to test the update method
-                "q2,q3": Immutable.Map({
-                    id: "q2,q3",
                     isEntry: false,
                     isExit: true,
                 }),

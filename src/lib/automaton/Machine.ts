@@ -1,5 +1,5 @@
 import Immutable from "immutable";
-import { STATUS_CODES } from "node:http";
+import { inspect } from "util";
 import {
     MachineDBEntry,
     MachineType,
@@ -444,14 +444,15 @@ export const removeUnreachableStates = (machine: IIMachine): IIMachine => {
         ])
     );
     // Remove Unreacheable States and Its transactions
-    let machineReachable = machine.set("states", reachableStates);
+    let machineReachable = machine;
+    machineReachable = machineReachable.set("states", reachableStates);
     // Recompute Entry
-    machineReachable = machine.set(
+    machineReachable = machineReachable.set(
         "entry",
         reachableStates.find((state) => state.get("isEntry") as boolean)
     );
     // Recompute Exit States
-    machineReachable = machine.set(
+    machineReachable = machineReachable.set(
         "exitStates",
         reachableStates.filter((state) => state.get("isExit") as boolean)
     );
