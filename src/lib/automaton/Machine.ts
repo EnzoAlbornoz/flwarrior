@@ -560,11 +560,12 @@ export const complement = (
     // insert it into machine
     clonedMachine = addState(clonedMachine, newDeadState);
     let createdTransitionToThisState = false;
+    let createdTransitionsToAndFromThisState = Immutable.Set<ITransition>();
     // find states where there aren't transitions with a symbol
     const numberOfSymbolsInAlphabet = (clonedMachine.get(
         "alphabet"
     ) as IAlphabet).size;
-    for (const [state, value] of machine.get("states") as Immutable.Map<
+    for (const [state, value] of clonedMachine.get("states") as Immutable.Map<
         string,
         IIState
     >) {
@@ -576,21 +577,31 @@ export const complement = (
             if (toSetStates.isEmpty()) {
                 // this means there isn't a transition from state with symbol
                 // create a transition from state to the new "dead" state using with symbol
-                clonedMachine = addTransition(clonedMachine, {
+                const newTransition = {
                     from: state,
                     with: symbol,
                     to: newDeadState.id,
                     pop: null,
                     push: null,
-                } as ITransition);
-                createdTransitionToThisState = true;
+                } as ITransition;
+                clonedMachine = addTransition(clonedMachine, newTransition);
+                if (state !== newDeadState.id)
+                    createdTransitionToThisState = true;
+                if (state === newDeadState.id)
+                    createdTransitionsToAndFromThisState = createdTransitionsToAndFromThisState.add(
+                        newTransition
+                    );
             }
         }
     }
 
-    // if we didn't add any transitions then we must remove the created state
-    if (!createdTransitionToThisState)
+    // if we didn't add any transitions then we must remove the created state and transitions
+    if (!createdTransitionToThisState) {
         clonedMachine = removeState(clonedMachine, newDeadState);
+        for (const transition of createdTransitionsToAndFromThisState) {
+            clonedMachine = removeTransition(clonedMachine, transition);
+        }
+    }
     // All states which were final, will no longer be
     // and those that were not, will now be
     // calculate and put in cache the final states
@@ -657,8 +668,10 @@ export const union = (
     clonedMachine2 = unionAlphabetsPlusEpsilon(clonedMachine2, clonedMachine);
     // saving the names of the modified states
     let modifiedNames = Immutable.Map<string, string>();
+    // let exclusiveStates = Immutable.Map<string, IIState>().toSet().toMap().mapKeys((s) => s.get("id") as string);
     // The states of the new machine is the union of their states
     // If there are states with the same name, we should rename them
+
     for (const [key] of clonedMachine2.get("states") as Immutable.Map<
         string,
         IIState
@@ -726,7 +739,19 @@ export const union = (
             );
         }
     }
-
+    clonedMachine2 = clonedMachine2.set(
+        "states",
+        (clonedMachine2.get("states") as Immutable.Map<string, IIState>)
+            .toSet()
+            .union(
+                (clonedMachine.get("states") as Immutable.Map<
+                    string,
+                    IIState
+                >).toSet()
+            )
+            .toMap()
+            .mapKeys((s) => s.get("id") as string)
+    );
     // In this machine where the names of the states have been altered
     // We should rename each transition with the new name
     for (const transition of clonedMachine2.get(
@@ -1080,24 +1105,22 @@ export const intersect = (
     // must first determinize
     let clonedMachine1 = determinize(machine1);
     let clonedMachine2 = determinize(machine2);
+
     // now we compute the complement
-    clonedMachine1 = complement(machine1, "rola");
-    clonedMachine2 = complement(machine2, "podre");
+    clonedMachine1 = complement(machine1);
+    clonedMachine2 = complement(machine2);
 
     // Take the union of these resultant automata:
     let machineUnion = union(clonedMachine1, clonedMachine2);
-    // console.log(machineUnion.toJS());
     // Remove useless and unreachable states:
     machineUnion = removeDeadStates(removeUnreachableStates(machineUnion));
-    // console.log(machineUnion.toJS());
     // determinize automaton
     machineUnion = determinize(machineUnion);
     // Minimise automaton:
     machineUnion = minimize(machineUnion);
-    // console.log(machineUnion.toJS());
 
     // Construct an automaton accepting the complement of the language recognised by the minimised automaton:
-    machineUnion = complement(machineUnion, "GORDO");
+    machineUnion = complement(machineUnion);
     return minimize(machineUnion);
 };
 

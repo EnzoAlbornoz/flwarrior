@@ -621,8 +621,104 @@ test("test set Entry On Machine", () => {
     expect((machineWithEntry.get("entry") as IIState).get("id")).toBe("q1");
 });
 
+// self conceived пример
+function buildImmutableRegularDeterministicWithoutEpsilonMachineForIntersection1(): IIMachine {
+    return createMachineFromDBEntry({
+        id: "test",
+        name: "test",
+        deterministic: true,
+        type: MachineType.FINITE_STATE_MACHINE,
+        states: [
+            { id: "q0", isEntry: true, isExit: false },
+            { id: "q1", isEntry: false, isExit: false },
+            { id: "q2", isEntry: false, isExit: true },
+        ],
+        entryAlphabet: ["a", "b"],
+        memoryAlphabet: [],
+        transitions: [
+            {
+                from: "q0",
+                with: { head: "a", memory: "" },
+                to: { newState: "q1", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q0",
+                with: { head: "b", memory: "" },
+                to: { newState: "q0", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q1",
+                with: { head: "a", memory: "" },
+                to: { newState: "q1", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q1",
+                with: { head: "b", memory: "" },
+                to: { newState: "q2", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q2",
+                with: { head: "a", memory: "" },
+                to: { newState: "q2", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q2",
+                with: { head: "b", memory: "" },
+                to: { newState: "q2", writeSymbol: "", headDirection: null },
+            },
+        ],
+    });
+}
+// self conceived пример
+function buildImmutableRegularDeterministicWithoutEpsilonMachineForIntersection2(): IIMachine {
+    return createMachineFromDBEntry({
+        id: "test",
+        name: "test",
+        deterministic: true,
+        type: MachineType.FINITE_STATE_MACHINE,
+        states: [
+            { id: "q3", isEntry: true, isExit: false },
+            { id: "q4", isEntry: false, isExit: false },
+            { id: "q5", isEntry: false, isExit: true },
+        ],
+        entryAlphabet: ["a", "b"],
+        memoryAlphabet: [],
+        transitions: [
+            {
+                from: "q3",
+                with: { head: "a", memory: "" },
+                to: { newState: "q3", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q3",
+                with: { head: "b", memory: "" },
+                to: { newState: "q4", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q4",
+                with: { head: "a", memory: "" },
+                to: { newState: "q3", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q4",
+                with: { head: "b", memory: "" },
+                to: { newState: "q5", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q5",
+                with: { head: "a", memory: "" },
+                to: { newState: "q5", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q5",
+                with: { head: "b", memory: "" },
+                to: { newState: "q5", writeSymbol: "", headDirection: null },
+            },
+        ],
+    });
+}
 // taken from http://www.cs.um.edu.mt/gordon.pace/Research/Software/Relic/Transformations/FSA/intersection.html
-function buildImmutableRegularDeterministicWithoutEpsilonMachineForIntersection(): IIMachine {
+function buildImmutableRegularDeterministicWithoutEpsilonMachineForIntersection3(): IIMachine {
     return createMachineFromDBEntry({
         id: "test",
         name: "test",
@@ -649,7 +745,7 @@ function buildImmutableRegularDeterministicWithoutEpsilonMachineForIntersection(
     });
 }
 // also taken from http://www.cs.um.edu.mt/gordon.pace/Research/Software/Relic/Transformations/FSA/intersection.html
-function buildImmutableRegularDeterministicWithoutEpsilonMachineForIntersection2(): IIMachine {
+function buildImmutableRegularDeterministicWithoutEpsilonMachineForIntersection4(): IIMachine {
     return createMachineFromDBEntry({
         id: "test",
         name: "test",
@@ -1625,7 +1721,146 @@ test("test union on machines", () => {
 
 test("test complement on machine", () => {
     let machine = complement(
-        buildImmutableRegularDeterministicWithoutEpsilonMachineForIntersection()
+        buildImmutableRegularDeterministicWithoutEpsilonMachineForIntersection1()
+    );
+    expect(
+        (machine.get("exitStates") as Immutable.Map<string, IIState>).equals(
+            Immutable.Map({
+                q0: Immutable.Map({ id: "q0", isEntry: true, isExit: true }),
+                q1: Immutable.Map({ id: "q1", isEntry: false, isExit: true }),
+            })
+        )
+    ).toBe(true);
+    expect(
+        (machine.get("transitions") as Immutable.Set<IITransition>).equals(
+            Immutable.Set([
+                Immutable.Map({
+                    from: "q0",
+                    with: "a",
+                    to: "q1",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q0",
+                    with: "b",
+                    to: "q0",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q1",
+                    with: "a",
+                    to: "q1",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q1",
+                    with: "b",
+                    to: "q2",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q2",
+                    with: "a",
+                    to: "q2",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q2",
+                    with: "b",
+                    to: "q2",
+                    push: null,
+                    pop: null,
+                }),
+            ])
+        )
+    ).toBe(true);
+
+    expect(
+        (machine.get("states") as Immutable.Map<string, IIState>).equals(
+            Immutable.Map({
+                q0: Immutable.Map({ id: "q0", isEntry: true, isExit: true }),
+                q1: Immutable.Map({ id: "q1", isEntry: false, isExit: true }),
+                q2: Immutable.Map({ id: "q2", isEntry: false, isExit: false }),
+            })
+        )
+    ).toBe(true);
+    machine = complement(
+        buildImmutableRegularDeterministicWithoutEpsilonMachineForIntersection2()
+    );
+
+    expect(
+        (machine.get("exitStates") as Immutable.Map<string, IIState>).equals(
+            Immutable.Map({
+                q3: Immutable.Map({ id: "q3", isEntry: true, isExit: true }),
+                q4: Immutable.Map({ id: "q4", isEntry: false, isExit: true }),
+            })
+        )
+    ).toBe(true);
+    expect(
+        (machine.get("transitions") as Immutable.Set<IITransition>).equals(
+            Immutable.Set([
+                Immutable.Map({
+                    from: "q3",
+                    with: "a",
+                    to: "q3",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q3",
+                    with: "b",
+                    to: "q4",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q4",
+                    with: "a",
+                    to: "q3",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q4",
+                    with: "b",
+                    to: "q5",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q5",
+                    with: "a",
+                    to: "q5",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
+                    from: "q5",
+                    with: "b",
+                    to: "q5",
+                    pop: null,
+                    push: null,
+                }),
+            ])
+        )
+    ).toBe(true);
+
+    expect(
+        (machine.get("states") as Immutable.Map<string, IIState>).equals(
+            Immutable.Map({
+                q3: Immutable.Map({ id: "q3", isEntry: true, isExit: true }),
+                q4: Immutable.Map({ id: "q4", isEntry: false, isExit: true }),
+                q5: Immutable.Map({ id: "q5", isEntry: false, isExit: false }),
+            })
+        )
+    ).toBe(true);
+    machine = complement(
+        buildImmutableRegularDeterministicWithoutEpsilonMachineForIntersection3()
     );
     expect(
         (machine.get("exitStates") as Immutable.Map<string, IIState>).equals(
@@ -1664,7 +1899,7 @@ test("test complement on machine", () => {
         )
     ).toBe(true);
     machine = complement(
-        buildImmutableRegularDeterministicWithoutEpsilonMachineForIntersection2()
+        buildImmutableRegularDeterministicWithoutEpsilonMachineForIntersection4()
     );
     expect(
         (machine.get("exitStates") as Immutable.Map<string, IIState>).equals(
@@ -1724,6 +1959,20 @@ test("test complement on machine", () => {
                     pop: null,
                     push: null,
                 }),
+                Immutable.Map({
+                    from: "_DSFC_",
+                    with: "a",
+                    to: "_DSFC_",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
+                    from: "_DSFC_",
+                    with: "b",
+                    to: "_DSFC_",
+                    pop: null,
+                    push: null,
+                }),
             ])
         )
     ).toBe(true);
@@ -1744,9 +1993,127 @@ test("test complement on machine", () => {
     ).toBe(true);
 });
 
-// test("test intersect on DFA", () => {
-//     const machine1 = buildImmutableRegularDeterministicWithoutEpsilonMachineForIntersection();
-//     const machine2 = buildImmutableRegularDeterministicWithoutEpsilonMachineForIntersection2();
-//     const machine = intersect(machine1, machine2);
-//     console.log(machine.toJS());
-// });
+test(" test simple intersect on DFA", () => {
+    const machine1 = buildImmutableRegularDeterministicWithoutEpsilonMachineForIntersection1();
+    const machine2 = buildImmutableRegularDeterministicWithoutEpsilonMachineForIntersection2();
+    const machine = intersect(machine1, machine2);
+
+    expect(
+        (machine.get("states") as Immutable.Map<string, IIState>).equals(
+            Immutable.Map({
+                q0: Immutable.Map({ id: "q0", isEntry: false, isExit: true }),
+                q1: Immutable.Map({ id: "q1", isEntry: false, isExit: false }),
+                q2: Immutable.Map({ id: "q2", isEntry: false, isExit: false }),
+                q3: Immutable.Map({ id: "q3", isEntry: false, isExit: false }),
+                q4: Immutable.Map({ id: "q4", isEntry: false, isExit: false }),
+                q5: Immutable.Map({ id: "q5", isEntry: false, isExit: false }),
+                q6: Immutable.Map({ id: "q6", isEntry: true, isExit: false }),
+            })
+        )
+    ).toBe(true);
+
+    expect(
+        (machine.get("transitions") as Immutable.Set<IITransition>).equals(
+            Immutable.Set([
+                Immutable.Map({
+                    from: "q5",
+                    with: "a",
+                    to: "q4",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q6",
+                    with: "b",
+                    to: "q5",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q4",
+                    with: "a",
+                    to: "q4",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q2",
+                    with: "a",
+                    to: "q2",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q6",
+                    with: "a",
+                    to: "q4",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q1",
+                    with: "a",
+                    to: "q4",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q3",
+                    with: "a",
+                    to: "q2",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q0",
+                    with: "b",
+                    to: "q0",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
+                    from: "q1",
+                    with: "b",
+                    to: "q0",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
+                    from: "q3",
+                    with: "b",
+                    to: "q3",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q5",
+                    with: "b",
+                    to: "q3",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q4",
+                    with: "b",
+                    to: "q1",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q2",
+                    with: "b",
+                    to: "q0",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
+                    from: "q0",
+                    with: "a",
+                    to: "q0",
+                    pop: null,
+                    push: null,
+                }),
+            ])
+        )
+    ).toBe(true);
+});
