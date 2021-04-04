@@ -10,10 +10,11 @@ We also use the browser-integrated database to store information about the langu
 
 ## Running
 
-You will need NodeJS v14.x or higher
+You will need [NodeJS v14.x or higher](https://github.com/npm/cli)
 ```
 npm install # Installs dependences
-npm run start # runs
+npm test # runs tests
+npm run start # runs (be patient)
 ```
 
 ### Interface capture:
