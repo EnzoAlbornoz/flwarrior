@@ -1096,6 +1096,46 @@ export const minimize = (machine: IIMachine): IIMachine => {
     return minimizedMachine;
 };
 
+export function* nextStep(
+    machine: IIMachine,
+    word: string // the whole string
+): Generator<IITransition> {
+    if (!isMachineDeterministic(machine)) {
+        console.error(
+            "step by step disabled on non-deterministic function. return false."
+        );
+        return false;
+    }
+    let i = 0;
+    let symbol = word[i];
+
+    // get initial state
+    let currState = (machine.get("entry") as IIState).get("id");
+    // yields empty vector when done
+    while (true) {
+        let ret = Immutable.List<IITransition>();
+        for (const transition of machine.get(
+            "transitions"
+        ) as Immutable.Set<IITransition>) {
+            if (
+                transition.get("with") === symbol &&
+                transition.get("from") === currState
+            ) {
+                currState = transition.get("to");
+                ret = ret.push(transition);
+                break;
+            }
+        }
+        if (ret.isEmpty()) {
+            if (machine.hasIn(["exitStates", currState])) return true;
+            return false;
+        }
+        yield ret.first();
+        i += 1;
+        symbol = word[i];
+    }
+}
+
 export const intersect = (
     machine1: IIMachine,
     machine2: IIMachine

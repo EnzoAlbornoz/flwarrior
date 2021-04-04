@@ -29,9 +29,10 @@ import {
     complement,
     intersect,
     removeUnreachableStates,
+    nextStep,
 } from "../lib/automaton/Machine";
 import { IIState } from "../lib/automaton/State";
-import { MachineType } from "../database/schema/machine";
+import { getNewMachine, MachineType } from "../database/schema/machine";
 
 // ░░░░░░█▐▓▓░████▄▄▄█▀▄▓▓▓▌█
 // ░░░░░▄█▌▀▄▓▓▄▄▄▄▀▀▀▄▓▓▓▓▓▌█
@@ -2116,4 +2117,87 @@ test(" test simple intersect on DFA", () => {
             ])
         )
     ).toBe(true);
+});
+
+test("test generator for next", () => {
+    const machine = buildImmutableRegularDeterministicWithoutEpsilonMachineForIntersection1();
+    let gen = nextStep(machine, "acbabba");
+
+    expect(
+        (gen.next().value as IITransition).equals(
+            Immutable.Map({
+                from: "q0",
+                with: "a",
+                to: "q1",
+                push: null,
+                pop: null,
+            }) as IITransition
+        )
+    ).toBe(true);
+    let next = gen.next();
+    // succcesfull computation?
+    expect(next.value).toBe(false);
+    expect(next.done).toBe(true);
+
+    gen = nextStep(machine, "aabba");
+
+    expect(
+        (gen.next().value as IITransition).equals(
+            Immutable.Map({
+                from: "q0",
+                with: "a",
+                to: "q1",
+                push: null,
+                pop: null,
+            }) as IITransition
+        )
+    ).toBe(true);
+    expect(
+        (gen.next().value as IITransition).equals(
+            Immutable.Map({
+                from: "q1",
+                with: "a",
+                to: "q1",
+                push: null,
+                pop: null,
+            }) as IITransition
+        )
+    ).toBe(true);
+    expect(
+        (gen.next().value as IITransition).equals(
+            Immutable.Map({
+                from: "q1",
+                with: "b",
+                to: "q2",
+                push: null,
+                pop: null,
+            }) as IITransition
+        )
+    ).toBe(true);
+    expect(
+        (gen.next().value as IITransition).equals(
+            Immutable.Map({
+                from: "q2",
+                with: "b",
+                to: "q2",
+                push: null,
+                pop: null,
+            }) as IITransition
+        )
+    ).toBe(true);
+    expect(
+        (gen.next().value as IITransition).equals(
+            Immutable.Map({
+                from: "q2",
+                with: "a",
+                to: "q2",
+                push: null,
+                pop: null,
+            }) as IITransition
+        )
+    ).toBe(true);
+    // succcesfull computation?
+    next = gen.next();
+    expect(next.value).toBe(true);
+    expect(next.done).toBe(true);
 });
