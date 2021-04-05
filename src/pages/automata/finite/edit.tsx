@@ -11,7 +11,7 @@ import {
     Tooltip,
     message,
 } from "antd";
-import IconBase, { SaveOutlined } from "@ant-design/icons";
+import IconBase, { SaveOutlined, PlaySquareOutlined } from "@ant-design/icons";
 import { useState, useMemo } from "react";
 import { useParams, useHistory } from "react-router-dom";
 import styled from "styled-components";
@@ -226,6 +226,10 @@ export default function RegularMachineEdit(): JSX.Element {
         // Go to Grammar Editor Page
         return history.push(`/grammars/regular/edit/${serializedGrammar.id}`);
     };
+    const executeMachine = () => {
+        // Go To Execution
+        return history.push(`/automata/finite/execute/${idToEdit}`);
+    };
     // Setup Modals
     const [showModalState, modalStateCH] = useModal({
         title: "Adicionar estado",
@@ -277,8 +281,21 @@ export default function RegularMachineEdit(): JSX.Element {
                         subTitle="Autômato Finito"
                         extra={[
                             <Tooltip
+                                title="Executa a máquina em modo passo-a-passo (Desabilitado em AFNDs)"
+                                key="button-execute-tooltip"
+                            >
+                                <Button
+                                    key="button-execute"
+                                    onClick={executeMachine}
+                                    icon={<PlaySquareOutlined />}
+                                    disabled={!isDeterministic}
+                                >
+                                    Executar
+                                </Button>
+                            </Tooltip>,
+                            <Tooltip
                                 title="Converte a maquina para a gramática equivalente (Desabilitado em AFNDs)"
-                                key="button-conver-grammar-tooltip"
+                                key="button-convert-grammar-tooltip"
                             >
                                 <Button
                                     key="convert-grammar"
@@ -294,7 +311,6 @@ export default function RegularMachineEdit(): JSX.Element {
                             >
                                 <Button
                                     key="button-minimize"
-                                    type="primary"
                                     onClick={minimizeMachine}
                                     disabled={!isDeterministic}
                                 >
@@ -303,7 +319,6 @@ export default function RegularMachineEdit(): JSX.Element {
                             </Tooltip>,
                             <Button
                                 key="button-determinize"
-                                type="primary"
                                 onClick={determinizeMachine}
                             >
                                 Determinizar

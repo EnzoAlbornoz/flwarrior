@@ -5,6 +5,7 @@ import { Helmet } from "react-helmet";
 import HomePage from "@pages/Home";
 import FiniteAutomataPage from "@pages/automata/finite";
 import FiniteAutomataEditPage from "@pages/automata/finite/edit";
+import FiniteAutomataExecutePage from "@pages/automata/finite/execute";
 import RegularGrammarsPage from "@pages/grammars/regular";
 import RegularGrammarEditPage from "@pages/grammars/regular/edit";
 import RegularExpressionsPage from "@pages/expressions/regular";
@@ -26,6 +27,10 @@ export default function Router(): JSX.Element {
                     <Route path="/automata/finite/edit/:id" exact>
                         <Helmet title="Editar - Autômato Finito - FL Warrior" />
                         <FiniteAutomataEditPage />
+                    </Route>
+                    <Route path="/automata/finite/execute/:id" exact>
+                        <Helmet title="Executar - Autômato Finito - FL Warrior" />
+                        <FiniteAutomataExecutePage />
                     </Route>
                     {/* Grammars */}
                     <Route path="/grammars/regular" exact>

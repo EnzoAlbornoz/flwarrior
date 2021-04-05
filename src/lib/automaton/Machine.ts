@@ -1133,7 +1133,8 @@ export function* nextStep(
             }
         }
         if (ret.isEmpty()) {
-            if (machine.hasIn(["exitStates", currState])) return true;
+            if (machine.hasIn(["exitStates", currState]) && i === word.length)
+                return true;
             return false;
         }
         yield ret.first();
