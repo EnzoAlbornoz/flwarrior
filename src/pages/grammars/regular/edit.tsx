@@ -164,7 +164,7 @@ export default function RegularGrammarEdit(): JSX.Element {
         // Fetch Database
         const db = await useDatabase();
         await db.put(FLWarriorDBTables.GRAMMAR, serializedGrammar);
-        message.success("Gramática salva!");
+        message.success("Gramática salva!", 1);
     };
     const newRuleHead = (newRuleHeadSymbols: string) =>
         setGrammar(addProductionHead(grammar, newRuleHeadSymbols.split("")));

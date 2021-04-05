@@ -82,7 +82,7 @@ const MachineEditGrid = styled.section`
     /* Display on Grid */
     display: grid;
     gap: 1rem;
-    grid-template-columns: 8fr 2fr;
+    grid-template-columns: 7fr 3fr;
     grid-template-rows: 1fr 5fr 6fr;
     grid-template-areas:
         "rules entry"
@@ -170,6 +170,7 @@ export default function RegularMachineEdit(): JSX.Element {
         // Fetch Database
         const db = await useDatabase();
         await db.put(FLWarriorDBTables.MACHINE, serializedMachine);
+        message.success("Máquina salva!", 1);
     };
     const newState = (stateName: string) => {
         if (stateName.includes(",")) {

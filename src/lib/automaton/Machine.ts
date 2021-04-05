@@ -1,5 +1,6 @@
 import Immutable from "immutable";
 import { inspect } from "util";
+import { v4 as uuid } from "uuid";
 import {
     MachineDBEntry,
     MachineType,
@@ -650,7 +651,8 @@ export const complement = (
 export const union = (
     machine1: IIMachine,
     machine2: IIMachine,
-    renameToken = "_FROM_UNION"
+    renameToken = "_FROM_UNION",
+    generateNewIds = false
 ): IIMachine => {
     const machine1Size = (machine1.get("states") as Immutable.Map<
         string,
@@ -837,6 +839,10 @@ export const union = (
     clonedMachine2 = setEntryState(clonedMachine2, newInitialState);
     // update exitStates cache
     clonedMachine2 = updateExitStatesCache(clonedMachine2);
+    if (generateNewIds) {
+        const newId = uuid();
+        clonedMachine2 = clonedMachine2.set("name", newId).set("id", newId);
+    }
     return clonedMachine2;
 };
 
@@ -1138,7 +1144,8 @@ export function* nextStep(
 
 export const intersect = (
     machine1: IIMachine,
-    machine2: IIMachine
+    machine2: IIMachine,
+    generateNewId = false
 ): IIMachine => {
     // return machine1;
     // Start by constructing automata which recognise the complement of these automata:
@@ -1161,6 +1168,11 @@ export const intersect = (
 
     // Construct an automaton accepting the complement of the language recognised by the minimised automaton:
     machineUnion = complement(machineUnion);
+    // Generate New Id
+    if (generateNewId) {
+        const newId = uuid();
+        machineUnion = machineUnion.set("id", newId).set("name", newId);
+    }
     return minimize(machineUnion);
 };
 
