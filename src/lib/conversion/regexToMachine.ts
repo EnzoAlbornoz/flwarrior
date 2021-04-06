@@ -368,6 +368,7 @@ export default function convertFiniteStateMachineToRegularGrammar(
     const expression = (regex.get("expression") as string)
         .replace(/ /g, "")
         .replace(/&/g, EPSILON);
+    console.log("converting", expression);
     // Get Alphabet
     const alphabet = getAlphabetOfExpression(expression);
     // Parse as Aho Tree
@@ -391,7 +392,7 @@ export default function convertFiniteStateMachineToRegularGrammar(
             const charStateSet = filteredNodes
                 .filter((n) => n.content === char)
                 .map((n) => Immutable.Set(n.followPos))
-                .reduce((acc, fp) => acc.union(fp))
+                .reduce((acc, fp) => acc.union(fp), Immutable.Set())
                 .sort();
             const transitionTo = charStateSet.join("");
             if (

@@ -135,7 +135,7 @@ export default function ExecuteFiniteAutomata(): JSX.Element {
         const db = await useDatabase();
         await db.put(FLWarriorDBTables.MACHINE, serializedMachine);
         // Go to Machine Editor Page
-        return history.push(`/automata/regular/edit/${serializedMachine.id}`);
+        return history.push(`/automata/finite/edit/${serializedMachine.id}`);
     };
     // Define Modals
     const [showModalRename, modalRenameCH] = useModal({
