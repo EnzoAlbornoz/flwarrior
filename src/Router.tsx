@@ -9,6 +9,7 @@ import FiniteAutomataExecutePage from "@pages/automata/finite/execute";
 import RegularGrammarsPage from "@pages/grammars/regular";
 import RegularGrammarEditPage from "@pages/grammars/regular/edit";
 import RegularExpressionsPage from "@pages/expressions/regular";
+import RegularExpressionEditPage from "@pages/expressions/regular/edit";
 // Define Component
 export default function Router(): JSX.Element {
     return (
@@ -45,6 +46,10 @@ export default function Router(): JSX.Element {
                     <Route path="/expressions/regular" exact>
                         <Helmet title="Expressões Regulares - FL Warrior" />
                         <RegularExpressionsPage />
+                    </Route>
+                    <Route path="/expressions/regular/edit/:id" exact>
+                        <Helmet title="Editar - Expressão Regular - FL Warrior" />
+                        <RegularExpressionEditPage />
                     </Route>
                 </Switch>
             </BrowserRouter>

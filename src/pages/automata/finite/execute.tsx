@@ -10,7 +10,7 @@ import {
 } from "@/lib/automaton/Machine";
 import useAsyncEffect from "@/utils/useAsyncEffect";
 import Layout from "@layout";
-import { Button, Card, PageHeader, Statistic, Timeline } from "antd";
+import { Button, Card, PageHeader, Timeline } from "antd";
 import { useMemo, useState } from "react";
 import { useHistory, useParams } from "react-router-dom";
 import styled from "styled-components";

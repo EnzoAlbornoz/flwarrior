@@ -1,5 +1,4 @@
 import Immutable from "immutable";
-import { inspect } from "util";
 import { v4 as uuid } from "uuid";
 import {
     MachineDBEntry,
@@ -563,13 +562,12 @@ export const complement = (
     let createdTransitionToThisState = false;
     let createdTransitionsToAndFromThisState = Immutable.Set<ITransition>();
     // find states where there aren't transitions with a symbol
-    const numberOfSymbolsInAlphabet = (clonedMachine.get(
-        "alphabet"
-    ) as IAlphabet).size;
-    for (const [state, value] of clonedMachine.get("states") as Immutable.Map<
-        string,
-        IIState
-    >) {
+    // const numberOfSymbolsInAlphabet = (clonedMachine.get(
+    //     "alphabet"
+    // ) as IAlphabet).size;
+    for (const [state /* , value */] of clonedMachine.get(
+        "states"
+    ) as Immutable.Map<string, IIState>) {
         const symbolToStateSetMap = getAllTransitionsOfStateAsIDMapSplitOnCharacter(
             clonedMachine,
             state
@@ -826,7 +824,7 @@ export const union = (
     clonedMachine2 = addState(clonedMachine2, newInitialState);
 
     // add transitions from this state, with epsilon, to the states which were entry states of the machine
-    for (const [key, value] of entryStates) {
+    for (const [key] of entryStates) {
         clonedMachine2 = addTransition(clonedMachine2, {
             from: newInitialState.id,
             with: EPSILON,

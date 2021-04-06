@@ -6,12 +6,17 @@ import { v4 as uuid } from "uuid";
 export enum ExpressionType {
     REGULAR = "reg",
 }
+export type DefinitionType = "LOCAL" | "GLOBAL";
+export interface ExpressionDBEntryDefinition {
+    type: DefinitionType;
+    content: string;
+}
 export interface ExpressionDBEntry {
     id: string;
     name: string;
     type: ExpressionType;
-    refName: string;
-    body: string;
+    expression: string;
+    definitions: Record<string, ExpressionDBEntryDefinition>;
 }
 
 export interface ExpressionDBTable extends DBSchema {
@@ -27,8 +32,8 @@ export function getNewExpression(type: ExpressionType): ExpressionDBEntry {
         id: expressionId,
         type,
         name: expressionId,
-        refName: expressionId,
-        body: "",
+        definitions: {},
+        expression: "",
     };
 }
 // Export Schema Concrete Object
