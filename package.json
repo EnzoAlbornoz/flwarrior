@@ -2,7 +2,8 @@
 	"name": "flm-web",
 	"scripts": {
 		"build": "cross-env TS_NODE_PROJECT=tsconfig.build.json webpack build --config-name production",
-		"start": "cross-env TS_NODE_PROJECT=tsconfig.build.json webpack serve --hot --config-name development"
+		"start": "cross-env TS_NODE_PROJECT=tsconfig.build.json webpack serve --hot --config-name development",
+		"test": "jest"
 	},
 	"license": "MIT",
 	"dependencies": {
@@ -15,6 +16,8 @@
 		"favicons-webpack-plugin": "^5.0.1",
 		"file-saver": "^2.0.5",
 		"idb": "^6.0.0",
+		"immutable": "^4.0.0-rc.12",
+		"immutable-treeutils": "^1.2.0",
 		"react": "^17.0.1",
 		"react-dom": "^17.0.1",
 		"react-helmet": "^6.1.0",
@@ -29,9 +32,12 @@
 		"@babel/preset-react": "^7.12.13",
 		"@babel/preset-typescript": "^7.12.17",
 		"@hot-loader/react-dom": "^17.0.1",
+		"@jest/globals": "^26.6.2",
+		"@jest/types": "^26.6.2",
 		"@svgr/webpack": "^5.5.0",
 		"@types/deep-equal": "^1.0.1",
 		"@types/file-saver": "^2.0.1",
+		"@types/jest": "^26.0.20",
 		"@types/node": "^14.14.29",
 		"@types/react": "^17.0.2",
 		"@types/react-dev-utils": "^9.0.4",
@@ -61,8 +67,10 @@
 		"eslint-plugin-react-hooks": "^4.2.0",
 		"eslint-webpack-plugin": "^2.5.2",
 		"html-webpack-plugin": "^5.1.0",
+		"jest": "^26.6.3",
 		"prettier": "^2.2.1",
 		"style-loader": "^2.0.0",
+		"ts-jest": "^26.5.2",
 		"ts-loader": "^8.0.17",
 		"ts-node": "^9.1.1",
 		"tsconfig-paths": "^3.9.0",

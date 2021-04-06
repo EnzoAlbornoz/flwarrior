@@ -1,47 +1,15 @@
-export interface IState {
+import Immutable from "immutable";
+
+export type IState = {
     id: string;
     isEntry: boolean;
     isExit: boolean;
-}
+};
 
-export default class State implements IState {
-    #id: string;
+export type IIState = Immutable.Map<keyof IState, IState[keyof IState]>;
 
-    #isEntry: boolean;
-
-    #isExit: boolean;
-
-    constructor(id: string, isEntry: boolean, isExit: boolean) {
-        this.#id = id;
-        this.#isEntry = isEntry;
-        this.#isExit = isExit;
-    }
-
-    get id(): string {
-        return this.#id;
-    }
-
-    set id(id: string) {
-        this.#id = id;
-    }
-
-    set isEntry(isEntry: boolean) {
-        this.#isEntry = isEntry;
-    }
-
-    get isEntry(): boolean {
-        return this.#isEntry;
-    }
-
-    set isExit(isExit: boolean) {
-        this.#isExit = isExit;
-    }
-
-    get isExit(): boolean {
-        return this.#isExit;
-    }
-
-    equals(that: State): boolean {
-        return this.#id === that.id;
-    }
-}
+export const getNewState = (newStateId: string): IState => ({
+    id: newStateId,
+    isEntry: false,
+    isExit: false,
+});

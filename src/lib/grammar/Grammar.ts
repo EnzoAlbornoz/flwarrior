@@ -1,242 +1,223 @@
-import { GrammarType, GrammarDBEntry } from "@database/schema/grammar";
-import Alphabet from "../Alphabet";
-import AlphabetSymbol from "../AlphabetSymbol";
-import { Tuple, arrayCompare } from "../utils";
-import {} from "buckets-js";
+import Immutable from "immutable";
+import { GrammarType, GrammarDBEntry } from "../../database/schema/grammar";
+import { IAlphabet } from "../Alphabet";
+import { ASymbol, EPSILON } from "../AlphabetSymbol";
 
-interface IGrammar {
+// Immutability Port
+export type IGrammarWord = Immutable.List<ASymbol>;
+export interface IGrammar {
     id: string;
-    nonTerminalSymbols: Alphabet;
-    terminalSymbols: Alphabet;
-    productionRules: Array<
-        Tuple<Array<AlphabetSymbol>, Set<Array<AlphabetSymbol>>>
-    >;
-    startSymbol: AlphabetSymbol;
-    type: GrammarType;
     name: string;
-    addProduction: (
-        from: Array<AlphabetSymbol>,
-        to: Set<Array<AlphabetSymbol>>
-    ) => void;
-    removeProduction: (
-        from: Array<AlphabetSymbol>,
-        to: Set<Array<AlphabetSymbol>>
-    ) => void;
-    toString: () => string;
-    fromDBEntry: (grammar: GrammarDBEntry) => void;
-    checkOwnType: () => GrammarType;
+    type: GrammarType;
+    startSymbol: ASymbol;
+    terminalSymbols: IAlphabet;
+    nonTerminalSymbols: IAlphabet;
+    productionRules: Immutable.Map<IGrammarWord, Immutable.Set<IGrammarWord>>;
 }
+export type IIGrammar = Immutable.Map<keyof IGrammar, IGrammar[keyof IGrammar]>;
 
-class Grammar implements IGrammar {
-    checkOwnType(): GrammarType {
-        // Check if Regular
-        this.terminalSymbols.symbols.forEach((symbol) => {
-            const foundNonTerminalLeft = this.productionRules.map((tuple) => {
-                return tuple[0]
-                    .map((aSymbol) => aSymbol.symbol)
-                    .join()
-                    .search(symbol.symbol);
-            });
-            if (foundNonTerminalLeft) return GrammarType.REGULAR;
-        });
-    }
+export const rename = (grammar: IIGrammar, newName: string): IIGrammar =>
+    grammar.update("name", () => newName);
 
-    addNonTerminalSymbol(nonTerminalSymbol: AlphabetSymbol): void {
-        this.nonTerminalSymbols.symbols.add(nonTerminalSymbol);
-    }
+export const addNonTerminalSymbol = (
+    grammar: IIGrammar,
+    symbol: ASymbol
+): IIGrammar =>
+    grammar.update(
+        "nonTerminalSymbols",
+        Immutable.OrderedSet<ASymbol>(),
+        (old: Immutable.OrderedSet<ASymbol>) => old.union([symbol])
+    );
 
-    addTerminalSymbol(terminalSymbol: AlphabetSymbol): void {
-        this.terminalSymbols.symbols.add(terminalSymbol);
-    }
+export const addTerminalSymbol = (
+    grammar: IIGrammar,
+    symbol: ASymbol
+): IIGrammar =>
+    grammar.update(
+        "terminalSymbols",
+        Immutable.OrderedSet<ASymbol>(),
+        (old: Immutable.OrderedSet<ASymbol>) => old.union([symbol])
+    );
 
-    removeTerminalSymbol(terminalSymbol: AlphabetSymbol): void {
-        this.terminalSymbols.symbols.delete(terminalSymbol);
-    }
+export const removeTerminalSymbol = (
+    grammar: IIGrammar,
+    terminalSymbol: ASymbol
+): IIGrammar =>
+    grammar.update(
+        "terminalSymbols",
+        Immutable.OrderedSet<ASymbol>(),
+        (old: Immutable.OrderedSet<ASymbol>) => old.remove(terminalSymbol)
+    );
 
-    removeNonTerminalSymbol(nonTerminalSymbol: AlphabetSymbol): void {
-        this.nonTerminalSymbols.symbols.delete(nonTerminalSymbol);
-    }
+export const removeNonTerminalSymbol = (
+    grammar: IIGrammar,
+    nonTerminalSymbol: ASymbol
+): IIGrammar =>
+    grammar.update(
+        "nonTerminalSymbols",
+        Immutable.OrderedSet<ASymbol>(),
+        (old: Immutable.OrderedSet<ASymbol>) => old.remove(nonTerminalSymbol)
+    );
 
-    addProductionHead(from: AlphabetSymbol[]): void {
-        const grammarHeadIdx = this.productionRules.findIndex(([rulehead]) => {
-            return (
-                from.map((aSymbol) => aSymbol.symbol).join() ===
-                rulehead.map((aSymbol) => aSymbol.symbol).join()
-            );
-        });
-        if (grammarHeadIdx === -1) {
-            this.productionRules.push([from, new Set()]);
-        }
-    }
+export const addProductionHead = (
+    grammar: IIGrammar,
+    from: Array<ASymbol>
+): IIGrammar =>
+    grammar.update(
+        "productionRules",
+        Immutable.Map<IGrammarWord, Immutable.Set<IGrammarWord>>(),
+        (rules: Immutable.Map<IGrammarWord, Immutable.Set<IGrammarWord>>) =>
+            rules.has(Immutable.List(from))
+                ? rules
+                : rules.set(Immutable.List(from), Immutable.Set())
+    );
 
-    removeProductionHead(from: AlphabetSymbol[]): void {
-        const grammarHeadIdx = this.productionRules.findIndex(([rulehead]) => {
-            return (
-                from.map((aSymbol) => aSymbol.symbol).join() ===
-                rulehead.map((aSymbol) => aSymbol.symbol).join()
-            );
-        });
-        if (grammarHeadIdx === -1) {
-            throw new Error("no such head found on productionRules");
-        }
-        const deleted = this.productionRules.splice(grammarHeadIdx, 1);
-        console.log(deleted);
-    }
+export const addProductionBody = (
+    grammar: IIGrammar,
+    from: Array<ASymbol>,
+    to: Array<ASymbol>
+): IIGrammar =>
+    grammar.updateIn(
+        ["productionRules", Immutable.List(from)],
+        Immutable.Set<IGrammarWord>(),
+        (old: Immutable.Set<IGrammarWord>) =>
+            old.has(Immutable.List(to)) ? old : old.add(Immutable.List(to))
+    );
 
-    removeProductionBody(
-        productionHead: AlphabetSymbol[],
-        to: AlphabetSymbol[]
-    ): void {
-        const grammarHeadIdx = this.productionRules.findIndex(([rulehead]) => {
-            return (
-                productionHead.map((aSymbol) => aSymbol.symbol).join() ===
-                rulehead.map((aSymbol) => aSymbol.symbol).join()
-            );
-        });
-        if (grammarHeadIdx === -1) {
-            throw new Error("no such head found on productionRules");
-        }
-        this.productionRules[grammarHeadIdx][1].forEach((array) => {
-            if (
-                array.map((aSymbol) => aSymbol.symbol).join() ===
-                to.map((aSymbol) => aSymbol.symbol).join()
-            )
-                this.productionRules[grammarHeadIdx][1].delete(array);
-        });
-    }
+export const removeProductionHead = (
+    grammar: IIGrammar,
+    from: Array<ASymbol>
+): IIGrammar =>
+    grammar.update(
+        "productionRules",
+        (old: Immutable.Map<IGrammarWord, Immutable.Set<IGrammarWord>>) =>
+            old.remove(Immutable.List(from))
+    );
 
-    addProductionBody(
-        productionHead: AlphabetSymbol[],
-        to: Set<AlphabetSymbol[]>
-    ): void {
-        const grammarHeadIdx = this.productionRules.findIndex(([rulehead]) => {
-            return (
-                productionHead.map((aSymbol) => aSymbol.symbol).join() ===
-                rulehead.map((aSymbol) => aSymbol.symbol).join()
-            );
-        });
-        if (grammarHeadIdx === -1) {
-            throw new Error("no such head found on productionRules");
-        }
-        to.forEach((symbols) =>
-            this.productionRules[grammarHeadIdx][1].add(symbols)
-        );
-    }
+export const removeProductionBody = (
+    grammar: IIGrammar,
+    from: Array<ASymbol>,
+    body: Array<ASymbol>
+): IIGrammar =>
+    grammar.updateIn(
+        ["productionRules", Immutable.List(from)],
+        (old: Immutable.Set<IGrammarWord>) => old.remove(Immutable.List(body))
+    );
 
-    addProduction(from: AlphabetSymbol[], to: Set<AlphabetSymbol[]>): void {
-        let outerIndex = -1;
-        for (const [
-            innerIndex,
-            alpSymTuples,
-        ] of this.productionRules.entries()) {
-            const isArrayInLeftSideProduction = arrayCompare(
-                (left: AlphabetSymbol, right: AlphabetSymbol) =>
-                    left.equals(right),
-                alpSymTuples[0],
-                from
-            );
-            if (isArrayInLeftSideProduction) {
-                outerIndex = innerIndex;
-                for (const toList of to) {
-                    let isArrayInRightSideProduction = false;
-                    alpSymTuples[1].forEach((list) => {
-                        isArrayInRightSideProduction = arrayCompare(
-                            (left: AlphabetSymbol, right: AlphabetSymbol) =>
-                                left.equals(right),
-                            list,
-                            toList
+export const setStartSymbol = (
+    grammar: IIGrammar,
+    newStartSymbol: ASymbol
+): IIGrammar => grammar.update("startSymbol", () => newStartSymbol);
+
+export const checkOwnType = (grammar: IIGrammar): GrammarType => {
+    // Check for type Context Sensitive (No recursive empty)
+    if (
+        !(grammar.get("productionRules") as IGrammar["productionRules"]).every(
+            (bodies, head, rules) => {
+                // Check if Initial States
+                if (
+                    head.join() ===
+                    (grammar.get("startSymbol") as IGrammar["startSymbol"])
+                ) {
+                    // Check Initial State Rules
+                    if (head.includes(EPSILON)) {
+                        // Check Head is not target of any production
+                        return rules.every(
+                            (nestedBodies, nestedHead) =>
+                                !nestedHead.equals(head) ||
+                                nestedBodies.every((nestedBody) =>
+                                    nestedBody.join().includes(head.join())
+                                )
                         );
-                        if (isArrayInRightSideProduction) return;
-                    });
+                    }
+                    // Only Check Size
+                    return bodies.every(
+                        (body) =>
+                            head.size <= body.size && !body.includes(EPSILON)
+                    );
                 }
+                // Check Normal Body
+                return bodies.every(
+                    (body) => head.size <= body.size && !body.includes(EPSILON)
+                );
             }
-        }
-        if (outerIndex !== -1) {
-            // new right side production
-            to.forEach((array) => {
-                this.productionRules[outerIndex][1].add(array);
-            });
-        } else {
-            // new left and right productions
-            this.productionRules.push([from, to]);
-        }
+        )
+    ) {
+        return GrammarType.UNRESTRICTED;
     }
-
-    removeProduction: (
-        from: AlphabetSymbol[],
-        to: Set<AlphabetSymbol[]>
-    ) => void;
-
-    name: string;
-
-    id: string;
-
-    type: GrammarType;
-
-    nonTerminalSymbols: Alphabet;
-
-    terminalSymbols: Alphabet;
-
-    productionRules: Array<
-        Tuple<Array<AlphabetSymbol>, Set<Array<AlphabetSymbol>>>
-    >;
-
-    startSymbol: AlphabetSymbol;
-
-    toString(): string {
-        const x: GrammarDBEntry = {
-            id: this.id,
-            name: this.name,
-            type: this.type,
-            alphabetNT: Array.from(
-                this.nonTerminalSymbols.symbols.values()
-            ).map((alphabetSymbol) => alphabetSymbol.toString()),
-            alphabetT: Array.from(
-                this.terminalSymbols.symbols.values()
-            ).map((alphabetSymbol) => alphabetSymbol.toString()),
-            transitions: this.productionRules.map(([leftSymbols, right]) => {
-                return {
-                    from: leftSymbols.map((alphabetSymbol) =>
-                        alphabetSymbol.toString()
-                    ),
-                    to: Array.from(right.values()).map((symbolsCluster) =>
-                        symbolsCluster.map((symbol) => symbol.toString())
-                    ),
-                };
-            }),
-        };
-        return JSON.stringify(x);
+    // Check for type Context Free (Head with length === 1)
+    if (
+        !(grammar.get("productionRules") as IGrammar["productionRules"]).every(
+            (_, head) => head.size === 1
+        )
+    ) {
+        return GrammarType.CONTEXT_SENSITIVE;
     }
-
-    fromDBEntry(grammar: GrammarDBEntry) {
-        this.id = grammar.id;
-        this.name = grammar.name;
-        this.type = grammar.type;
-        this.nonTerminalSymbols = new Alphabet(
-            new Set(
-                grammar.alphabetNT.map((_string) => {
-                    return new AlphabetSymbol(_string);
-                })
+    // Check for type Finite State
+    if (
+        !(grammar.get(
+            "productionRules"
+        ) as IGrammar["productionRules"]).every((body) =>
+            body.every(
+                (pb) =>
+                    [1, 2].includes(pb.size) &&
+                    (grammar.get(
+                        "terminalSymbols"
+                    ) as IGrammar["terminalSymbols"]).includes(pb.get(0)) &&
+                    (pb.size === 1 ||
+                        (grammar.get(
+                            "nonTerminalSymbols"
+                        ) as IGrammar["nonTerminalSymbols"]).includes(
+                            pb.get(1)
+                        ))
             )
-        );
-        this.terminalSymbols = new Alphabet(
-            new Set(
-                grammar.alphabetT.map((_string) => {
-                    return new AlphabetSymbol(_string);
-                })
-            )
-        );
-        this.productionRules = grammar.transitions.map((transition) => {
-            return [
-                transition.from.map((_string) => new AlphabetSymbol(_string)),
-                new Set(
-                    transition.to.map((altSymbolClusters) =>
-                        altSymbolClusters.map(
-                            (char) => new AlphabetSymbol(char)
-                        )
-                    )
-                ),
-            ];
-        });
+        )
+    ) {
+        return GrammarType.CONTEXT_FREE;
     }
-}
+    return GrammarType.REGULAR;
+};
+
+export const fromDBEntry = (dbEntry: GrammarDBEntry): IIGrammar =>
+    Immutable.Map<IGrammar[keyof IGrammar]>({
+        id: dbEntry.id,
+        name: dbEntry.name,
+        type: dbEntry.type,
+        startSymbol: dbEntry.startSymbol,
+        terminalSymbols: Immutable.OrderedSet(dbEntry.alphabetT),
+        nonTerminalSymbols: Immutable.OrderedSet(dbEntry.alphabetNT),
+        productionRules: dbEntry.transitions.reduce((m, c) => {
+            const head = Immutable.List(c.from);
+            const body = Immutable.Set(
+                c.to.map((prod) => Immutable.List(prod))
+            );
+            return m.set(
+                head,
+                m.get(head, Immutable.Set<IGrammarWord>()).merge(body)
+            );
+        }, Immutable.Map<IGrammarWord, Immutable.Set<IGrammarWord>>()),
+    }) as IIGrammar;
+
+export const toDBEntry = (grammar: IIGrammar): GrammarDBEntry => {
+    // Fetch Type of Grammar
+    const grammarType = checkOwnType(grammar);
+
+    return {
+        id: grammar.get("id") as string,
+        name: grammar.get("name") as string,
+        type: grammarType,
+        startSymbol: grammar.get("startSymbol") as string,
+        alphabetT: (grammar.get(
+            "terminalSymbols"
+        ) as IGrammar["terminalSymbols"]).toArray(),
+        alphabetNT: (grammar.get(
+            "nonTerminalSymbols"
+        ) as IGrammar["nonTerminalSymbols"]).toArray(),
+        transitions: (grammar.get(
+            "productionRules"
+        ) as IGrammar["productionRules"])
+            .entrySeq()
+            .map(([head, bodies]) => ({ from: head, to: bodies }))
+            .toJS() as GrammarDBEntry["transitions"],
+    } as GrammarDBEntry;
+};

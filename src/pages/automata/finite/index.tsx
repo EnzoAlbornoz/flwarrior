@@ -16,7 +16,29 @@ import {
     getNewMachine,
     MachineType,
 } from "@database/schema/machine";
+import { useModal } from "@/components/TwoMachineSelectModal";
+import {
+    fromDBEntry,
+    union,
+    toDBEntry,
+    intersect,
+} from "@/lib/automaton/Machine";
 // Define Style
+const UnionSymbol = styled.div`
+    ::after {
+        content: "∪";
+    }
+    text-align: center;
+    font-size: 3rem;
+`;
+const IntersectionSymbol = styled.div`
+    ::after {
+        content: "∩";
+    }
+    text-align: center;
+    font-size: 4rem;
+    font-weight: bold;
+`;
 const MachinesList = styled.section`
     height: 100%;
     display: flex;
@@ -79,6 +101,50 @@ export default function FiniteAutomata(): JSX.Element {
         );
         saveAs(machineFile);
     };
+    const unionOfMachines = async (machineA, machineB) => {
+        // Fetch Machines from Database
+        const db = await useDatabase();
+        const serialMachine1 = await db.get(
+            FLWarriorDBTables.MACHINE,
+            machineA
+        );
+        const serialMachine2 = await db.get(
+            FLWarriorDBTables.MACHINE,
+            machineB
+        );
+        // Transform Into Objects
+        const machine1 = fromDBEntry(serialMachine1);
+        const machine2 = fromDBEntry(serialMachine2);
+        // Make Union
+        const unionMachine = union(machine1, machine2, undefined, true);
+        // Save Union Into DB
+        const serializedUnionMachine = toDBEntry(unionMachine);
+        await db.add(FLWarriorDBTables.MACHINE, serializedUnionMachine);
+        // Edit new machine
+        editMachine(serializedUnionMachine.id);
+    };
+    const intersectionOfMachines = async (machineA, machineB) => {
+        // Fetch Machines from Database
+        const db = await useDatabase();
+        const serialMachine1 = await db.get(
+            FLWarriorDBTables.MACHINE,
+            machineA
+        );
+        const serialMachine2 = await db.get(
+            FLWarriorDBTables.MACHINE,
+            machineB
+        );
+        // Transform Into Objects
+        const machine1 = fromDBEntry(serialMachine1);
+        const machine2 = fromDBEntry(serialMachine2);
+        // Make Intersect
+        const intersectMachine = intersect(machine1, machine2, true);
+        // Save Intersect Into DB
+        const serializedIntersectMachine = toDBEntry(intersectMachine);
+        await db.add(FLWarriorDBTables.MACHINE, serializedIntersectMachine);
+        // Edit new machine
+        editMachine(serializedIntersectMachine.id);
+    };
     // Fetch Data
     useAsyncEffect(async () => {
         const db = await useDatabase();
@@ -97,7 +163,24 @@ export default function FiniteAutomata(): JSX.Element {
             })),
         [machineList]
     );
-    // Fetch Data
+    // Setup Modals
+    const [showModalUnion, modalUnion] = useModal({
+        title: "Unir Máquinas",
+        onSubmit: ([m1, m2]) => unionOfMachines(m1, m2),
+        submitText: "Adicionar",
+        machineList: machineList.map((m) => ({ id: m.id, name: m.name })),
+        operationSymbol: <UnionSymbol />,
+        submitDisabled: ([m1, m2]) => !m1 || !m2 || m1 === m2,
+    });
+    const [showModalIntersection, modalIntersection] = useModal({
+        title: "Interseccionar Máquinas",
+        onSubmit: ([m1, m2]) => intersectionOfMachines(m1, m2),
+        submitText: "Adicionar",
+        machineList: machineList.map((m) => ({ id: m.id, name: m.name })),
+        operationSymbol: <IntersectionSymbol />,
+        submitDisabled: ([m1, m2]) => !m1 || !m2 || m1 === m2,
+    });
+    // Define Page
     return (
         <>
             <Layout>
@@ -107,6 +190,16 @@ export default function FiniteAutomata(): JSX.Element {
                         title="Automatos Finitos"
                         subTitle="Listagem"
                         extra={[
+                            <Button key="button-union" onClick={showModalUnion}>
+                                Unir Autômatos
+                            </Button>,
+                            <Button
+                                key="button-intersect"
+                                onClick={showModalIntersection}
+                            >
+                                Interseccionar Autômatos
+                            </Button>,
+
                             <Button
                                 type="primary"
                                 key="button-create"
@@ -116,6 +209,8 @@ export default function FiniteAutomata(): JSX.Element {
                             </Button>,
                         ]}
                     />
+                    {modalUnion}
+                    {modalIntersection}
                     <RegisteredItemsList dataSource={machineListDataSource} />
                 </MachinesList>
             </Layout>

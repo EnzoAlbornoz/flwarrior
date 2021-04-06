@@ -4,6 +4,6 @@
         "target": "ES2020",
         "module": "CommonJS",
     },
-    "include": ["webpack.config.ts"],
+    "include": ["webpack.config.ts", "jest.config.ts"],
     "exclude": ["node_modules", "src"]
 }

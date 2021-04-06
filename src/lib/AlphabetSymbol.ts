@@ -1,32 +1,6 @@
-export default class AlphabetSymbol {
-    static readonly EPSILON = new AlphabetSymbol("ε");
+export type ASymbol = string;
 
-    static readonly EMPTY = new AlphabetSymbol("∅");
+export const EPSILON = "ε";
 
-    #symbol: string;
-
-    constructor(symbol: string) {
-        this.#symbol = symbol;
-    }
-
-    get symbol(): string {
-        return this.#symbol;
-    }
-
-    async hash(): Promise<string> {
-        return new TextDecoder().decode(
-            await crypto.subtle.digest(
-                "SHA-256",
-                new TextEncoder().encode(this.#symbol)
-            )
-        );
-    }
-
-    equals(that: AlphabetSymbol): boolean {
-        return this.#symbol === that.symbol;
-    }
-
-    toString(): string {
-        return this.#symbol;
-    }
-}
+export const equalsSymbols = (source: ASymbol, destiny: ASymbol): boolean =>
+    !source?.localeCompare(destiny);

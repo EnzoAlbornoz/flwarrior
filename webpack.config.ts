@@ -38,6 +38,7 @@ const config: Array<Configuration> = [
                 "@layout": path.resolve(__dirname, "./src/layout"),
                 "@components": path.resolve(__dirname, "./src/components"),
                 "@database": path.resolve(__dirname, "./src/database"),
+                "@lib": path.resolve(__dirname, "./src/lib"),
             },
         },
         module: {
@@ -73,7 +74,6 @@ const config: Array<Configuration> = [
         output: {
             filename: "bundle.js",
             path: path.resolve(__dirname, "dist"),
-            publicPath: process.env.PUBLIC_PATH,
         },
         devServer: {
             contentBase: path.resolve(__dirname, "public"),
@@ -103,7 +103,6 @@ const config: Array<Configuration> = [
                 template: path.resolve(__dirname, "./public/index.html"),
             }),
             new BarWebpackPlugin({}),
-            new EnvironmentPlugin(["PUBLIC_PATH"]),
         ],
     },
     {
@@ -111,7 +110,9 @@ const config: Array<Configuration> = [
         name: "production",
         mode: "production",
         // Define Entrypoints
-        entry: [path.resolve(__dirname, "./src/index.ts")],
+        entry: {
+            index: path.resolve(__dirname, "./src/index.ts"),
+        },
         resolve: {
             extensions: [".js", ".jsx", ".ts", ".tsx", ".json"],
             alias: {
@@ -122,6 +123,7 @@ const config: Array<Configuration> = [
                 "@layout": path.resolve(__dirname, "./src/layout"),
                 "@components": path.resolve(__dirname, "./src/components"),
                 "@database": path.resolve(__dirname, "./src/database"),
+                "@lib": path.resolve(__dirname, "./src/lib"),
             },
         },
         module: {
@@ -171,9 +173,9 @@ const config: Array<Configuration> = [
             ),
             new HtmlWebpackPlugin({
                 template: path.resolve(__dirname, "./public/index.html"),
+                filename: "[name].html",
             }),
             new BarWebpackPlugin({}),
-            new EnvironmentPlugin(["PUBLIC_PATH"]),
         ],
     },
 ];

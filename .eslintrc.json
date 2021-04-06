@@ -26,7 +26,8 @@
         "react/require-default-props": [
             "error",
             { "ignoreFunctionalComponents": true }
-        ]
+        ],
+        "no-plusplus": "off"
     },
     "settings": {
         "import/ignore": [".(scss|less|css)$", ".svg$"]

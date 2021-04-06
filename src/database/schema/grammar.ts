@@ -7,12 +7,14 @@ export enum GrammarType {
     REGULAR = "reg",
     CONTEXT_FREE = "ctxf",
     CONTEXT_SENSITIVE = "ctxs",
+    UNRESTRICTED = "urtd",
 }
 export type Char = string;
 export interface GrammarDBEntry {
     id: string;
     name: string;
     type: GrammarType;
+    startSymbol: string;
     alphabetNT: Array<Char>;
     alphabetT: Array<Char>;
     transitions: Array<{
@@ -34,7 +36,8 @@ export function getNewGrammar(type: GrammarType): GrammarDBEntry {
         id: grammarId,
         type,
         name: grammarId,
-        alphabetNT: [],
+        startSymbol: "S",
+        alphabetNT: ["S"],
         alphabetT: [],
         transitions: [],
     };

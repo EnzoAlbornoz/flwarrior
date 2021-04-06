@@ -76,16 +76,20 @@ export function useModal(
         setVisible(false);
         setContext(null);
         config.onSubmit(data, context);
+
+        console.debug("Submitted");
     };
     const show = (ctx?: unknown) => {
         setInput("");
         setVisible(true);
         setContext(ctx);
+        console.debug("Showing");
     };
     const dispose = () => {
         setInput("");
         setVisible(false);
         setContext(null);
+        console.debug("Disposing");
     };
 
     return [

@@ -23,7 +23,9 @@
             "@layout/*": ["./src/layout/*"],
             "@components/*": ["./src/components/*"],
             "@database": ["./src/database"],
-            "@database/*": ["./src/database/*"]
+            "@database/*": ["./src/database/*"],
+            "@lib": ["./src/lib"],
+            "@lib/*": ["./src/lib/*"]
         }
     },
     "include": ["./src/**/*"],
