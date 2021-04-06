@@ -18,6 +18,8 @@ import { useMemo, useState } from "react";
 import { useHistory, useParams } from "react-router-dom";
 import styled from "styled-components";
 import {
+    determinize,
+    minimize,
     nextStep,
     toDBEntry as machineToDBEntry,
 } from "@lib/automaton/Machine";
@@ -130,8 +132,9 @@ export default function ExecuteFiniteAutomata(): JSX.Element {
         const machine = convertRegularExpressionToNonDeterministicFiniteMachine(
             regex
         );
+        const minimizeMachine = minimize(determinize(machine));
         // Save New Machine
-        const serializedMachine = machineToDBEntry(machine);
+        const serializedMachine = machineToDBEntry(minimizeMachine);
         const db = await useDatabase();
         await db.put(FLWarriorDBTables.MACHINE, serializedMachine);
         // Go to Machine Editor Page
