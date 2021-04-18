@@ -55,7 +55,7 @@ function* generateIds() {
     let currId = 0;
     while (true) {
         currId += 1;
-        yield `q${currId}`;
+        yield currId;
     }
 }
 
@@ -89,9 +89,10 @@ export const searchForParentheses = (
     if (firstNestedIdx >= 0 && lastNestedIdx >= 0) {
         const left = tokens.slice(0, firstNestedIdx);
         const middleBase = tokens.slice(firstNestedIdx + 1, lastNestedIdx);
-        const right = tokens.slice(lastNestedIdx + 1);
+        const rightBase = tokens.slice(lastNestedIdx + 1);
         // Compute Middle Array
         const middle = searchForParentheses(middleBase);
+        const right = searchForParentheses(rightBase);
         return [].concat(left, [middle], right);
     }
     return tokens;
@@ -203,7 +204,7 @@ export const searchForConcatenations = (
 
 export const createNode = (
     arr: RecursiveArray<string>,
-    idGen: Generator<string>
+    idGen: Generator<number>
 ): ITreeNode => {
     const opCode = { "*": -1, "|": -2, "•": -3 };
     if (arr.length === 3) {
@@ -336,7 +337,7 @@ export const updateFollowPos = (rootNode: ITreeNode): void => {
 
 export const buildAhoTree = (expression: string): ITreeNode => {
     // Build Expanded Expression (Reverse Mode)
-    const expandedExpression = `${expression}#`.split("");
+    const expandedExpression = `(${expression})#`.split("");
     // Define Tree
     const idGen = generateIds();
     // Iterate Over Word
@@ -431,9 +432,9 @@ export default function convertRegularExpressionToNonDeterministicFiniteMachine(
                     Immutable.Map({
                         pop: null,
                         push: null,
-                        from: transitionFrom,
+                        from: `q${transitionFrom}`,
                         with: transitionWith,
-                        to: transitionTo,
+                        to: `q${transitionTo}`,
                     }) as IITransition
                 );
             }
@@ -446,7 +447,7 @@ export default function convertRegularExpressionToNonDeterministicFiniteMachine(
         .map(
             (visitedState) =>
                 Immutable.Map({
-                    id: getNodeSetSignature(visitedState),
+                    id: `q${getNodeSetSignature(visitedState)}`,
                     isEntry:
                         getNodeSetSignature(visitedState) === entrySignature,
                     isExit: getNodeSetSignature(visitedState).endsWith(lastId),
