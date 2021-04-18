@@ -84,7 +84,7 @@ const MachineEditGrid = styled.section`
     display: grid;
     gap: 1rem;
     grid-template-columns: 7fr 3fr;
-    grid-template-rows: 1fr 5fr 6fr;
+    grid-template-rows: auto 5fr 6fr;
     grid-template-areas:
         "rules entry"
         "rules states"
