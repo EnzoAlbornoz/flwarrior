@@ -966,7 +966,6 @@ test("test determinization without ε", () => {
             Immutable.Map({
                 q0: Immutable.Map({ id: "q0", isEntry: true, isExit: true }),
                 q1: Immutable.Map({ id: "q1", isEntry: false, isExit: false }),
-                q2: Immutable.Map({ id: "q2", isEntry: false, isExit: true }),
                 "q1,q2": Immutable.Map({
                     id: "q1,q2",
                     isEntry: false,
@@ -1003,23 +1002,9 @@ test("test determinization without ε", () => {
                     pop: null,
                 }),
                 Immutable.Map({
-                    from: "q2",
-                    with: "0",
-                    to: "q2",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
                     from: "q0",
                     with: "0",
                     to: "q0",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
-                    from: "q2",
-                    with: "1",
-                    to: "q1,q2",
                     push: null,
                     pop: null,
                 }),
@@ -1054,8 +1039,6 @@ test("test determinization without ε", () => {
                 q0: Immutable.Map({ id: "q0", isEntry: true, isExit: false }),
                 q1: Immutable.Map({ id: "q1", isEntry: false, isExit: true }),
                 q2: Immutable.Map({ id: "q2", isEntry: false, isExit: true }),
-                q3: Immutable.Map({ id: "q3", isEntry: false, isExit: false }),
-                q4: Immutable.Map({ id: "q4", isEntry: false, isExit: false }),
                 "q2,q4": Immutable.Map({
                     id: "q2,q4",
                     isEntry: false,
@@ -1159,8 +1142,6 @@ test("test determinization without ε", () => {
         >).equals(
             Immutable.Map({
                 q0: Immutable.Map({ id: "q0", isEntry: true, isExit: true }),
-                q1: Immutable.Map({ id: "q1", isEntry: false, isExit: false }),
-                q2: Immutable.Map({ id: "q2", isEntry: false, isExit: false }),
                 "q1,q2": Immutable.Map({
                     id: "q1,q2",
                     isEntry: false,

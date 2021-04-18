@@ -1032,9 +1032,7 @@ export const determinize = (machine: IIMachine): IIMachine => {
             }
         }
     }
-    return isMachineDeterministic(clonedMachine)
-        ? clonedMachine
-        : removeUnreachableStates(clonedMachine);
+    return removeUnreachableStates(clonedMachine);
 };
 
 export const minimize = (machine: IIMachine): IIMachine => {
