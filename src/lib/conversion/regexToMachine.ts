@@ -361,14 +361,13 @@ export const getAlphabetOfExpression = (
 };
 
 // Define Converions
-export default function convertFiniteStateMachineToRegularGrammar(
+export default function convertRegularExpressionToNonDeterministicFiniteMachine(
     regex: IIRegex
 ): IIMachine {
     // Get Expression
     const expression = (regex.get("expression") as string)
         .replace(/ /g, "")
         .replace(/&/g, EPSILON);
-    console.log("converting", expression);
     // Get Alphabet
     const alphabet = getAlphabetOfExpression(expression);
     // Parse as Aho Tree
