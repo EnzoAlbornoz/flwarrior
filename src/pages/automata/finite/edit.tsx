@@ -46,6 +46,7 @@ import { getNewState, IIState, IState } from "@/lib/automaton/State";
 import { EPSILON } from "@/lib/AlphabetSymbol";
 import { convertFiniteStateMachineToRegularGrammar } from "@/lib/conversion";
 import { toDBEntry as grammarToDBEntry } from "@lib/grammar/Grammar";
+import { useMachineVisualizer } from "@/components/MachineVisualizer";
 // Define Typings
 export interface ITGEditPageProps {
     id: string;
@@ -258,6 +259,7 @@ export default function RegularMachineEdit(): JSX.Element {
     const [modalNewTransitionVisible, setModalNewTransitionVisible] = useState(
         false
     );
+    const [showMachine, modalMachineView] = useMachineVisualizer({ machine });
     const showNewTransitionModal = () => {
         setNewTransFrom(undefined);
         setNewTransTo(undefined);
@@ -270,6 +272,7 @@ export default function RegularMachineEdit(): JSX.Element {
             <Layout>
                 <>
                     {/* Modals */}
+                    {modalMachineView}
                     {modalRenameCH}
                     {modalStateCH}
                     {modalAlphabetSymbolCH}
@@ -280,6 +283,9 @@ export default function RegularMachineEdit(): JSX.Element {
                         title={`Editar - ${name || idToEdit}`}
                         subTitle="Autômato Finito"
                         extra={[
+                            <Button key="button-view" onClick={showMachine}>
+                                Visualizar
+                            </Button>,
                             <Tooltip
                                 title="Executa a máquina em modo passo-a-passo (Desabilitado em AFNDs)"
                                 key="button-execute-tooltip"
