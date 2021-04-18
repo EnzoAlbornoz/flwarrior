@@ -544,6 +544,7 @@ export const complement = (
 ): IIMachine => {
     // must be DFA
     if (!isMachineDeterministic(machine)) {
+        // eslint-disable-next-line no-console
         console.error("asked for complement on non-deterministic machine");
         return machine;
     }
@@ -1103,9 +1104,6 @@ export function* nextStep(
     word: string // the whole string
 ): Generator<IITransition> {
     if (!isMachineDeterministic(machine)) {
-        console.error(
-            "step by step disabled on non-deterministic function. return false."
-        );
         return false;
     }
     let i = 0;

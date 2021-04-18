@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 // Import Dependencies
 import { Modal, Select as SelectBase } from "antd";
 import styled from "styled-components";

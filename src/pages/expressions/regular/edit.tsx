@@ -4,26 +4,11 @@ import { useDatabase } from "@/database";
 import { FLWarriorDBTables } from "@/database/schema";
 import useAsyncEffect from "@/utils/useAsyncEffect";
 import Layout from "@layout";
-import {
-    Button,
-    Card,
-    Input,
-    List,
-    message,
-    PageHeader,
-    Timeline,
-    Typography,
-} from "antd";
+import { Button, Input, List, message, PageHeader, Typography } from "antd";
 import { useMemo, useState } from "react";
 import { useHistory, useParams } from "react-router-dom";
 import styled from "styled-components";
-import {
-    determinize,
-    minimize,
-    nextStep,
-    toDBEntry as machineToDBEntry,
-} from "@lib/automaton/Machine";
-import { EPSILON } from "@/lib/AlphabetSymbol";
+import { toDBEntry as machineToDBEntry } from "@lib/automaton/Machine";
 import { useModal } from "@/components/TextModalInput";
 import {
     IIRegex,

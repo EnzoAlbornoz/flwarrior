@@ -2,10 +2,9 @@
 // Import Dependencies
 import { getNewMachine, MachineType } from "@/database/schema/machine";
 import Immutable from "immutable";
-import TreeUtils from "immutable-treeutils";
 import { EPSILON } from "../AlphabetSymbol";
-import { IIMachine, IITransition, ITransition } from "../automaton/Machine";
-import { IIState, IState } from "../automaton/State";
+import { IIMachine, IITransition } from "../automaton/Machine";
+import { IIState } from "../automaton/State";
 import { IIRegex } from "../expressions/Regex";
 // Define Types
 export enum EASTNodeType {
@@ -337,7 +336,19 @@ export const updateFollowPos = (rootNode: ITreeNode): void => {
 
 export const buildAhoTree = (expression: string): ITreeNode => {
     // Build Expanded Expression (Reverse Mode)
-    const expandedExpression = `(${expression})#`.split("");
+    const expandedExpression = `(${expression})#`
+        .split("")
+        .reduce((expaExpAcc, currChar) => {
+            // Get Expanded Expression
+            const expaExp = [...expaExpAcc];
+            // Resolve Escaping
+            if (expaExp[expaExp.length - 1] === "\\") {
+                expaExp.push(expaExp.pop() + currChar);
+            } else {
+                expaExp.push(currChar);
+            }
+            return expaExp;
+        }, [] as Array<string>);
     // Define Tree
     const idGen = generateIds();
     // Iterate Over Word
@@ -351,14 +362,6 @@ export const buildAhoTree = (expression: string): ITreeNode => {
     updateFollowPos(rootNode);
     // Return Tree
     return rootNode;
-};
-
-export const getAlphabetOfExpression = (
-    expressionStr: string
-): Array<string> => {
-    return expressionStr
-        .split("")
-        .filter((str) => !["(", ")", "|", "*", "•"].includes(str));
 };
 
 const getNodeSetOrdered = (numSet: number[]) => Immutable.Set(numSet).sort();
@@ -455,6 +458,12 @@ export default function convertRegularExpressionToNonDeterministicFiniteMachine(
         )
         .toMap()
         .mapKeys((state) => state.get("id") as string);
+    // Resolve Escape After Process
+    transitions = transitions.map((transition) =>
+        transition.get("with").includes("\\")
+            ? transition.update("with", (withStr) => withStr.slice(1))
+            : transition
+    );
     // Build Machine
     const machine: IIMachine = Immutable.Map({
         ...getNewMachine(MachineType.FINITE_STATE_MACHINE, true),
