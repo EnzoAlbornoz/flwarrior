@@ -132,9 +132,9 @@ export default function ExecuteFiniteAutomata(): JSX.Element {
         const machine = convertRegularExpressionToNonDeterministicFiniteMachine(
             regex
         );
-        const minimizeMachine = minimize(determinize(machine));
+        const newMachine = machine;
         // Save New Machine
-        const serializedMachine = machineToDBEntry(minimizeMachine);
+        const serializedMachine = machineToDBEntry(newMachine);
         const db = await useDatabase();
         await db.put(FLWarriorDBTables.MACHINE, serializedMachine);
         // Go to Machine Editor Page
