@@ -25,7 +25,7 @@ export const analyze = async (
         .replace(/\n/g, " ")
         .split(" ")
         .filter((str) => !!str);
-    console.log(tokens);
+    // console.log(tokens);
 
     // Create regex List
     const regexes = [
@@ -64,15 +64,15 @@ export const analyze = async (
             })
         )
     );
-    minimizedMachines.forEach((m) => console.log(m.toJS()));
+    // minimizedMachines.forEach((m) => console.log(m.toJS()));
     // Union these machines
-    const regexUnion = minimizedMachines.reduce(
-        (accum: IIMachine, nextMachine) => union(accum, nextMachine)
-    );
-    console.log(regexUnion.toJS());
+    // const regexUnion = minimizedMachines.reduce(
+    //     (accum: IIMachine, nextMachine) => union(accum, nextMachine)
+    // );
+    // console.log(regexUnion.toJS());
     // Determinize the result
-    const megaMachine = determinize(regexUnion);
-    console.log(megaMachine.toJS());
+    // const megaMachine = determinize(regexUnion);
+    // console.log(megaMachine.toJS());
 
     // Immutable.Set<
     return Immutable.List<string>();

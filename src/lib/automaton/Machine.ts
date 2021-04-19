@@ -650,8 +650,9 @@ export const complement = (
 export const union = (
     machine1: IIMachine,
     machine2: IIMachine,
-    renameToken = "_FROM_UNION",
-    generateNewIds = false
+    renameToken = "_U",
+    generateNewIds = false,
+    newUnionInitialStateName = "UInitial"
 ): IIMachine => {
     const machine1Size = (machine1.get("states") as Immutable.Map<
         string,
@@ -663,7 +664,7 @@ export const union = (
     >).size;
     // first machine should be shorter
     let clonedMachine = machine1Size > machine2Size ? machine2 : machine1;
-    // first machine should be longer
+    // second machine should be longer
     let clonedMachine2 = machine1Size > machine2Size ? machine1 : machine2;
     // The alphabet of the new machine is the union of the alphabets + epsilon
     clonedMachine2 = unionAlphabetsPlusEpsilon(clonedMachine2, clonedMachine);
@@ -714,7 +715,7 @@ export const union = (
                     .get("id") as string).concat(renameToken)
             );
 
-            // rename the state on the second machine
+            // add the state on the first machine (not the return machine)
             clonedMachine = clonedMachine.set(
                 "states",
                 (clonedMachine.get("states") as Immutable.Map<
@@ -740,6 +741,7 @@ export const union = (
             );
         }
     }
+    // Union the states of the machines
     clonedMachine2 = clonedMachine2.set(
         "states",
         (clonedMachine2.get("states") as Immutable.Map<string, IIState>)
@@ -817,7 +819,7 @@ export const union = (
 
     // create a new initial state
     const newInitialState = {
-        id: "newUnionInitialState",
+        id: newUnionInitialStateName,
         isEntry: true,
         isExit: false,
     } as IState;
