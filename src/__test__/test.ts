@@ -1537,19 +1537,37 @@ test("test union alphabet", () => {
 test("test union on machines", () => {
     const machine1 = buildImmutableRegularNonDeterministicWithoutEpsilonMachine();
     const machine2 = buildImmutableRegularNonDeterministicWithEpsilonMachine();
-    const machine = union(machine1, machine2);
-    expect(machine.equals(union(machine2, machine1))).toBe(true);
+    const renameToken = "_U";
+    const newUnionInitialStateName = "UInitial";
+    const machine = union(
+        machine1,
+        machine2,
+        renameToken,
+        false,
+        newUnionInitialStateName
+    );
+    expect(
+        machine.equals(
+            union(
+                machine2,
+                machine1,
+                renameToken,
+                false,
+                newUnionInitialStateName
+            )
+        )
+    ).toBe(true);
     expect(
         (machine.get("exitStates") as Immutable.Map<string, IIState>).equals(
             Immutable.Map({
                 q4: Immutable.Map({ id: "q4", isEntry: false, isExit: true }),
-                q2_FROM_UNION: Immutable.Map({
-                    id: "q2_FROM_UNION",
+                ["q2".concat(renameToken)]: Immutable.Map({
+                    id: "q2".concat(renameToken),
                     isEntry: false,
                     isExit: true,
                 }),
-                q0_FROM_UNION: Immutable.Map({
-                    id: "q0_FROM_UNION",
+                ["q0".concat(renameToken)]: Immutable.Map({
+                    id: "q0".concat(renameToken),
                     isEntry: false,
                     isExit: true,
                 }),
@@ -1563,23 +1581,23 @@ test("test union on machines", () => {
                 q2: Immutable.Map({ id: "q2", isEntry: false, isExit: false }),
                 q3: Immutable.Map({ id: "q3", isEntry: false, isExit: false }),
                 q4: Immutable.Map({ id: "q4", isEntry: false, isExit: true }),
-                q2_FROM_UNION: Immutable.Map({
-                    id: "q2_FROM_UNION",
+                ["q2".concat(renameToken)]: Immutable.Map({
+                    id: "q2".concat(renameToken),
                     isEntry: false,
                     isExit: true,
                 }),
-                q1_FROM_UNION: Immutable.Map({
-                    id: "q1_FROM_UNION",
+                ["q1".concat(renameToken)]: Immutable.Map({
+                    id: "q1".concat(renameToken),
                     isEntry: false,
                     isExit: false,
                 }),
-                q0_FROM_UNION: Immutable.Map({
-                    id: "q0_FROM_UNION",
+                ["q0".concat(renameToken)]: Immutable.Map({
+                    id: "q0".concat(renameToken),
                     isEntry: false,
                     isExit: true,
                 }),
-                newUnionInitialState: Immutable.Map({
-                    id: "newUnionInitialState",
+                [newUnionInitialStateName]: Immutable.Map({
+                    id: newUnionInitialStateName,
                     isEntry: true,
                     isExit: false,
                 }),
@@ -1599,16 +1617,16 @@ test("test union on machines", () => {
                     pop: null,
                 }),
                 Immutable.Map({
-                    from: "newUnionInitialState",
+                    from: newUnionInitialStateName,
                     with: "ε",
                     to: "q0",
                     pop: null,
                     push: null,
                 }),
                 Immutable.Map({
-                    from: "newUnionInitialState",
+                    from: newUnionInitialStateName,
                     with: "ε",
-                    to: "q0_FROM_UNION",
+                    to: "q0".concat(renameToken),
                     pop: null,
                     push: null,
                 }),
@@ -1641,14 +1659,14 @@ test("test union on machines", () => {
                     pop: null,
                 }),
                 Immutable.Map({
-                    from: "q0_FROM_UNION",
+                    from: "q0".concat(renameToken),
                     with: "ε",
-                    to: "q1_FROM_UNION",
+                    to: "q1".concat(renameToken),
                     pop: null,
                     push: null,
                 }),
                 Immutable.Map({
-                    from: "q1_FROM_UNION",
+                    from: "q1".concat(renameToken),
                     with: "0",
                     to: "q3",
                     pop: null,
@@ -1669,7 +1687,7 @@ test("test union on machines", () => {
                     push: null,
                 }),
                 Immutable.Map({
-                    from: "q2_FROM_UNION",
+                    from: "q2".concat(renameToken),
                     with: "1",
                     to: "q3",
                     pop: null,
@@ -1690,9 +1708,9 @@ test("test union on machines", () => {
                     pop: null,
                 }),
                 Immutable.Map({
-                    from: "q0_FROM_UNION",
+                    from: "q0".concat(renameToken),
                     with: "ε",
-                    to: "q2_FROM_UNION",
+                    to: "q2".concat(renameToken),
                     pop: null,
                     push: null,
                 }),
