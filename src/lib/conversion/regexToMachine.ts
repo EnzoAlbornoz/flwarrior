@@ -370,7 +370,8 @@ const getNodeSetSignature = (numSet: Immutable.Set<number>) =>
 
 // Define Converions
 export default function convertRegularExpressionToNonDeterministicFiniteMachine(
-    regex: IIRegex
+    regex: IIRegex,
+    renameAll = false
 ): IIMachine {
     // Get Expression
     const expression = (regex.get("expression") as string)
@@ -446,7 +447,7 @@ export default function convertRegularExpressionToNonDeterministicFiniteMachine(
     // Define The Last State Signature
     const lastId = getNodeSetSignature(getNodeSetOrdered(tree.lastPos));
     // Compute Machine States
-    const states = Immutable.Set(visitedStates)
+    let states = Immutable.Set(visitedStates)
         .map(
             (visitedState) =>
                 Immutable.Map({
@@ -464,6 +465,20 @@ export default function convertRegularExpressionToNonDeterministicFiniteMachine(
             ? transition.update("with", (withStr) => withStr.slice(1))
             : transition
     );
+    // Rename All?
+    if (renameAll) {
+        const idGen = generateIds();
+        const translationTable = states.map(() => `q${idGen.next().value}`);
+        states = states.mapEntries(([key, val]) => [
+            translationTable.get(key),
+            val.set("id", translationTable.get(key)),
+        ]);
+        transitions = transitions.map((transition) =>
+            transition
+                .update("from", (fstr) => translationTable.get(fstr))
+                .update("to", (tstr) => translationTable.get(tstr))
+        );
+    }
     // Build Machine
     const machine: IIMachine = Immutable.Map({
         ...getNewMachine(MachineType.FINITE_STATE_MACHINE, true),
