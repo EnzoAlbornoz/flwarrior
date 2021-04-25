@@ -90,7 +90,8 @@ export function RegexDefinition({
                     })
                 }
             >
-                <Select.Option value="LOCAL">Local</Select.Option>
+                {/* Disable Local References for while */}
+                {/* <Select.Option value="LOCAL">Local</Select.Option> */}
                 <Select.Option value="GLOBAL">Global</Select.Option>
             </Select>
             {/* Define Content Based on Type */}
@@ -141,18 +142,16 @@ export function useModal(
         setVisible(false);
         setContext(null);
         config.onSubmit(data, context);
-
-        console.debug("Submitted");
+        setDefinition(null);
     };
     const show = (ctx?: unknown) => {
         setVisible(true);
         setContext(ctx);
-        console.debug("Showing");
     };
     const dispose = () => {
         setVisible(false);
+        setDefinition(null);
         setContext(null);
-        console.debug("Disposing");
     };
 
     return [

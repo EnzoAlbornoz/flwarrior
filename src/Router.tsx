@@ -10,6 +10,7 @@ import RegularGrammarsPage from "@pages/grammars/regular";
 import RegularGrammarEditPage from "@pages/grammars/regular/edit";
 import RegularExpressionsPage from "@pages/expressions/regular";
 import RegularExpressionEditPage from "@pages/expressions/regular/edit";
+import RegularExpressionLexicalPage from "@pages/expressions/regular/lexical";
 // Define Component
 export default function Router(): JSX.Element {
     return (
@@ -50,6 +51,10 @@ export default function Router(): JSX.Element {
                     <Route path="/expressions/regular/edit/:id" exact>
                         <Helmet title="Editar - Expressão Regular - FL Warrior" />
                         <RegularExpressionEditPage />
+                    </Route>
+                    <Route path="/expressions/regular/lexical" exact>
+                        <Helmet title="Executar - Analisador Léxico - FL Warrior" />
+                        <RegularExpressionLexicalPage />
                     </Route>
                 </Switch>
             </BrowserRouter>

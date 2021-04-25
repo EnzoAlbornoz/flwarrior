@@ -51,6 +51,10 @@ export default function RegularExpressions(): JSX.Element {
         // Go to editing page
         history.push(`/expressions/regular/edit/${itemId}`);
     };
+    const lexicalAnalysis = () => {
+        // Go to lexical analysis
+        history.push("/expressions/regular/lexical");
+    };
     const createExpression = async () => {
         // Instantiate Basic Expression
         const newexpression = getNewExpression(ExpressionType.REGULAR);
@@ -110,6 +114,13 @@ export default function RegularExpressions(): JSX.Element {
                         title="Expressões Regulares"
                         subTitle="Listagem"
                         extra={[
+                            <Button
+                                type="primary"
+                                key="button-lexical"
+                                onClick={lexicalAnalysis}
+                            >
+                                Analizador Léxico
+                            </Button>,
                             <Button
                                 type="primary"
                                 key="button-create"

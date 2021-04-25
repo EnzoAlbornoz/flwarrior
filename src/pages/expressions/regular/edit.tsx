@@ -4,12 +4,21 @@ import { useDatabase } from "@/database";
 import { FLWarriorDBTables } from "@/database/schema";
 import useAsyncEffect from "@/utils/useAsyncEffect";
 import Layout from "@layout";
-import { Button, Input, List, message, PageHeader, Typography } from "antd";
+import {
+    Button,
+    Input,
+    List,
+    message,
+    PageHeader,
+    Space,
+    Typography,
+} from "antd";
 import { useMemo, useState } from "react";
 import { useHistory, useParams } from "react-router-dom";
 import styled from "styled-components";
 import { toDBEntry as machineToDBEntry } from "@lib/automaton/Machine";
 import { useModal } from "@/components/TextModalInput";
+import { ReactComponent as RightArrowRaw } from "@assets/right-arrow.svg";
 import {
     IIRegex,
     IRegex,
@@ -18,8 +27,11 @@ import {
     toDBEntry,
     addDefinition,
     setExpression,
+    IIRegexDefinition,
+    removeDefinition,
+    resolveDefinitions,
 } from "@/lib/expressions/Regex";
-import { SaveOutlined } from "@ant-design/icons";
+import IconBase, { SaveOutlined } from "@ant-design/icons";
 import { useModal as expressionRefModal } from "@components/ExpressionReferenceModal";
 import { DefinitionType } from "@/database/schema/expression";
 import { convertRegularExpressionToNonDeterministicFiniteMachine } from "@/lib/conversion";
@@ -72,8 +84,14 @@ const DefinitionsListHeader = styled.header`
     justify-content: space-between;
     align-items: center;
 `;
+const DefinitionListBody = styled(Space)`
+    font-size: 1.2rem;
+`;
+const RightArrow = styled(IconBase).attrs({ component: RightArrowRaw })`
+    margin: auto 1rem;
+`;
 // Define Page
-export default function ExecuteFiniteAutomata(): JSX.Element {
+export default function EditRegularExpression(): JSX.Element {
     // Setup State
     const [regex, setRegex] = useState<IIRegex>();
     const [regexRefList, setRegexRefList] = useState<Immutable.List<IRegexRef>>(
@@ -85,9 +103,17 @@ export default function ExecuteFiniteAutomata(): JSX.Element {
     // Fetch Data
     useAsyncEffect(async () => {
         const db = await useDatabase();
+        // Fetch Current Regex
         const regexEntry = await db.get(FLWarriorDBTables.EXPRESSION, idToEdit);
         const regexLib = fromDBEntry(regexEntry);
         setRegex(regexLib);
+        // Fetch Regex Ref List
+        const regexList: Array<IRegexRef> = (
+            await db.getAll(FLWarriorDBTables.EXPRESSION)
+        )
+            .filter((entry) => entry.id !== idToEdit)
+            .map(({ id, name }) => ({ id, name }));
+        setRegexRefList(Immutable.List(regexList));
     }, []);
 
     // Define Computed Values
@@ -95,6 +121,20 @@ export default function ExecuteFiniteAutomata(): JSX.Element {
     const expressionValue = useMemo(
         () => regex?.get("expression") as IRegex["expression"],
         [regex]
+    );
+    const definitions = useMemo(
+        () =>
+            (
+                (regex?.get(
+                    "definitions"
+                ) as IRegex["definitions"])?.toArray() || []
+            ).map(([ref, def]) => [
+                ref,
+                def,
+                regexRefList?.find((regRef) => regRef.id === def.get("content"))
+                    ?.name,
+            ]),
+        [regex, regexRefList]
     );
     // Define Methods
     const renameExpression = (newName: string) =>
@@ -110,11 +150,15 @@ export default function ExecuteFiniteAutomata(): JSX.Element {
     };
     const addReference = (ref: IAddDefinitionResult) =>
         setRegex(addDefinition(regex, ref.reference, ref.type, ref.content));
+    const removeReference = (refEntry: string) =>
+        setRegex(removeDefinition(regex, refEntry));
     // Special Functions
     const convertToMachine = async () => {
         // Convert To Machine
+        const dbClient = await useDatabase();
+        const convertedMachine = await resolveDefinitions(regex, dbClient);
         const machine = convertRegularExpressionToNonDeterministicFiniteMachine(
-            regex,
+            convertedMachine,
             true
         );
         const newMachine = machine;
@@ -199,11 +243,50 @@ export default function ExecuteFiniteAutomata(): JSX.Element {
                                     <Typography.Text>
                                         Definições
                                     </Typography.Text>
-                                    <Button onClick={showModalAddRef} disabled>
-                                        Adicionar (Desabilitado)
+                                    <Button onClick={showModalAddRef}>
+                                        Adicionar
                                     </Button>
                                 </DefinitionsListHeader>
                             }
+                            dataSource={definitions}
+                            renderItem={(
+                                [alias, def, defName]: [
+                                    string,
+                                    IIRegexDefinition,
+                                    string
+                                ],
+                                idx
+                            ) => (
+                                <List.Item
+                                    key={idx}
+                                    actions={[
+                                        <Button
+                                            danger
+                                            key="remove-definition"
+                                            onClick={() =>
+                                                removeReference(alias)
+                                            }
+                                        >
+                                            Deletar Definição
+                                        </Button>,
+                                    ]}
+                                >
+                                    <DefinitionListBody size="middle">
+                                        <Typography.Text strong>
+                                            {alias}
+                                        </Typography.Text>
+                                        <RightArrow />
+                                        <Typography.Text strong>
+                                            {"Ref: "}
+                                        </Typography.Text>
+                                        <Typography.Text>
+                                            {def.get("type") === "GLOBAL"
+                                                ? defName
+                                                : def.get("content")}
+                                        </Typography.Text>
+                                    </DefinitionListBody>
+                                </List.Item>
+                            )}
                         />
                     </RegexEditBody>
                 </ExpressionEdit>
