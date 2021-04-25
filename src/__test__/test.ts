@@ -30,6 +30,7 @@ import {
     intersect,
     removeUnreachableStates,
     nextStep,
+    stateNameGenerator,
 } from "../lib/automaton/Machine";
 import { IIState } from "../lib/automaton/State";
 import { getNewMachine, MachineType } from "../database/schema/machine";
@@ -779,6 +780,132 @@ function buildImmutableRegularDeterministicWithoutEpsilonMachineForIntersection4
                 from: "B",
                 with: { head: "b", memory: "" },
                 to: { newState: "B", writeSymbol: "", headDirection: null },
+            },
+        ],
+    });
+}
+
+function buildImmutableRegularDeterministicWithoutEpsilonMachineForUnion1(): IIMachine {
+    return createMachineFromDBEntry({
+        id: "test",
+        name: "test",
+        deterministic: true,
+        type: MachineType.FINITE_STATE_MACHINE,
+        states: [
+            { id: "q0", isEntry: true, isExit: false },
+            { id: "q1", isEntry: false, isExit: false },
+            { id: "q2", isEntry: false, isExit: false },
+            { id: "AND_FINAL", isEntry: false, isExit: true },
+        ],
+        entryAlphabet: ["a", "n", "d"],
+        memoryAlphabet: [],
+        transitions: [
+            {
+                from: "q0",
+                with: { head: "a", memory: "" },
+                to: { newState: "q1", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q1",
+                with: { head: "n", memory: "" },
+                to: { newState: "q2", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q2",
+                with: { head: "d", memory: "" },
+                to: {
+                    newState: "AND_FINAL",
+                    writeSymbol: "",
+                    headDirection: null,
+                },
+            },
+        ],
+    });
+}
+
+function buildImmutableRegularDeterministicWithoutEpsilonMachineForUnion2(): IIMachine {
+    return createMachineFromDBEntry({
+        id: "test",
+        name: "test",
+        deterministic: true,
+        type: MachineType.FINITE_STATE_MACHINE,
+        states: [
+            { id: "q0", isEntry: true, isExit: false },
+            { id: "q1", isEntry: false, isExit: false },
+            { id: "q2", isEntry: false, isExit: false },
+            { id: "q3", isEntry: false, isExit: false },
+            { id: "q4", isEntry: false, isExit: false },
+            { id: "BEGIN_FINAL", isEntry: false, isExit: true },
+        ],
+        entryAlphabet: ["b", "e", "g", "i", "n"],
+        memoryAlphabet: [],
+        transitions: [
+            {
+                from: "q0",
+                with: { head: "b", memory: "" },
+                to: { newState: "q1", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q1",
+                with: { head: "e", memory: "" },
+                to: { newState: "q2", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q2",
+                with: { head: "g", memory: "" },
+                to: { newState: "q3", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q3",
+                with: { head: "i", memory: "" },
+                to: { newState: "q4", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q4",
+                with: { head: "n", memory: "" },
+                to: {
+                    newState: "BEGIN_FINAL",
+                    writeSymbol: "",
+                    headDirection: null,
+                },
+            },
+        ],
+    });
+}
+
+function buildImmutableRegularDeterministicWithoutEpsilonMachineForUnion3(): IIMachine {
+    return createMachineFromDBEntry({
+        id: "test",
+        name: "test",
+        deterministic: true,
+        type: MachineType.FINITE_STATE_MACHINE,
+        states: [
+            { id: "q0", isEntry: true, isExit: false },
+            { id: "q1", isEntry: false, isExit: false },
+            { id: "q2", isEntry: false, isExit: false },
+            { id: "END_FINAL", isEntry: false, isExit: true },
+        ],
+        entryAlphabet: ["e", "n", "d"],
+        memoryAlphabet: [],
+        transitions: [
+            {
+                from: "q0",
+                with: { head: "e", memory: "" },
+                to: { newState: "q1", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q1",
+                with: { head: "n", memory: "" },
+                to: { newState: "q2", writeSymbol: "", headDirection: null },
+            },
+            {
+                from: "q2",
+                with: { head: "d", memory: "" },
+                to: {
+                    newState: "END_FINAL",
+                    writeSymbol: "",
+                    headDirection: null,
+                },
             },
         ],
     });
@@ -1537,37 +1664,24 @@ test("test union alphabet", () => {
 test("test union on machines", () => {
     const machine1 = buildImmutableRegularNonDeterministicWithoutEpsilonMachine();
     const machine2 = buildImmutableRegularNonDeterministicWithEpsilonMachine();
-    const renameToken = "_U";
     const newUnionInitialStateName = "UInitial";
-    const machine = union(
-        machine1,
-        machine2,
-        renameToken,
-        false,
-        newUnionInitialStateName
-    );
+    const machine = union(machine1, machine2, false, newUnionInitialStateName);
     expect(
         machine.equals(
-            union(
-                machine2,
-                machine1,
-                renameToken,
-                false,
-                newUnionInitialStateName
-            )
+            union(machine2, machine1, false, newUnionInitialStateName)
         )
     ).toBe(true);
     expect(
         (machine.get("exitStates") as Immutable.Map<string, IIState>).equals(
             Immutable.Map({
                 q4: Immutable.Map({ id: "q4", isEntry: false, isExit: true }),
-                ["q2".concat(renameToken)]: Immutable.Map({
-                    id: "q2".concat(renameToken),
+                q20: Immutable.Map({
+                    id: "q20",
                     isEntry: false,
                     isExit: true,
                 }),
-                ["q0".concat(renameToken)]: Immutable.Map({
-                    id: "q0".concat(renameToken),
+                q00: Immutable.Map({
+                    id: "q00",
                     isEntry: false,
                     isExit: true,
                 }),
@@ -1581,23 +1695,23 @@ test("test union on machines", () => {
                 q2: Immutable.Map({ id: "q2", isEntry: false, isExit: false }),
                 q3: Immutable.Map({ id: "q3", isEntry: false, isExit: false }),
                 q4: Immutable.Map({ id: "q4", isEntry: false, isExit: true }),
-                ["q2".concat(renameToken)]: Immutable.Map({
-                    id: "q2".concat(renameToken),
+                q20: Immutable.Map({
+                    id: "q20",
                     isEntry: false,
                     isExit: true,
                 }),
-                ["q1".concat(renameToken)]: Immutable.Map({
-                    id: "q1".concat(renameToken),
+                q10: Immutable.Map({
+                    id: "q10",
                     isEntry: false,
                     isExit: false,
                 }),
-                ["q0".concat(renameToken)]: Immutable.Map({
-                    id: "q0".concat(renameToken),
+                q00: Immutable.Map({
+                    id: "q00",
                     isEntry: false,
                     isExit: true,
                 }),
-                [newUnionInitialStateName]: Immutable.Map({
-                    id: newUnionInitialStateName,
+                [newUnionInitialStateName.concat("0")]: Immutable.Map({
+                    id: newUnionInitialStateName.concat("0"),
                     isEntry: true,
                     isExit: false,
                 }),
@@ -1610,72 +1724,79 @@ test("test union on machines", () => {
         (machine.get("transitions") as Immutable.Set<IITransition>).equals(
             Immutable.Set([
                 Immutable.Map({
+                    from: "q0",
+                    with: "ε",
+                    to: "q2",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q10",
+                    with: "0",
+                    to: "q10",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
+                    from: "q00",
+                    with: "0",
+                    to: "q00",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
+                    from: "q10",
+                    with: "0",
+                    to: "q20",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
+                    from: "UInitial0",
+                    with: "ε",
+                    to: "q0",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
+                    from: "q20",
+                    with: "1",
+                    to: "q20",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
+                    from: "q00",
+                    with: "1",
+                    to: "q10",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
                     from: "q1",
                     with: "0",
-                    to: "q2",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
-                    from: newUnionInitialStateName,
-                    with: "ε",
-                    to: "q0",
-                    pop: null,
-                    push: null,
-                }),
-                Immutable.Map({
-                    from: newUnionInitialStateName,
-                    with: "ε",
-                    to: "q0".concat(renameToken),
-                    pop: null,
-                    push: null,
-                }),
-                Immutable.Map({
-                    from: "q2",
-                    with: "1",
-                    to: "q1",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
-                    from: "q0",
-                    with: "1",
-                    to: "q1",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
-                    from: "q2",
-                    with: "0",
-                    to: "q2",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
-                    from: "q2",
-                    with: "1",
-                    to: "q2",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
-                    from: "q0".concat(renameToken),
-                    with: "ε",
-                    to: "q1".concat(renameToken),
-                    pop: null,
-                    push: null,
-                }),
-                Immutable.Map({
-                    from: "q1".concat(renameToken),
-                    with: "0",
                     to: "q3",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q10",
+                    with: "1",
+                    to: "q10",
                     pop: null,
                     push: null,
                 }),
                 Immutable.Map({
-                    from: "q0",
-                    with: "0",
-                    to: "q0",
+                    from: "UInitial0",
+                    with: "ε",
+                    to: "q00",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
+                    from: "q2",
+                    with: "1",
+                    to: "q3",
                     push: null,
                     pop: null,
                 }),
@@ -1683,34 +1804,27 @@ test("test union on machines", () => {
                     from: "q3",
                     with: "1",
                     to: "q4",
-                    pop: null,
-                    push: null,
-                }),
-                Immutable.Map({
-                    from: "q2".concat(renameToken),
-                    with: "1",
-                    to: "q3",
-                    pop: null,
-                    push: null,
-                }),
-                Immutable.Map({
-                    from: "q1",
-                    with: "1",
-                    to: "q1",
                     push: null,
                     pop: null,
                 }),
                 Immutable.Map({
-                    from: "q1",
-                    with: "0",
-                    to: "q1",
-                    push: null,
-                    pop: null,
-                }),
-                Immutable.Map({
-                    from: "q0".concat(renameToken),
+                    from: "q0",
                     with: "ε",
-                    to: "q2".concat(renameToken),
+                    to: "q1",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q20",
+                    with: "0",
+                    to: "q20",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
+                    from: "q20",
+                    with: "1",
+                    to: "q10",
                     pop: null,
                     push: null,
                 }),
@@ -2199,4 +2313,329 @@ test("test generator for next", () => {
     next = gen.next();
     expect(next.value).toBe(true);
     expect(next.done).toBe(true);
+});
+
+test("test stateNameGenerator", () => {
+    const generator = stateNameGenerator("Test");
+    let next = generator.next();
+    for (const i of [0, 1, 2, 3, 4]) {
+        expect(next.value).toBe(`Test${i}`);
+        next = generator.next();
+    }
+});
+
+test("test Union", () => {
+    const machine1 = buildImmutableRegularDeterministicWithoutEpsilonMachineForUnion1();
+    const machine2 = buildImmutableRegularDeterministicWithoutEpsilonMachineForUnion2();
+    const machine3 = buildImmutableRegularDeterministicWithoutEpsilonMachineForUnion3();
+    const newUnionInitialStateName = "UInitial";
+    const machineUnion = union(
+        machine1,
+        machine2,
+        false,
+        newUnionInitialStateName
+    );
+    expect(
+        machineUnion.equals(
+            union(machine2, machine1, false, newUnionInitialStateName)
+        )
+    ).toBe(true);
+
+    expect(
+        (machineUnion.get("states") as Immutable.Map<string, IIState>).equals(
+            Immutable.Map({
+                q1: Immutable.Map({ id: "q1", isEntry: false, isExit: false }),
+                BEGIN_FINAL: Immutable.Map({
+                    id: "BEGIN_FINAL",
+                    isEntry: false,
+                    isExit: true,
+                }),
+                UInitial0: Immutable.Map({
+                    id: "UInitial0",
+                    isEntry: true,
+                    isExit: false,
+                }),
+                q2: Immutable.Map({ id: "q2", isEntry: false, isExit: false }),
+                q3: Immutable.Map({ id: "q3", isEntry: false, isExit: false }),
+                q4: Immutable.Map({ id: "q4", isEntry: false, isExit: false }),
+                AND_FINAL: Immutable.Map({
+                    id: "AND_FINAL",
+                    isEntry: false,
+                    isExit: true,
+                }),
+                q20: Immutable.Map({
+                    id: "q20",
+                    isEntry: false,
+                    isExit: false,
+                }),
+                q10: Immutable.Map({
+                    id: "q10",
+                    isEntry: false,
+                    isExit: false,
+                }),
+                q00: Immutable.Map({
+                    id: "q00",
+                    isEntry: false,
+                    isExit: false,
+                }),
+                q0: Immutable.Map({ id: "q0", isEntry: false, isExit: false }),
+            })
+        )
+    ).toBe(true);
+
+    expect(
+        (machineUnion.get("transitions") as Immutable.Set<IITransition>).equals(
+            Immutable.Set([
+                Immutable.Map({
+                    from: "q2",
+                    with: "g",
+                    to: "q3",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q0",
+                    with: "b",
+                    to: "q1",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "UInitial0",
+                    with: "ε",
+                    to: "q0",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
+                    from: "q00",
+                    with: "a",
+                    to: "q10",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
+                    from: "UInitial0",
+                    with: "ε",
+                    to: "q00",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
+                    from: "q3",
+                    with: "i",
+                    to: "q4",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q20",
+                    with: "d",
+                    to: "AND_FINAL",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
+                    from: "q10",
+                    with: "n",
+                    to: "q20",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
+                    from: "q1",
+                    with: "e",
+                    to: "q2",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q4",
+                    with: "n",
+                    to: "BEGIN_FINAL",
+                    push: null,
+                    pop: null,
+                }),
+            ])
+        )
+    ).toBe(true);
+    const thirdUnion = union(machineUnion, machine3, false, "bing");
+    expect(
+        (thirdUnion.get("states") as Immutable.Map<string, IIState>).equals(
+            Immutable.Map({
+                q1: Immutable.Map({ id: "q1", isEntry: false, isExit: false }),
+                BEGIN_FINAL: Immutable.Map({
+                    id: "BEGIN_FINAL",
+                    isEntry: false,
+                    isExit: true,
+                }),
+                UInitial0: Immutable.Map({
+                    id: "UInitial0",
+                    isEntry: false,
+                    isExit: false,
+                }),
+                q2: Immutable.Map({ id: "q2", isEntry: false, isExit: false }),
+                q3: Immutable.Map({ id: "q3", isEntry: false, isExit: false }),
+                q4: Immutable.Map({ id: "q4", isEntry: false, isExit: false }),
+                AND_FINAL: Immutable.Map({
+                    id: "AND_FINAL",
+                    isEntry: false,
+                    isExit: true,
+                }),
+                q20: Immutable.Map({
+                    id: "q20",
+                    isEntry: false,
+                    isExit: false,
+                }),
+                q10: Immutable.Map({
+                    id: "q10",
+                    isEntry: false,
+                    isExit: false,
+                }),
+                q21: Immutable.Map({
+                    id: "q21",
+                    isEntry: false,
+                    isExit: false,
+                }),
+                bing0: Immutable.Map({
+                    id: "bing0",
+                    isEntry: true,
+                    isExit: false,
+                }),
+                q00: Immutable.Map({
+                    id: "q00",
+                    isEntry: false,
+                    isExit: false,
+                }),
+                q11: Immutable.Map({
+                    id: "q11",
+                    isEntry: false,
+                    isExit: false,
+                }),
+                END_FINAL: Immutable.Map({
+                    id: "END_FINAL",
+                    isEntry: false,
+                    isExit: true,
+                }),
+                q01: Immutable.Map({
+                    id: "q01",
+                    isEntry: false,
+                    isExit: false,
+                }),
+                q0: Immutable.Map({ id: "q0", isEntry: false, isExit: false }),
+            })
+        )
+    ).toBe(true);
+
+    expect(
+        (thirdUnion.get("transitions") as Immutable.Set<IITransition>).equals(
+            Immutable.Set([
+                Immutable.Map({
+                    from: "bing0",
+                    with: "ε",
+                    to: "UInitial0",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
+                    from: "q2",
+                    with: "g",
+                    to: "q3",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q21",
+                    with: "d",
+                    to: "END_FINAL",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
+                    from: "q0",
+                    with: "b",
+                    to: "q1",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "UInitial0",
+                    with: "ε",
+                    to: "q0",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
+                    from: "q00",
+                    with: "a",
+                    to: "q10",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
+                    from: "UInitial0",
+                    with: "ε",
+                    to: "q00",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
+                    from: "q01",
+                    with: "e",
+                    to: "q11",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
+                    from: "q3",
+                    with: "i",
+                    to: "q4",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q20",
+                    with: "d",
+                    to: "AND_FINAL",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
+                    from: "q11",
+                    with: "n",
+                    to: "q21",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
+                    from: "q10",
+                    with: "n",
+                    to: "q20",
+                    pop: null,
+                    push: null,
+                }),
+                Immutable.Map({
+                    from: "q1",
+                    with: "e",
+                    to: "q2",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "q4",
+                    with: "n",
+                    to: "BEGIN_FINAL",
+                    push: null,
+                    pop: null,
+                }),
+                Immutable.Map({
+                    from: "bing0",
+                    with: "ε",
+                    to: "q01",
+                    pop: null,
+                    push: null,
+                }),
+            ])
+        )
+    ).toBe(true);
 });
