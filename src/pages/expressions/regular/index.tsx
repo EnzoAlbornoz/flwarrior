@@ -1,5 +1,5 @@
 // Import Dependencies
-import { Button, PageHeader } from "antd";
+import { Button, PageHeader, Upload } from "antd";
 import { useMemo, useState } from "react";
 import { useHistory } from "react-router-dom";
 import RegisteredItemsListRaw from "@components/RegisteredItemsList";
@@ -15,6 +15,7 @@ import {
     ExpressionType,
     getNewExpression,
 } from "@/database/schema/expression";
+import { UploadChangeParam } from "antd/lib/upload";
 // Define Style
 const ExpressionssList = styled.section`
     height: 100%;
@@ -47,6 +48,11 @@ export default function RegularExpressions(): JSX.Element {
     // Fetch Context
     const history = useHistory();
     // Define Handlers
+    const loadExpressionsFromDB = async () => {
+        const db = await DatabaseService.getDb();
+        const expressions = await db.getAll(FLWarriorDBTables.EXPRESSION);
+        setExpressionsList(expressions);
+    };
     const editExpression = (itemId: string) => {
         // Go to editing page
         history.push(`/expressions/regular/edit/${itemId}`);
@@ -86,12 +92,18 @@ export default function RegularExpressions(): JSX.Element {
         );
         saveAs(expressionFile);
     };
+    const importExpression = async (importedFile: File) => {
+        // Get File Content
+        const fileContent = await importedFile.text();
+        // Parse as Object
+        const expressionDB: ExpressionDBEntry = JSON.parse(fileContent);
+        // Add expression to database
+        const db = await useDatabase();
+        await db.add(FLWarriorDBTables.EXPRESSION, expressionDB);
+        await loadExpressionsFromDB();
+    };
     // Fetch Data
-    useAsyncEffect(async () => {
-        const db = await DatabaseService.getDb();
-        const Expressionss = await db.getAll(FLWarriorDBTables.EXPRESSION);
-        setExpressionsList(Expressionss);
-    }, []);
+    useAsyncEffect(loadExpressionsFromDB, []);
     const expressionsListDataSource = useMemo(
         () =>
             expressionsList.map((expression) => ({
@@ -128,6 +140,19 @@ export default function RegularExpressions(): JSX.Element {
                             >
                                 Criar Expressão
                             </Button>,
+                            <Upload
+                                key="button-import"
+                                showUploadList={false}
+                                accept="application/json"
+                                beforeUpload={() => false}
+                                onChange={(changeEvent) =>
+                                    importExpression(
+                                        (changeEvent.file as unknown) as File
+                                    )
+                                }
+                            >
+                                <Button type="dashed">Importar</Button>
+                            </Upload>,
                         ]}
                     />
                     <RegisteredItemsList
