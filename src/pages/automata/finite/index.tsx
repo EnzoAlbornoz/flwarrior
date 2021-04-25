@@ -23,6 +23,7 @@ import {
     toDBEntry,
     intersect,
 } from "@/lib/automaton/Machine";
+import { v4 as uuid } from "uuid";
 // Define Style
 const UnionSymbol = styled.div`
     ::after {
@@ -116,7 +117,7 @@ export default function FiniteAutomata(): JSX.Element {
         const machine1 = fromDBEntry(serialMachine1);
         const machine2 = fromDBEntry(serialMachine2);
         // Make Union
-        const unionMachine = union(machine1, machine2, undefined, true);
+        const unionMachine = union(machine1, machine2, true, uuid());
         // Save Union Into DB
         const serializedUnionMachine = toDBEntry(unionMachine);
         await db.add(FLWarriorDBTables.MACHINE, serializedUnionMachine);
