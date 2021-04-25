@@ -23,7 +23,6 @@ import { SaveOutlined } from "@ant-design/icons";
 import { useModal as expressionRefModal } from "@components/ExpressionReferenceModal";
 import { DefinitionType } from "@/database/schema/expression";
 import { convertRegularExpressionToNonDeterministicFiniteMachine } from "@/lib/conversion";
-
 // Import Types
 interface ITGEditPageProps {
     id: string;
@@ -115,7 +114,8 @@ export default function ExecuteFiniteAutomata(): JSX.Element {
     const convertToMachine = async () => {
         // Convert To Machine
         const machine = convertRegularExpressionToNonDeterministicFiniteMachine(
-            regex
+            regex,
+            true
         );
         const newMachine = machine;
         // Save New Machine
