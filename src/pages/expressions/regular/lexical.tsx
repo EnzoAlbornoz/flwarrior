@@ -174,14 +174,13 @@ const ExpressionLexicalPage: FunctionComponent = () => {
         // Import DB
         const db = await useDatabase();
         // Tokenize
-        try {
-            const tokens = await tokenize(
-                analyzedText,
-                regularDefinitionClasses,
-                db
-            );
-            setTokenList(tokens);
-        } catch (error) {
+        const [tokens, errors] = await tokenize(
+            analyzedText,
+            regularDefinitionClasses,
+            db
+        );
+        setTokenList(tokens);
+        for (const error of errors) {
             // Show Error To User
             message.error(error.message);
         }

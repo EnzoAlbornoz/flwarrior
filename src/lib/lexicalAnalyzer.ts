@@ -33,7 +33,7 @@ export const tokenize = async (
     text: string,
     regularDefinitions: Immutable.List<IClassDefinition>,
     db: IDBPDatabase<FLWarriorDBSchema>
-): Promise<Array<ILexToken>> => {
+): Promise<[Array<ILexToken>, Array<Error>]> => {
     // Create Recognition Machine
     let recognitionMachine = (
         await Promise.all(
@@ -105,6 +105,7 @@ export const tokenize = async (
         .filter((buffer) => buffer);
     // Iterate Over Buffers
     const tokens: Array<{ token: string; class: string }> = [];
+    const errors: Array<Error> = [];
     for (const buffer of charBuffers) {
         // Compute With Machine
         const machineRuntime = nextStep(recognitionMachine, buffer);
@@ -135,11 +136,13 @@ export const tokenize = async (
                 class: className,
             });
         } else {
-            throw new SyntaxError(
-                `[LexicalAnalyzer] Token "${buffer}" não reconhecido`
+            errors.push(
+                new SyntaxError(
+                    `[LexicalAnalyzer] Token "${buffer}" não reconhecido`
+                )
             );
         }
     }
     // Return Token List
-    return tokens;
+    return [tokens, errors];
 };
