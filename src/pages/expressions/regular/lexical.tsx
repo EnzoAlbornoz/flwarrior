@@ -13,6 +13,7 @@ import {
     Modal,
     Select,
     Space,
+    message,
 } from "antd";
 import Layout from "@layout";
 import {
@@ -173,12 +174,17 @@ const ExpressionLexicalPage: FunctionComponent = () => {
         // Import DB
         const db = await useDatabase();
         // Tokenize
-        const tokens = await tokenize(
-            analyzedText,
-            regularDefinitionClasses,
-            db
-        );
-        setTokenList(tokens);
+        try {
+            const tokens = await tokenize(
+                analyzedText,
+                regularDefinitionClasses,
+                db
+            );
+            setTokenList(tokens);
+        } catch (error) {
+            // Show Error To User
+            message.error(error.message);
+        }
     };
     const removeRegularDefinitionClass = (defClass: IClassDefinition) =>
         setRegularDefinitionClasses(

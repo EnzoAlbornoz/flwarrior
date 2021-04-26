@@ -114,14 +114,11 @@ export const tokenize = async (
             // Iterate
             const nextIteration = machineRuntime.next();
             // Check Next Done
-            if (nextIteration.done) {
-                if (nextIteration.value) {
-                    accepted = true;
-                    break;
-                }
-            } else {
-                iteration = nextIteration;
+            if (nextIteration.done && nextIteration.value) {
+                accepted = true;
+                break;
             }
+            iteration = nextIteration;
         }
         // Check Accepted
         if (accepted) {
@@ -137,6 +134,10 @@ export const tokenize = async (
                 token: buffer,
                 class: className,
             });
+        } else {
+            throw new SyntaxError(
+                `[LexicalAnalyzer] Token "${buffer}" não reconhecido`
+            );
         }
     }
     // Return Token List
