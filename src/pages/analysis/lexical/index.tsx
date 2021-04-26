@@ -88,7 +88,7 @@ const ExpressionLexicalPage: FunctionComponent = () => {
     // Define State
     const [isAnalizing, setIsAnalizing] = useState(false);
     const [tokenList, setTokenList] = useState<Array<ILexToken>>([]);
-    const [regularDefinitionClasses, setRegularDefinitionClasses] = useState<
+    const [lexicalDefinitionClasses, setLexicalDefinitionClasses] = useState<
         Immutable.List<IClassDefinition>
     >(Immutable.List());
     const [analyzedText, setAnalyzedText] = useState("");
@@ -149,8 +149,8 @@ const ExpressionLexicalPage: FunctionComponent = () => {
     };
     const confirmModal = () => {
         // Update Classes
-        setRegularDefinitionClasses(
-            regularDefinitionClasses.push(referenceToImport)
+        setLexicalDefinitionClasses(
+            lexicalDefinitionClasses.push(referenceToImport)
         );
         // Dispose Modal
         disposeModal();
@@ -178,7 +178,7 @@ const ExpressionLexicalPage: FunctionComponent = () => {
         setIsAnalizing(true);
         const [tokens, errors] = await tokenize(
             analyzedText,
-            regularDefinitionClasses,
+            lexicalDefinitionClasses,
             db
         );
         setIsAnalizing(false);
@@ -189,18 +189,18 @@ const ExpressionLexicalPage: FunctionComponent = () => {
         }
     };
     const removeRegularDefinitionClass = (defClass: IClassDefinition) =>
-        setRegularDefinitionClasses(
-            regularDefinitionClasses.delete(
-                regularDefinitionClasses.findIndex(
+        setLexicalDefinitionClasses(
+            lexicalDefinitionClasses.delete(
+                lexicalDefinitionClasses.findIndex(
                     (rdClass) => rdClass === defClass
                 )
             )
         );
     const swapPos = (idxFrom, idxTo) => {
-        setRegularDefinitionClasses(
-            regularDefinitionClasses
-                .set(idxFrom, regularDefinitionClasses.get(idxTo))
-                .set(idxTo, regularDefinitionClasses.get(idxFrom))
+        setLexicalDefinitionClasses(
+            lexicalDefinitionClasses
+                .set(idxFrom, lexicalDefinitionClasses.get(idxTo))
+                .set(idxTo, lexicalDefinitionClasses.get(idxFrom))
         );
     };
     // Define Effects
@@ -280,7 +280,7 @@ const ExpressionLexicalPage: FunctionComponent = () => {
                     <PageHeader
                         onBack={history.goBack}
                         title="Analizador Léxico"
-                        subTitle="Expressões Regulares"
+                        subTitle="Analizadores"
                         extra={[
                             <Button
                                 key="button-save"
@@ -304,12 +304,12 @@ const ExpressionLexicalPage: FunctionComponent = () => {
                             />
                         </TextUnderAnalysisArea>
                         <DefinitionsList
-                            dataSource={regularDefinitionClasses.toArray()}
+                            dataSource={lexicalDefinitionClasses.toArray()}
                             bordered
                             header={
                                 <DefinitionsListHeader>
                                     <Typography.Text>
-                                        Definições Regulares
+                                        Definições Léxicas
                                     </Typography.Text>
                                     <Button onClick={showModal}>
                                         Adicionar Classe
@@ -347,7 +347,7 @@ const ExpressionLexicalPage: FunctionComponent = () => {
                                             icon={<ArrowDownOutlined />}
                                             disabled={
                                                 idx ===
-                                                regularDefinitionClasses.size -
+                                                lexicalDefinitionClasses.size -
                                                     1
                                             }
                                         />,

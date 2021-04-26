@@ -59,7 +59,7 @@ export default function RegularExpressions(): JSX.Element {
     };
     const lexicalAnalysis = () => {
         // Go to lexical analysis
-        history.push("/expressions/regular/lexical");
+        history.push("/analysis/lexical");
     };
     const createExpression = async () => {
         // Instantiate Basic Expression
