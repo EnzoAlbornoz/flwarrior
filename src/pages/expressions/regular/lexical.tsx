@@ -86,6 +86,7 @@ const ExpressionLexicalPage: FunctionComponent = () => {
     // Fetch Context
     const history = useHistory();
     // Define State
+    const [isAnalizing, setIsAnalizing] = useState(false);
     const [tokenList, setTokenList] = useState<Array<ILexToken>>([]);
     const [regularDefinitionClasses, setRegularDefinitionClasses] = useState<
         Immutable.List<IClassDefinition>
@@ -174,11 +175,13 @@ const ExpressionLexicalPage: FunctionComponent = () => {
         // Import DB
         const db = await useDatabase();
         // Tokenize
+        setIsAnalizing(true);
         const [tokens, errors] = await tokenize(
             analyzedText,
             regularDefinitionClasses,
             db
         );
+        setIsAnalizing(false);
         setTokenList(tokens);
         for (const error of errors) {
             // Show Error To User
@@ -284,8 +287,9 @@ const ExpressionLexicalPage: FunctionComponent = () => {
                                 type="primary"
                                 onClick={tokenizeText}
                                 icon={<SearchOutlined />}
+                                loading={isAnalizing}
                             >
-                                Análise
+                                Analisar
                             </Button>,
                         ]}
                     />
