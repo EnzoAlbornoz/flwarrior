@@ -12,6 +12,7 @@ import {
     renameAllStatesExceptExit,
     nextStep,
     IITransition,
+    IMachine,
 } from "./automaton/Machine";
 import type { IIMachine } from "./automaton/Machine";
 import { convertRegularExpressionToDeterministicFiniteMachine } from "./conversion";
@@ -88,51 +89,78 @@ export const tokenize = async (
         determinize(recognitionMachine)
     );
     // Splitting Text into Analizable Buffers
-    const charBuffers = text
-        .split("")
-        .reduce(
-            (buffers, char) => {
-                if ([" ", "\n"].includes(char)) {
-                    buffers.push("");
-                } else {
-                    const lastBuffer = buffers.pop();
-                    buffers.push(lastBuffer.concat(char));
-                }
-                return buffers;
-            },
-            [""]
-        )
-        .filter((buffer) => buffer);
+    let charBuffers = Immutable.List(
+        text
+            .split("")
+            .reduce(
+                (buffers, char) => {
+                    if ([" ", "\n"].includes(char)) {
+                        buffers.push("");
+                    } else {
+                        const lastBuffer = buffers.pop();
+                        buffers.push(lastBuffer.concat(char));
+                    }
+                    return buffers;
+                },
+                [""]
+            )
+            .filter((buffer) => buffer)
+    );
     // Iterate Over Buffers
     const tokens: Array<{ token: string; class: string }> = [];
     const errors: Array<Error> = [];
-    for (const buffer of charBuffers) {
+    while (!charBuffers.isEmpty()) {
+        const buffer = charBuffers.first<string>();
+        charBuffers = charBuffers.remove(0);
         // Compute With Machine
         const machineRuntime = nextStep(recognitionMachine, buffer);
-        let iteration = machineRuntime.next();
-        let accepted = iteration.done && iteration.value;
-        while (!iteration.done) {
+        let iteration: IteratorResult<IITransition, boolean> = null;
+        let lastAcceptedState: {
+            buffer: string;
+            state: string;
+            idx: number;
+        } = null;
+        let iterations = 0;
+        do {
             // Iterate
-            const nextIteration = machineRuntime.next();
-            // Check Next Done
-            if (nextIteration.done && nextIteration.value) {
-                accepted = true;
-                break;
+            iteration = machineRuntime.next();
+            iterations++;
+            // Check Done
+            if (!iteration.done) {
+                // Get Machine State
+                const stateId = (iteration.value as IITransition).get("to");
+                if (
+                    (recognitionMachine.get(
+                        "exitStates"
+                    ) as IMachine["exitStates"]).has(stateId)
+                ) {
+                    // Is Exit State
+                    lastAcceptedState = {
+                        buffer: buffer.slice(0, iterations),
+                        state: stateId,
+                        idx: iterations,
+                    };
+                }
             }
-            iteration = nextIteration;
-        }
-        // Check Accepted
-        if (accepted) {
-            // Check Accepted Class
-            const lastState = (iteration.value as IITransition).get("to");
-            const statesArray = lastState
+        } while (!iteration.done);
+
+        // Check Some Recognition
+        if (lastAcceptedState) {
+            // Check Need to Continue
+            if (buffer.length > lastAcceptedState.buffer.length) {
+                // Slice and Insert into buffer list
+                const remainingBuffer = buffer.slice(lastAcceptedState.idx);
+                charBuffers = charBuffers.unshift(remainingBuffer);
+            }
+            // Add to Token List
+            const statesArray = lastAcceptedState.state
                 .split(",")
                 .map((state) => state.slice(0, state.indexOf("_")));
             const { className } = regularDefinitions.find((classDef) =>
                 statesArray.includes(classDef.className)
             );
             tokens.push({
-                token: buffer,
+                token: lastAcceptedState.buffer,
                 class: className,
             });
         } else {
