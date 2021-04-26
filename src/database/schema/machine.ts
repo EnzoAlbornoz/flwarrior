@@ -43,6 +43,9 @@ export interface MachineDBTable extends DBSchema {
     [FLWarriorDBTables.MACHINE]: {
         key: string;
         value: MachineDBEntry;
+        indexes: {
+            type: string;
+        };
     };
 }
 
@@ -66,4 +69,10 @@ export function getNewMachine(
 // Export Schema Concrete Object
 export default {
     keyPath: "id",
+    indexes: [
+        {
+            key: "type",
+            unique: false,
+        },
+    ],
 };

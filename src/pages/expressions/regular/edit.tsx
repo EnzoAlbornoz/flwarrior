@@ -34,7 +34,7 @@ import {
 import IconBase, { SaveOutlined } from "@ant-design/icons";
 import { useModal as expressionRefModal } from "@components/ExpressionReferenceModal";
 import { DefinitionType } from "@/database/schema/expression";
-import { convertRegularExpressionToNonDeterministicFiniteMachine } from "@/lib/conversion";
+import { convertRegularExpressionToDeterministicFiniteMachine } from "@/lib/conversion";
 // Import Types
 interface ITGEditPageProps {
     id: string;
@@ -157,7 +157,7 @@ export default function EditRegularExpression(): JSX.Element {
         // Convert To Machine
         const dbClient = await useDatabase();
         const convertedMachine = await resolveDefinitions(regex, dbClient);
-        const machine = convertRegularExpressionToNonDeterministicFiniteMachine(
+        const machine = convertRegularExpressionToDeterministicFiniteMachine(
             convertedMachine,
             true
         );

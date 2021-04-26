@@ -8,7 +8,7 @@ import type { FLWarriorDBSchema } from "@database/schema";
 class DatabaseService {
     readonly DB_NAME = "FLWarriorDB";
 
-    readonly DB_VERSION = 1;
+    readonly DB_VERSION = 2;
 
     #database: IDBPDatabase<FLWarriorDBSchema>;
 
@@ -19,7 +19,7 @@ class DatabaseService {
                 this.DB_NAME,
                 this.DB_VERSION,
                 {
-                    upgrade(db) {
+                    upgrade(db, oldVersion, newVersion, transaction) {
                         for (const tableName in DBSchemas) {
                             if (
                                 Object.prototype.hasOwnProperty.call(
@@ -28,12 +28,28 @@ class DatabaseService {
                                 )
                             ) {
                                 // Create table
-                                db.createObjectStore(
-                                    tableName as FLWarriorDBTables,
-                                    {
-                                        keyPath: DBSchemas[tableName].keyPath,
+                                if (!oldVersion) {
+                                    db.createObjectStore(
+                                        tableName as FLWarriorDBTables,
+                                        {
+                                            keyPath:
+                                                DBSchemas[tableName].keyPath,
+                                        }
+                                    );
+                                }
+                                if (newVersion === 2) {
+                                    // Create Indexes
+                                    for (const index of DBSchemas[tableName]
+                                        .indexes) {
+                                        transaction
+                                            .objectStore(
+                                                tableName as FLWarriorDBTables
+                                            )
+                                            .createIndex(index.key, index.key, {
+                                                unique: index.unique,
+                                            });
                                     }
-                                );
+                                }
                             }
                         }
                     },

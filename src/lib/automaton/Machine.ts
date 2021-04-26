@@ -263,6 +263,120 @@ export const setAsNonExitState = (
             exitStates.remove(stateRef.id)
         );
 
+export const renameAllStates = (
+    machine: IIMachine,
+    statesPrefix = "q",
+    exitStatesPrefix = "q",
+    splitter = "_"
+): IIMachine => {
+    // Define Id Generator
+    function* idGenFn() {
+        let id = 0;
+        while (true) {
+            yield id++;
+        }
+    }
+    const idGen = idGenFn();
+    // Create Translation Table
+    const translationTable = (machine.get("states") as IMachine["states"]).map(
+        (state) =>
+            `${
+                state.get("isExit") ? exitStatesPrefix : statesPrefix
+            }${splitter}${idGen.next().value}`
+    );
+    // Rebuild Machine
+    const transformedMachine = machine
+        .update(
+            "states",
+            // Rename States
+            (states: IMachine["states"]) =>
+                states.mapEntries(([k, s]) => [
+                    translationTable.get(k),
+                    s.set("id", translationTable.get(k)),
+                ])
+        )
+        .update(
+            "entry",
+            // Rename Entry
+            (entry: IMachine["entry"]) =>
+                entry.update("id", (oid: string) => translationTable.get(oid))
+        )
+        .update(
+            "exitStates",
+            // Rename Exit States
+            (states: IMachine["states"]) =>
+                states.mapEntries(([k, s]) => [
+                    translationTable.get(k),
+                    s.set("id", translationTable.get(k)),
+                ])
+        )
+        .update(
+            "transitions",
+            // Rename Transitions
+            (transitions: IMachine["transitions"]) =>
+                transitions.map((transition) =>
+                    transition
+                        .update("from", (from) => translationTable.get(from))
+                        .update("to", (to) => translationTable.get(to))
+                )
+        );
+
+    // Return Rebuilt Machine
+    return transformedMachine;
+};
+
+export const renameAllStatesExceptExit = (
+    machine: IIMachine,
+    statesPrefix = "q"
+): IIMachine => {
+    // Define Id Generator
+    function* idGenFn() {
+        let id = 0;
+        while (true) {
+            yield id++;
+        }
+    }
+    const idGen = idGenFn();
+    // Create Translation Table
+    const translationTable = (machine.get(
+        "states"
+    ) as IMachine["states"]).map((state) =>
+        state.get("isExit")
+            ? (state.get("id") as string)
+            : `${statesPrefix}${idGen.next().value}`
+    );
+    // Rebuild Machine
+    const transformedMachine = machine
+        .update(
+            "states",
+            // Rename States
+            (states: IMachine["states"]) =>
+                states.mapEntries(([k, s]) => [
+                    translationTable.get(k),
+                    s.set("id", translationTable.get(k)),
+                ])
+        )
+        .update(
+            "entry",
+            // Rename Entry
+            (entry: IMachine["entry"]) =>
+                entry.update("id", (oid: string) => translationTable.get(oid))
+        )
+        .update(
+            "transitions",
+            // Rename Transitions
+            (transitions: IMachine["transitions"]) =>
+                transitions.map((transition) =>
+                    transition
+                        .update("from", (from) => translationTable.get(from))
+                        .update("to", (to) => translationTable.get(to))
+                )
+        );
+
+    // Return Rebuilt Machine
+    return transformedMachine;
+};
+
 export const findEpsilonCLosureOfState = (
     machine: IIMachine,
     from: IState["id"],

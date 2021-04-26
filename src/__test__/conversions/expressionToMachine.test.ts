@@ -3,7 +3,7 @@ import Immutable from "immutable";
 import { IMachine } from "@/lib/automaton/Machine";
 import { inspect } from "util";
 import { EPSILON } from "@/lib/AlphabetSymbol";
-import { convertRegularExpressionToNonDeterministicFiniteMachine } from "@/lib/conversion";
+import { convertRegularExpressionToDeterministicFiniteMachine } from "@/lib/conversion";
 import { fromDBEntry } from "@/lib/expressions/Regex";
 import { ExpressionType } from "@/database/schema/expression";
 import {
@@ -168,7 +168,7 @@ test("[testRegexConversion] Test Working", () => {
         expression: regexstr,
     });
     // SUT
-    const machine = convertRegularExpressionToNonDeterministicFiniteMachine(
+    const machine = convertRegularExpressionToDeterministicFiniteMachine(
         regex
     );
     // Log

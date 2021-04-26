@@ -369,7 +369,7 @@ const getNodeSetSignature = (numSet: Immutable.Set<number>) =>
     numSet.sort().join();
 
 // Define Converions
-export default function convertRegularExpressionToNonDeterministicFiniteMachine(
+export default function convertRegularExpressionToDeterministicFiniteMachine(
     regex: IIRegex,
     renameAll = false
 ): IIMachine {
