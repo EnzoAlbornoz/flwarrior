@@ -50,7 +50,7 @@ const LexicalAnalyzerBody = styled.section`
     display: grid;
     gap: 1rem;
     grid-template-columns: 5fr 5fr;
-    grid-template-rows: 3fr 7fr;
+    grid-template-rows: minmax(200px, 3fr) 7fr;
     grid-template-areas:
         "text definitions"
         "tokens definitions";
