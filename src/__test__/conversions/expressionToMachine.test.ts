@@ -3,7 +3,7 @@ import Immutable from "immutable";
 import { IMachine } from "@/lib/automaton/Machine";
 import { inspect } from "util";
 import { EPSILON } from "@/lib/AlphabetSymbol";
-import { convertRegularExpressionToNonDeterministicFiniteMachine } from "@/lib/conversion";
+import { convertRegularExpressionToDeterministicFiniteMachine } from "@/lib/conversion";
 import { fromDBEntry } from "@/lib/expressions/Regex";
 import { ExpressionType } from "@/database/schema/expression";
 import {
@@ -26,7 +26,7 @@ test("[searchForParentheses] Test Shallow Array", () => {
     // SUT
     const result = searchForParentheses(regexStr);
     // Assert
-    console.log(result);
+    // console.log(result);
 });
 
 test("[searchForParentheses] Test Nested Array", () => {
@@ -35,7 +35,7 @@ test("[searchForParentheses] Test Nested Array", () => {
     // SUT
     const result = searchForParentheses(regexStr);
     // Assert
-    console.log(result);
+    // console.log(result);
 });
 
 test("[searchForClojures] Test Shallow Array", () => {
@@ -51,7 +51,7 @@ test("[searchForClojures] Test Shallow Array", () => {
     // SUT
     const result = searchForClojures(regexArr);
     // Assert
-    console.log(inspect(result, { depth: null, colors: true }));
+    // console.log(inspect(result, { depth: null, colors: true }));
 });
 
 test("[searchForClojures] Test Nested Array", () => {
@@ -67,7 +67,7 @@ test("[searchForClojures] Test Nested Array", () => {
     // SUT
     const result = searchForClojures(regexArr);
     // Assert
-    console.log(inspect(result, { depth: null, colors: true }));
+    // console.log(inspect(result, { depth: null, colors: true }));
 });
 
 test("[searchForOr] Test Shallow Array", () => {
@@ -82,7 +82,7 @@ test("[searchForOr] Test Shallow Array", () => {
     // SUT
     const result = searchForOr(regexArr);
     // Assert
-    console.log(inspect(result, { depth: null, colors: true }));
+    // console.log(inspect(result, { depth: null, colors: true }));
 });
 
 test("[searchForOr] Test Nested Array", () => {
@@ -97,7 +97,7 @@ test("[searchForOr] Test Nested Array", () => {
     // SUT
     const result = searchForOr(regexArr);
     // Assert
-    console.log(inspect(result, { depth: null, colors: true }));
+    // console.log(inspect(result, { depth: null, colors: true }));
 });
 
 test("[searchForConcatenations] Test Nested Array", () => {
@@ -112,7 +112,7 @@ test("[searchForConcatenations] Test Nested Array", () => {
     // SUT
     const result = searchForConcatenations(regexArr);
     // Assert
-    console.log(inspect(result, { depth: null, colors: true }));
+    // console.log(inspect(result, { depth: null, colors: true }));
 });
 
 test("[testAllTree] ", () => {
@@ -124,7 +124,7 @@ test("[testAllTree] ", () => {
     const parsedOr = searchForOr(parsedClojure);
     const parsedConcatenations = searchForConcatenations(parsedOr);
     // Log
-    console.log(inspect(parsedConcatenations, { depth: null, colors: true }));
+    // console.log(inspect(parsedConcatenations, { depth: null, colors: true }));
 });
 
 test("[buildAhoTree] Test Working", () => {
@@ -133,7 +133,7 @@ test("[buildAhoTree] Test Working", () => {
     // SUT
     const tree = buildAhoTree(regex);
     // Log
-    console.log(inspect(tree, { depth: null, colors: true }));
+    // console.log(inspect(tree, { depth: null, colors: true }));
 });
 
 test("[getLeafNodes] Test Working", () => {
@@ -143,7 +143,7 @@ test("[getLeafNodes] Test Working", () => {
     // SUT
     const leafNodes = getLeafNodes(tree);
     // Log
-    console.log(inspect(leafNodes, { depth: null, colors: true }));
+    // console.log(inspect(leafNodes, { depth: null, colors: true }));
 });
 
 test("[updateFollowPos] Test Working", () => {
@@ -154,7 +154,7 @@ test("[updateFollowPos] Test Working", () => {
     updateFollowPos(tree);
     // Log
     const leafNodes = getLeafNodes(tree);
-    console.log(inspect(leafNodes, { depth: null, colors: true }));
+    // console.log(inspect(leafNodes, { depth: null, colors: true }));
 });
 
 test("[testRegexConversion] Test Working", () => {
@@ -168,9 +168,9 @@ test("[testRegexConversion] Test Working", () => {
         expression: regexstr,
     });
     // SUT
-    const machine = convertRegularExpressionToNonDeterministicFiniteMachine(
+    const machine = convertRegularExpressionToDeterministicFiniteMachine(
         regex
     );
     // Log
-    console.log(inspect(machine.toJS(), { depth: null, colors: true }));
+    // console.log(inspect(machine.toJS(), { depth: null, colors: true }));
 });

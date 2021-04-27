@@ -27,6 +27,9 @@ export interface GrammarDBTable extends DBSchema {
     [FLWarriorDBTables.GRAMMAR]: {
         key: string;
         value: GrammarDBEntry;
+        indexes: {
+            type: string;
+        };
     };
 }
 
@@ -45,4 +48,10 @@ export function getNewGrammar(type: GrammarType): GrammarDBEntry {
 // Export Schema Concrete Object
 export default {
     keyPath: "id",
+    indexes: [
+        {
+            key: "type",
+            unique: false,
+        },
+    ],
 };

@@ -35,6 +35,7 @@ import {
     removeTerminalSymbol,
     rename,
     toDBEntry,
+    setStartSymbol as setGrammarStartSymbol,
 } from "@lib/grammar/Grammar";
 import { toDBEntry as machineToDBEntry } from "@/lib/automaton/Machine";
 import { convertRegularGrammarToNonDeterministicFiniteMachine } from "@/lib/conversion";
@@ -194,7 +195,7 @@ export default function RegularGrammarEdit(): JSX.Element {
     const onDeleteAlphabetNT = (toDeleteSymbol) =>
         setGrammar(removeNonTerminalSymbol(grammar, toDeleteSymbol));
     const setStartSymbol = (newStartSymbol: string) =>
-        setGrammar(setStartSymbol(newStartSymbol));
+        setGrammar(setGrammarStartSymbol(grammar, newStartSymbol));
     // Special Functions
     const convertToMachine = async () => {
         // Convert To Machine

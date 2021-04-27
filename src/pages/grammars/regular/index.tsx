@@ -1,5 +1,5 @@
 // Import Dependencies
-import { Button, PageHeader } from "antd";
+import { Button, PageHeader, Upload } from "antd";
 import { useMemo, useState } from "react";
 import { useHistory } from "react-router-dom";
 import RegisteredItemsListRaw from "@components/RegisteredItemsList";
@@ -45,6 +45,11 @@ export default function RegularGrammars(): JSX.Element {
     // Fetch Context
     const history = useHistory();
     // Define Handlers
+    const loadGrammarsFromDB = async () => {
+        const db = await useDatabase();
+        const grammars = await db.getAll(FLWarriorDBTables.GRAMMAR);
+        setGrammarList(grammars);
+    };
     const editGrammar = (itemId: string) => {
         // Go to editing page
         history.push(`/grammars/regular/edit/${itemId}`);
@@ -78,12 +83,18 @@ export default function RegularGrammars(): JSX.Element {
         );
         saveAs(grammarFile);
     };
-    // Fetch Data
-    useAsyncEffect(async () => {
+    const importGrammar = async (importedFile: File) => {
+        // Get File Content
+        const fileContent = await importedFile.text();
+        // Parse as Object
+        const grammarDB: GrammarDBEntry = JSON.parse(fileContent);
+        // Add Grammar to database
         const db = await useDatabase();
-        const grammars = await db.getAll(FLWarriorDBTables.GRAMMAR);
-        setGrammarList(grammars);
-    }, []);
+        await db.add(FLWarriorDBTables.GRAMMAR, grammarDB);
+        await loadGrammarsFromDB();
+    };
+    // Fetch Data
+    useAsyncEffect(loadGrammarsFromDB, []);
     const grammarListDataSource = useMemo(
         () =>
             grammarList.map((grammar) => ({
@@ -113,6 +124,19 @@ export default function RegularGrammars(): JSX.Element {
                             >
                                 Criar Gramática
                             </Button>,
+                            <Upload
+                                key="button-import"
+                                showUploadList={false}
+                                accept="application/json"
+                                beforeUpload={() => false}
+                                onChange={(changeEvent) =>
+                                    importGrammar(
+                                        (changeEvent.file as unknown) as File
+                                    )
+                                }
+                            >
+                                <Button type="dashed">Importar</Button>
+                            </Upload>,
                         ]}
                     />
                     <RegisteredItemsList dataSource={grammarListDataSource} />

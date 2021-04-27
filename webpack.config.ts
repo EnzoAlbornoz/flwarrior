@@ -2,12 +2,10 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import {
     Configuration as WebpackConfiguration,
-    EnvironmentPlugin,
     HotModuleReplacementPlugin,
 } from "webpack";
 import { Configuration as WebpackDevServerConfiguration } from "webpack-dev-server";
 import HtmlWebpackPlugin from "html-webpack-plugin";
-import { TsconfigPathsPlugin as TsConfigPathsWebpackPlugin } from "tsconfig-paths-webpack-plugin";
 import { CleanWebpackPlugin } from "clean-webpack-plugin";
 import FaviconsWebpackPlugin from "favicons-webpack-plugin";
 import ESLintWebpackPlugin from "eslint-webpack-plugin";

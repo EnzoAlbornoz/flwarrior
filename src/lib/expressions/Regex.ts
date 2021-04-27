@@ -113,7 +113,13 @@ export const resolveDefinitions = async (
             resolvedExtRegex.get("expression") as string
         );
     }
+    // Replace Definitions
+    let resolvedRegex = regex;
+    for (const [defAlias, defExpression] of resolvedDefinitions) {
+        resolvedRegex = resolvedRegex.update("expression", (exp: string) =>
+            exp.split(`{${defAlias}}`).join(defExpression)
+        );
+    }
     // Return Resolved Regex
-    const resolvedRegex = regex;
     return resolvedRegex;
 };

@@ -72,8 +72,8 @@ export default function ExecuteFiniteAutomata(): JSX.Element {
     const [transitionsHistory, setTransitionsHistory] = useState<
         Immutable.List<IIHystoricRecord>
     >(Immutable.List());
-    const [machineInput, setMachineInput] = useState<string>("");
-    const [machineMemory, setMachineMemory] = useState<string>("");
+    const [machineInput, setMachineInput] = useState<string>(EPSILON);
+    const [machineMemory, setMachineMemory] = useState<string>(EPSILON);
     // Get Context
     const history = useHistory();
     const { id: idToEdit } = useParams<ITGExecutePageProps>();
@@ -188,7 +188,8 @@ export default function ExecuteFiniteAutomata(): JSX.Element {
     // Define Modals
     const [showModalMachineInput, modalMachineInput] = useModal({
         title: "Adicionar entrada à maquina",
-        onSubmit: setMachineEntryWord,
+        onSubmit: (inputVal) =>
+            setMachineEntryWord(inputVal.replace(/&/g, EPSILON)),
         placeholder: "Insira a entrada",
         submitText: "Adicionar",
         submitDisabled: (ci) => ci.length <= 0,

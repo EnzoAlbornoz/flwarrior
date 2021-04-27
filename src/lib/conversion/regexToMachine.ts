@@ -2,10 +2,9 @@
 // Import Dependencies
 import { getNewMachine, MachineType } from "@/database/schema/machine";
 import Immutable from "immutable";
-import TreeUtils from "immutable-treeutils";
 import { EPSILON } from "../AlphabetSymbol";
-import { IIMachine, IITransition, ITransition } from "../automaton/Machine";
-import { IIState, IState } from "../automaton/State";
+import { IIMachine, IITransition } from "../automaton/Machine";
+import { IIState } from "../automaton/State";
 import { IIRegex } from "../expressions/Regex";
 // Define Types
 export enum EASTNodeType {
@@ -89,9 +88,10 @@ export const searchForParentheses = (
     if (firstNestedIdx >= 0 && lastNestedIdx >= 0) {
         const left = tokens.slice(0, firstNestedIdx);
         const middleBase = tokens.slice(firstNestedIdx + 1, lastNestedIdx);
-        const right = tokens.slice(lastNestedIdx + 1);
+        const rightBase = tokens.slice(lastNestedIdx + 1);
         // Compute Middle Array
         const middle = searchForParentheses(middleBase);
+        const right = searchForParentheses(rightBase);
         return [].concat(left, [middle], right);
     }
     return tokens;
@@ -336,7 +336,19 @@ export const updateFollowPos = (rootNode: ITreeNode): void => {
 
 export const buildAhoTree = (expression: string): ITreeNode => {
     // Build Expanded Expression (Reverse Mode)
-    const expandedExpression = `${expression}#`.split("");
+    const expandedExpression = `(${expression})#`
+        .split("")
+        .reduce((expaExpAcc, currChar) => {
+            // Get Expanded Expression
+            const expaExp = [...expaExpAcc];
+            // Resolve Escaping
+            if (expaExp[expaExp.length - 1] === "\\") {
+                expaExp.push(expaExp.pop() + currChar);
+            } else {
+                expaExp.push(currChar);
+            }
+            return expaExp;
+        }, [] as Array<string>);
     // Define Tree
     const idGen = generateIds();
     // Iterate Over Word
@@ -352,83 +364,124 @@ export const buildAhoTree = (expression: string): ITreeNode => {
     return rootNode;
 };
 
-export const getAlphabetOfExpression = (
-    expressionStr: string
-): Array<string> => {
-    return expressionStr
-        .split("")
-        .filter((str) => !["(", ")", "|", "*", "•"].includes(str));
-};
+const getNodeSetOrdered = (numSet: number[]) => Immutable.Set(numSet).sort();
+const getNodeSetSignature = (numSet: Immutable.Set<number>) =>
+    numSet.sort().join();
 
 // Define Converions
-export default function convertFiniteStateMachineToRegularGrammar(
-    regex: IIRegex
+export default function convertRegularExpressionToDeterministicFiniteMachine(
+    regex: IIRegex,
+    renameAll = false
 ): IIMachine {
     // Get Expression
     const expression = (regex.get("expression") as string)
         .replace(/ /g, "")
         .replace(/&/g, EPSILON);
-    console.log("converting", expression);
-    // Get Alphabet
-    const alphabet = getAlphabetOfExpression(expression);
     // Parse as Aho Tree
     const tree = buildAhoTree(expression);
     // Define Transitions
     let transitions = Immutable.Set<IITransition>();
+    // Get Leaf Nodes
     const leafNodes = getLeafNodes(tree);
-    const entry = tree.firstPos.sort().join("");
-    const dstates: Array<[dstate: Array<number>, visited: boolean]> = [
-        [tree.firstPos.sort(), false],
-    ];
-    while (dstates.filter(([, visited]) => !visited).length > 0) {
-        const stateIdx = dstates.findIndex(([, v]) => !v);
-        const state = dstates[stateIdx];
-        state[1] = true;
-        const dstate = state[0];
-        const transitionFrom = dstate.sort().join("");
-        const filteredNodes = leafNodes.filter((n) => dstate.includes(n.id));
+    // Get Alphabet
+    const alphabet = leafNodes
+        .map((leafNode) => leafNode.content)
+        .filter((char) => char !== "#");
+    // Get Entry and it's Signature
+    const entryNode = getNodeSetOrdered(tree.firstPos);
+    const entrySignature = getNodeSetSignature(entryNode);
+    // Define Visited States
+    const visitedStates: Array<Immutable.Set<number>> = [];
+    // Define Working List
+    const workingList = [entryNode];
+    while (workingList.length) {
+        // Fetch node from working List
+        const stateNode = workingList.shift();
+        // Send it to visited list
+        visitedStates.push(stateNode);
+        // Get state signature
+        const transitionFrom = getNodeSetSignature(stateNode);
+        // Filter leaf nodes that are included in stateNode
+        const filteredNodes = leafNodes.filter((leafNode) =>
+            stateNode.includes(leafNode.id)
+        );
+        // Iterate over alphabet
         for (const char of alphabet) {
+            // Define the transition that will be matched with that char
             const transitionWith = char;
+            // Compute the union of followpos(`leafNode`) for all `leafNode` in `nodeState` that correspond to `char`
             const charStateSet = filteredNodes
-                .filter((n) => n.content === char)
-                .map((n) => Immutable.Set(n.followPos))
+                // LeafNode correspond to Char
+                .filter((leafNode) => leafNode.content === char)
+                // Get FollowPos of leafNode
+                .map((leafNode) => getNodeSetOrdered(leafNode.followPos))
+                // Compute the union of them
                 .reduce((acc, fp) => acc.union(fp), Immutable.Set())
+                // Sort Them to Match Signature
                 .sort();
-            const transitionTo = charStateSet.join("");
-            if (
-                !dstates.find(([fpp]) =>
-                    Immutable.Set(fpp).sort().equals(charStateSet)
-                )
-            ) {
-                dstates.push([charStateSet.toArray(), false]);
+            // Ignore if Empty charStateSet
+            if (!charStateSet.isEmpty()) {
+                // Compute its signature
+                const transitionTo = getNodeSetSignature(charStateSet);
+                // If not visited yet, add it to the working list
+                if (
+                    !visitedStates.find((visitedState) =>
+                        visitedState.equals(charStateSet)
+                    )
+                ) {
+                    workingList.push(charStateSet);
+                }
+                // Finnaly, create a machine transition
+                transitions = transitions.add(
+                    Immutable.Map({
+                        pop: null,
+                        push: null,
+                        from: `q${transitionFrom}`,
+                        with: transitionWith,
+                        to: `q${transitionTo}`,
+                    }) as IITransition
+                );
             }
-            transitions = transitions.add(
-                Immutable.Map({
-                    pop: null,
-                    push: null,
-                    from: transitionFrom,
-                    with: transitionWith,
-                    to: transitionTo,
-                }) as IITransition
-            );
         }
     }
-    const lastId = tree.lastPos.sort().join("");
-    const states = Immutable.Set(
-        dstates.map(([stateArr]) => {
-            const stateId = stateArr.sort().join("");
-            return Immutable.Map({
-                id: stateId,
-                isEntry: stateId === entry,
-                isExit: stateId.endsWith(lastId),
-            }) as IIState;
-        })
-    )
+    // Define The Last State Signature
+    const lastId = getNodeSetSignature(getNodeSetOrdered(tree.lastPos));
+    // Compute Machine States
+    let states = Immutable.Set(visitedStates)
+        .map(
+            (visitedState) =>
+                Immutable.Map({
+                    id: `q${getNodeSetSignature(visitedState)}`,
+                    isEntry:
+                        getNodeSetSignature(visitedState) === entrySignature,
+                    isExit: getNodeSetSignature(visitedState).endsWith(lastId),
+                }) as IIState
+        )
         .toMap()
-        .mapKeys((s) => s.get("id") as string);
+        .mapKeys((state) => state.get("id") as string);
+    // Resolve Escape After Process
+    transitions = transitions.map((transition) =>
+        transition.get("with").includes("\\")
+            ? transition.update("with", (withStr) => withStr.slice(1))
+            : transition
+    );
+    // Rename All?
+    if (renameAll) {
+        const idGen = generateIds();
+        const translationTable = states.map(() => `q${idGen.next().value}`);
+        states = states.mapEntries(([key, val]) => [
+            translationTable.get(key),
+            val.set("id", translationTable.get(key)),
+        ]);
+        transitions = transitions.map((transition) =>
+            transition
+                .update("from", (fstr) => translationTable.get(fstr))
+                .update("to", (tstr) => translationTable.get(tstr))
+        );
+    }
     // Build Machine
     const machine: IIMachine = Immutable.Map({
-        ...getNewMachine(MachineType.FINITE_STATE_MACHINE, false),
+        ...getNewMachine(MachineType.FINITE_STATE_MACHINE, true),
         transitions,
         states,
         exitStates: states.filter((state) => state.get("isExit")),

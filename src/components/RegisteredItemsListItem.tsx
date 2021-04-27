@@ -30,7 +30,7 @@ const RegisteredItemsListItem: FunctionComponent<IRegisteredItemsListItemProps> 
                         key="button-edit"
                         onClick={() => onEdit(id)}
                     >
-                        Edit
+                        Editar
                     </Button>,
                     <Button
                         danger
@@ -38,7 +38,7 @@ const RegisteredItemsListItem: FunctionComponent<IRegisteredItemsListItemProps> 
                         key="button-delete"
                         onClick={() => onDelete(id)}
                     >
-                        Delete
+                        Deletar
                     </Button>,
                     <Button
                         type="dashed"
@@ -46,7 +46,7 @@ const RegisteredItemsListItem: FunctionComponent<IRegisteredItemsListItemProps> 
                         key="button-export"
                         onClick={() => onExport(id)}
                     >
-                        Export
+                        Exportar
                     </Button>,
                 ]}
             >

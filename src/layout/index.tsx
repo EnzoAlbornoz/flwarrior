@@ -1,7 +1,11 @@
 // Import Dependencies
 import styled from "styled-components";
 import { Layout, Typography, Menu } from "antd";
-import IconBase, { PartitionOutlined, ReadOutlined } from "@ant-design/icons";
+import IconBase, {
+    PartitionOutlined,
+    ReadOutlined,
+    SearchOutlined,
+} from "@ant-design/icons";
 import type { FunctionComponent } from "react";
 import { Link } from "react-router-dom";
 import { ReactComponent as KnightSVG } from "../assets/knight.svg";
@@ -89,6 +93,14 @@ const AppLayout: FunctionComponent = ({ children }) => {
                     >
                         <MenuItem>
                             <Link to="/expressions/regular">Regulares</Link>
+                        </MenuItem>
+                    </SubMenu>
+                    <SubMenu
+                        title="Analizadores"
+                        icon={<SearchOutlined width="2em" height="2em" />}
+                    >
+                        <MenuItem>
+                            <Link to="/analysis/lexical">Léxico</Link>
                         </MenuItem>
                     </SubMenu>
                 </Menu>

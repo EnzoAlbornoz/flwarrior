@@ -23,6 +23,9 @@ export interface ExpressionDBTable extends DBSchema {
     [FLWarriorDBTables.EXPRESSION]: {
         key: string;
         value: ExpressionDBEntry;
+        indexes: {
+            type: string;
+        };
     };
 }
 
@@ -39,4 +42,10 @@ export function getNewExpression(type: ExpressionType): ExpressionDBEntry {
 // Export Schema Concrete Object
 export default {
     keyPath: "id",
+    indexes: [
+        {
+            key: "type",
+            unique: false,
+        },
+    ],
 };

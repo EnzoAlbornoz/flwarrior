@@ -1,5 +1,5 @@
 // Import Dependencies
-import { Button, PageHeader } from "antd";
+import { Button, PageHeader, Upload } from "antd";
 import { useMemo, useState } from "react";
 import { useHistory } from "react-router-dom";
 import RegisteredItemsListRaw from "@components/RegisteredItemsList";
@@ -23,6 +23,7 @@ import {
     toDBEntry,
     intersect,
 } from "@/lib/automaton/Machine";
+import { v4 as uuid } from "uuid";
 // Define Style
 const UnionSymbol = styled.div`
     ::after {
@@ -68,6 +69,11 @@ export default function FiniteAutomata(): JSX.Element {
     // Fetch Context
     const history = useHistory();
     // Define Handlers
+    const loadMachineFromDB = async () => {
+        const db = await useDatabase();
+        const machines = await db.getAll(FLWarriorDBTables.MACHINE);
+        setMachineList(machines);
+    };
     const editMachine = (itemId: string) => {
         // Go to editing page
         history.push(`/automata/finite/edit/${itemId}`);
@@ -116,7 +122,7 @@ export default function FiniteAutomata(): JSX.Element {
         const machine1 = fromDBEntry(serialMachine1);
         const machine2 = fromDBEntry(serialMachine2);
         // Make Union
-        const unionMachine = union(machine1, machine2, undefined, true);
+        const unionMachine = union(machine1, machine2, true, uuid());
         // Save Union Into DB
         const serializedUnionMachine = toDBEntry(unionMachine);
         await db.add(FLWarriorDBTables.MACHINE, serializedUnionMachine);
@@ -145,12 +151,18 @@ export default function FiniteAutomata(): JSX.Element {
         // Edit new machine
         editMachine(serializedIntersectMachine.id);
     };
-    // Fetch Data
-    useAsyncEffect(async () => {
+    const importMachine = async (importedFile: File) => {
+        // Get File Content
+        const fileContent = await importedFile.text();
+        // Parse as Object
+        const machineDB: MachineDBEntry = JSON.parse(fileContent);
+        // Add Machine to database
         const db = await useDatabase();
-        const machines = await db.getAll(FLWarriorDBTables.MACHINE);
-        setMachineList(machines);
-    }, []);
+        await db.add(FLWarriorDBTables.MACHINE, machineDB);
+        await loadMachineFromDB();
+    };
+    // Fetch Data
+    useAsyncEffect(loadMachineFromDB, []);
     const machineListDataSource = useMemo(
         () =>
             machineList.map((machine) => ({
@@ -207,6 +219,19 @@ export default function FiniteAutomata(): JSX.Element {
                             >
                                 Criar Autômato
                             </Button>,
+                            <Upload
+                                key="button-import"
+                                showUploadList={false}
+                                accept="application/json"
+                                beforeUpload={() => false}
+                                onChange={(changeEvent) =>
+                                    importMachine(
+                                        (changeEvent.file as unknown) as File
+                                    )
+                                }
+                            >
+                                <Button type="dashed">Importar</Button>
+                            </Upload>,
                         ]}
                     />
                     {modalUnion}

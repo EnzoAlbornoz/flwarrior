@@ -263,6 +263,120 @@ export const setAsNonExitState = (
             exitStates.remove(stateRef.id)
         );
 
+export const renameAllStates = (
+    machine: IIMachine,
+    statesPrefix = "q",
+    exitStatesPrefix = "q",
+    splitter = "_"
+): IIMachine => {
+    // Define Id Generator
+    function* idGenFn() {
+        let id = 0;
+        while (true) {
+            yield id++;
+        }
+    }
+    const idGen = idGenFn();
+    // Create Translation Table
+    const translationTable = (machine.get("states") as IMachine["states"]).map(
+        (state) =>
+            `${
+                state.get("isExit") ? exitStatesPrefix : statesPrefix
+            }${splitter}${idGen.next().value}`
+    );
+    // Rebuild Machine
+    const transformedMachine = machine
+        .update(
+            "states",
+            // Rename States
+            (states: IMachine["states"]) =>
+                states.mapEntries(([k, s]) => [
+                    translationTable.get(k),
+                    s.set("id", translationTable.get(k)),
+                ])
+        )
+        .update(
+            "entry",
+            // Rename Entry
+            (entry: IMachine["entry"]) =>
+                entry.update("id", (oid: string) => translationTable.get(oid))
+        )
+        .update(
+            "exitStates",
+            // Rename Exit States
+            (states: IMachine["states"]) =>
+                states.mapEntries(([k, s]) => [
+                    translationTable.get(k),
+                    s.set("id", translationTable.get(k)),
+                ])
+        )
+        .update(
+            "transitions",
+            // Rename Transitions
+            (transitions: IMachine["transitions"]) =>
+                transitions.map((transition) =>
+                    transition
+                        .update("from", (from) => translationTable.get(from))
+                        .update("to", (to) => translationTable.get(to))
+                )
+        );
+
+    // Return Rebuilt Machine
+    return transformedMachine;
+};
+
+export const renameAllStatesExceptExit = (
+    machine: IIMachine,
+    statesPrefix = "q"
+): IIMachine => {
+    // Define Id Generator
+    function* idGenFn() {
+        let id = 0;
+        while (true) {
+            yield id++;
+        }
+    }
+    const idGen = idGenFn();
+    // Create Translation Table
+    const translationTable = (machine.get(
+        "states"
+    ) as IMachine["states"]).map((state) =>
+        state.get("isExit")
+            ? (state.get("id") as string)
+            : `${statesPrefix}${idGen.next().value}`
+    );
+    // Rebuild Machine
+    const transformedMachine = machine
+        .update(
+            "states",
+            // Rename States
+            (states: IMachine["states"]) =>
+                states.mapEntries(([k, s]) => [
+                    translationTable.get(k),
+                    s.set("id", translationTable.get(k)),
+                ])
+        )
+        .update(
+            "entry",
+            // Rename Entry
+            (entry: IMachine["entry"]) =>
+                entry.update("id", (oid: string) => translationTable.get(oid))
+        )
+        .update(
+            "transitions",
+            // Rename Transitions
+            (transitions: IMachine["transitions"]) =>
+                transitions.map((transition) =>
+                    transition
+                        .update("from", (from) => translationTable.get(from))
+                        .update("to", (to) => translationTable.get(to))
+                )
+        );
+
+    // Return Rebuilt Machine
+    return transformedMachine;
+};
+
 export const findEpsilonCLosureOfState = (
     machine: IIMachine,
     from: IState["id"],
@@ -544,6 +658,7 @@ export const complement = (
 ): IIMachine => {
     // must be DFA
     if (!isMachineDeterministic(machine)) {
+        // eslint-disable-next-line no-console
         console.error("asked for complement on non-deterministic machine");
         return machine;
     }
@@ -646,11 +761,20 @@ export const complement = (
     return clonedMachine;
 };
 
+// returns name0, name1, name2...
+export function* stateNameGenerator(name: string): Generator<string> {
+    let i = 0;
+    while (true) {
+        yield `${name}${i}`;
+        i++;
+    }
+}
+
 export const union = (
     machine1: IIMachine,
     machine2: IIMachine,
-    renameToken = "_FROM_UNION",
-    generateNewIds = false
+    generateNewIds = false,
+    newUnionInitialStateName = "UInitial"
 ): IIMachine => {
     const machine1Size = (machine1.get("states") as Immutable.Map<
         string,
@@ -662,7 +786,7 @@ export const union = (
     >).size;
     // first machine should be shorter
     let clonedMachine = machine1Size > machine2Size ? machine2 : machine1;
-    // first machine should be longer
+    // second machine should be longer
     let clonedMachine2 = machine1Size > machine2Size ? machine1 : machine2;
     // The alphabet of the new machine is the union of the alphabets + epsilon
     clonedMachine2 = unionAlphabetsPlusEpsilon(clonedMachine2, clonedMachine);
@@ -671,7 +795,6 @@ export const union = (
     // let exclusiveStates = Immutable.Map<string, IIState>().toSet().toMap().mapKeys((s) => s.get("id") as string);
     // The states of the new machine is the union of their states
     // If there are states with the same name, we should rename them
-
     for (const [key] of clonedMachine2.get("states") as Immutable.Map<
         string,
         IIState
@@ -681,14 +804,35 @@ export const union = (
                 key
             )
         ) {
-            // construct the new state
-            const newState = Immutable.Map({
-                id: ((clonedMachine.get("states") as Immutable.Map<
+            // get a new name generator for this state
+            const renameStateGenerator = stateNameGenerator(key);
+            // get a new name for this state
+            let next = renameStateGenerator.next().value;
+            let existsInSet =
+                (clonedMachine.get("states") as Immutable.Map<
                     string,
                     IIState
-                >)
-                    .get(key)
-                    .get("id") as string).concat(renameToken),
+                >).findKey((_, kkey) => kkey === next) ||
+                (clonedMachine2.get("states") as Immutable.Map<
+                    string,
+                    IIState
+                >).findKey((_, kkey) => kkey === next);
+            while (existsInSet) {
+                const newNext = renameStateGenerator.next();
+                existsInSet =
+                    (clonedMachine.get("states") as Immutable.Map<
+                        string,
+                        IIState
+                    >).findKey((_, kkey) => kkey === newNext.value) ||
+                    (clonedMachine2.get("states") as Immutable.Map<
+                        string,
+                        IIState
+                    >).findKey((_, kkey) => kkey === newNext.value);
+                next = newNext.value;
+            }
+            // construct the new state
+            const newState = Immutable.Map({
+                id: next,
                 isEntry: !!(clonedMachine.get("states") as Immutable.Map<
                     string,
                     IIState
@@ -708,18 +852,16 @@ export const union = (
                 (clonedMachine.get("states") as Immutable.Map<string, IIState>)
                     .get(key)
                     .get("id") as string,
-                ((clonedMachine.get("states") as Immutable.Map<string, IIState>)
-                    .get(key)
-                    .get("id") as string).concat(renameToken)
+                next
             );
 
-            // rename the state on the second machine
+            // add the state on the first machine (not the return machine)
             clonedMachine = clonedMachine.set(
                 "states",
                 (clonedMachine.get("states") as Immutable.Map<
                     string,
                     IIState
-                >).set(key.concat(renameToken), newState)
+                >).set(next, newState)
             );
             // delete the old state
             clonedMachine = clonedMachine.set(
@@ -729,16 +871,17 @@ export const union = (
                     IIState
                 >).remove(key)
             );
-            // append back this renamed state to the other machine
+            // append back this renamed state to the other machine (this is the union part)
             clonedMachine2 = clonedMachine2.set(
                 "states",
                 (clonedMachine2.get("states") as Immutable.Map<
                     string,
                     IIState
-                >).set(key.concat(renameToken), newState)
+                >).set(next, newState)
             );
         }
     }
+    // Union the states of the machines
     clonedMachine2 = clonedMachine2.set(
         "states",
         (clonedMachine2.get("states") as Immutable.Map<string, IIState>)
@@ -752,9 +895,9 @@ export const union = (
             .toMap()
             .mapKeys((s) => s.get("id") as string)
     );
-    // In this machine where the names of the states have been altered
+    // In the other machine where renamed the states
     // We should rename each transition with the new name
-    for (const transition of clonedMachine2.get(
+    for (const transition of clonedMachine.get(
         "transitions"
     ) as Immutable.Set<IITransition>) {
         // build new transition
@@ -768,11 +911,11 @@ export const union = (
             pop: null,
             push: null,
         } as ITransition;
-        clonedMachine2 = removeTransition(
-            clonedMachine2,
+        clonedMachine = removeTransition(
+            clonedMachine,
             transition.toObject() as ITransition
         );
-        clonedMachine2 = addTransition(clonedMachine2, newTransition);
+        clonedMachine = addTransition(clonedMachine, newTransition);
     }
 
     // Perform union of transitions of each machine
@@ -785,7 +928,8 @@ export const union = (
         )
     );
 
-    // get the entry states of the machines. ClonedMachine2 already contains the states which are entry from both
+    // get the entry states of the machines
+    // ClonedMachine2 already contains the states which are entry from both
     const entryStates = Immutable.List(
         (clonedMachine2.get("states") as Immutable.Map<string, IIState>).filter(
             (state) => !!state.get("isEntry")
@@ -814,9 +958,24 @@ export const union = (
         );
     }
 
+    // get the new initial state's name
+    const generator = stateNameGenerator(newUnionInitialStateName);
+    let next = generator.next().value;
+    let existsInSet = (clonedMachine2.get("states") as Immutable.Map<
+        string,
+        IIState
+    >).findKey((_, key) => key === next);
+    while (existsInSet) {
+        const newNext = generator.next();
+        existsInSet = (clonedMachine2.get("states") as Immutable.Map<
+            string,
+            IIState
+        >).findKey((_, key) => key === newNext.value);
+        next = newNext.value;
+    }
     // create a new initial state
     const newInitialState = {
-        id: "newUnionInitialState",
+        id: next,
         isEntry: true,
         isExit: false,
     } as IState;
@@ -1032,9 +1191,7 @@ export const determinize = (machine: IIMachine): IIMachine => {
             }
         }
     }
-    return isMachineDeterministic(clonedMachine)
-        ? clonedMachine
-        : removeUnreachableStates(clonedMachine);
+    return removeUnreachableStates(clonedMachine);
 };
 
 export const minimize = (machine: IIMachine): IIMachine => {
@@ -1105,9 +1262,6 @@ export function* nextStep(
     word: string // the whole string
 ): Generator<IITransition> {
     if (!isMachineDeterministic(machine)) {
-        console.error(
-            "step by step disabled on non-deterministic function. return false."
-        );
         return false;
     }
     let i = 0;
