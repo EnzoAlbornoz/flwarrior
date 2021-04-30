@@ -1,15 +1,8 @@
 import { inspect } from "util";
 import Immutable from "immutable";
-import { IAlphabet } from "../lib/Alphabet";
-import { EPSILON } from "../lib/AlphabetSymbol";
-import {
-    addNonTerminalSymbol,
-    addTerminalSymbol,
-    fromDBEntry as createGrammarFromDBEntry,
-    removeTerminalSymbol,
-    removeNonTerminalSymbol,
-} from "../lib/grammar/Grammar";
-import { GrammarType } from "../database/schema/grammar";
+import { IAlphabet } from "../../lib/Alphabet";
+import { EPSILON } from "../../lib/AlphabetSymbol";
+
 import {
     IITransition,
     findOutIfHasEpsilonTransition,
@@ -28,12 +21,17 @@ import {
     unionAlphabetsPlusEpsilon,
     complement,
     intersect,
-    removeUnreachableStates,
     nextStep,
     stateNameGenerator,
-} from "../lib/automaton/Machine";
-import { IIState } from "../lib/automaton/State";
-import { getNewMachine, MachineType } from "../database/schema/machine";
+    fromDBEntry,
+    getEquivalentClasses,
+    getReachableStates,
+    getStatesThatReachStateInSetBy,
+    getUnreachableStates,
+    removeDeadStates,
+} from "../../lib/automaton/Machine";
+import { IIState } from "../../lib/automaton/State";
+import { getNewMachine, MachineType } from "../../database/schema/machine";
 
 // ░░░░░░█▐▓▓░████▄▄▄█▀▄▓▓▓▌█
 // ░░░░░▄█▌▀▄▓▓▄▄▄▄▀▀▀▄▓▓▓▓▓▌█
@@ -46,68 +44,6 @@ import { getNewMachine, MachineType } from "../database/schema/machine";
 // ▌▓▄▌▀░▀░▐▀█▄▓▓██████████▓▓▓▌█▌
 // ▌▓▓▓▄▄▀▀▓▓▓▀▓▓▓▓▓▓▓▓█▓█▓█▓▓▌█▌
 // █▐▓▓▓▓▓▓▄▄▄▓▓▓▓▓▓█▓█▓█▓█▓▓▓▐:theDoge:
-
-test("test add symbols to new IIGrammar", () => {
-    // IIGrammar
-    const immutableGrammar = createGrammarFromDBEntry({
-        id: "test",
-        name: "test",
-        alphabetT: [],
-        alphabetNT: [],
-        startSymbol: "S",
-        transitions: [],
-        type: GrammarType.REGULAR,
-    });
-
-    let modifiedGrammar = addNonTerminalSymbol(immutableGrammar, "j");
-
-    expect(
-        (immutableGrammar.get("nonTerminalSymbols") as IAlphabet).includes("j")
-    ).toBeFalsy();
-
-    expect(
-        (modifiedGrammar.get("nonTerminalSymbols") as IAlphabet).includes("j")
-    ).toBeTruthy();
-
-    modifiedGrammar = addTerminalSymbol(immutableGrammar, "s");
-
-    expect(
-        (immutableGrammar.get("nonTerminalSymbols") as IAlphabet).includes("j")
-    ).toBeFalsy();
-
-    expect(
-        (modifiedGrammar.get("terminalSymbols") as IAlphabet).includes("s")
-    ).toBeTruthy();
-});
-
-test("test remove symbols to new IIGrammar", () => {
-    // IIGrammar
-    const immutableGrammar = createGrammarFromDBEntry({
-        id: "test",
-        name: "test",
-        alphabetT: ["c"],
-        alphabetNT: ["C"],
-        startSymbol: "S",
-        transitions: [],
-        type: GrammarType.REGULAR,
-    });
-
-    let modifiedGrammar = removeTerminalSymbol(immutableGrammar, "c");
-
-    expect(
-        (modifiedGrammar.get("terminalSymbols") as IAlphabet).includes("c")
-    ).toBeFalsy();
-
-    expect(
-        (modifiedGrammar.get("nonTerminalSymbols") as IAlphabet).includes("C")
-    ).toBeTruthy();
-
-    modifiedGrammar = removeNonTerminalSymbol(modifiedGrammar, "C");
-
-    expect(
-        (modifiedGrammar.get("nonTerminalSymbols") as IAlphabet).includes("C")
-    ).toBeFalsy();
-});
 
 function buildImmutableRegularNonDeterministicWithoutEpsilonMachine(): IIMachine {
     return createMachineFromDBEntry({
@@ -2639,3 +2575,277 @@ test("test Union", () => {
         )
     ).toBe(true);
 });
+
+{
+    // Setup Premade Machines
+    const machine1 = fromDBEntry({
+        ...getNewMachine(MachineType.FINITE_STATE_MACHINE, true),
+        states: [
+            { id: "q0", isEntry: true, isExit: false },
+            { id: "q1", isEntry: false, isExit: true },
+            { id: "q2", isEntry: false, isExit: true },
+        ],
+        entryAlphabet: ["1"],
+        transitions: [
+            {
+                from: "q0",
+                to: {
+                    newState: "q1",
+                    writeSymbol: null,
+                    headDirection: null,
+                },
+                with: {
+                    head: "1",
+                    memory: null,
+                },
+            },
+            {
+                from: "q2",
+                to: {
+                    newState: "q1",
+                    writeSymbol: null,
+                    headDirection: null,
+                },
+                with: {
+                    head: "1",
+                    memory: null,
+                },
+            },
+        ],
+    });
+    const machine2 = fromDBEntry({
+        ...getNewMachine(MachineType.FINITE_STATE_MACHINE, true),
+        states: [
+            { id: "a", isEntry: true, isExit: false },
+            { id: "b", isEntry: false, isExit: false },
+            { id: "c", isEntry: false, isExit: true },
+            { id: "d", isEntry: false, isExit: true },
+            { id: "e", isEntry: false, isExit: true },
+            { id: "f", isEntry: false, isExit: false },
+        ],
+        entryAlphabet: ["0", "1"],
+        transitions: [
+            {
+                from: "a",
+                to: {
+                    newState: "b",
+                    writeSymbol: null,
+                    headDirection: null,
+                },
+                with: {
+                    head: "0",
+                    memory: null,
+                },
+            },
+            {
+                from: "b",
+                to: {
+                    newState: "a",
+                    writeSymbol: null,
+                    headDirection: null,
+                },
+                with: {
+                    head: "0",
+                    memory: null,
+                },
+            },
+            {
+                from: "b",
+                to: {
+                    newState: "d",
+                    writeSymbol: null,
+                    headDirection: null,
+                },
+                with: {
+                    head: "1",
+                    memory: null,
+                },
+            },
+            {
+                from: "a",
+                to: {
+                    newState: "c",
+                    writeSymbol: null,
+                    headDirection: null,
+                },
+                with: {
+                    head: "1",
+                    memory: null,
+                },
+            },
+            {
+                from: "c",
+                to: {
+                    newState: "e",
+                    writeSymbol: null,
+                    headDirection: null,
+                },
+                with: {
+                    head: "0",
+                    memory: null,
+                },
+            },
+            {
+                from: "c",
+                to: {
+                    newState: "f",
+                    writeSymbol: null,
+                    headDirection: null,
+                },
+                with: {
+                    head: "1",
+                    memory: null,
+                },
+            },
+            {
+                from: "d",
+                to: {
+                    newState: "e",
+                    writeSymbol: null,
+                    headDirection: null,
+                },
+                with: {
+                    head: "0",
+                    memory: null,
+                },
+            },
+            {
+                from: "d",
+                to: {
+                    newState: "f",
+                    writeSymbol: null,
+                    headDirection: null,
+                },
+                with: {
+                    head: "1",
+                    memory: null,
+                },
+            },
+            {
+                from: "e",
+                to: {
+                    newState: "e",
+                    writeSymbol: null,
+                    headDirection: null,
+                },
+                with: {
+                    head: "0",
+                    memory: null,
+                },
+            },
+            {
+                from: "e",
+                to: {
+                    newState: "f",
+                    writeSymbol: null,
+                    headDirection: null,
+                },
+                with: {
+                    head: "1",
+                    memory: null,
+                },
+            },
+            {
+                from: "f",
+                to: {
+                    newState: "f",
+                    writeSymbol: null,
+                    headDirection: null,
+                },
+                with: {
+                    head: "0",
+                    memory: null,
+                },
+            },
+            {
+                from: "f",
+                to: {
+                    newState: "f",
+                    writeSymbol: null,
+                    headDirection: null,
+                },
+                with: {
+                    head: "1",
+                    memory: null,
+                },
+            },
+        ],
+    });
+    // Set Tests
+    test("[getReachableStates] Test Working", () => {
+        // Setup
+        // SUT
+        const states = getReachableStates(machine1);
+        // Assert
+        expect(
+            states.equals(
+                Immutable.Set([
+                    Immutable.Map({
+                        id: "q0",
+                        isEntry: true,
+                        isExit: false,
+                    }),
+                    Immutable.Map({
+                        id: "q1",
+                        isEntry: false,
+                        isExit: true,
+                    }),
+                ])
+            )
+        );
+    });
+
+    test("[getUnreachableStates] Test Working", () => {
+        // Setup
+        // SUT
+        const states = getUnreachableStates(machine1);
+        // Assert
+        expect(
+            states.equals(
+                Immutable.Set([
+                    Immutable.Map({
+                        id: "q2",
+                        isEntry: false,
+                        isExit: true,
+                    }),
+                ])
+            )
+        );
+    });
+
+    test("[getStatesThatReachStateInSetBy] Test Working", () => {
+        // Setup
+        const mstates = machine2.get("states") as IMachine["states"];
+        const toStates = Immutable.Set([mstates.get("e")]);
+        // SUT
+        const states = getStatesThatReachStateInSetBy(machine2, toStates, "0");
+        // Assert
+        expect(states.size).toBe(3);
+    });
+
+    test("[getEquivalentClasses] Test Working", () => {
+        // Setup
+        // SUT
+        const equivalentClasses = getEquivalentClasses(machine2);
+        // Assert
+        expect(equivalentClasses.size).toBe(3);
+    });
+
+    test("[minimize] Test Working", () => {
+        // Setup
+        // SUT
+        const minimizedMachine = minimize(machine2);
+        // Assert
+        expect(
+            (minimizedMachine.get("states") as IMachine["states"]).size
+        ).toBe(2);
+    });
+
+    test("[removeDeadStates] Test Working", () => {
+        // Setup
+        // SUT
+        const notDeadMachine = removeDeadStates(machine2);
+        // Assert
+        expect(notDeadMachine.getIn(["states", "f"])).toBeFalsy();
+    });
+}

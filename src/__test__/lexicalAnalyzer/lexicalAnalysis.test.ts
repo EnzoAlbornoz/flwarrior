@@ -68,7 +68,5 @@ test("test analyze", async () => {
     );
     // console.log(regexUnion.toJS());
     // Determinize the result
-    console.time("mega");
     const megaMachine = determinize(regexUnion);
-    console.timeEnd("mega");
 });
