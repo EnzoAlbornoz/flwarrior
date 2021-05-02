@@ -39,7 +39,7 @@ const RegexAvatar = styled(IconBase).attrs({ component: Regex })`
     font-size: 2em;
 `;
 // Define Component
-export default function RegularGrammars(): JSX.Element {
+export default function ContextFreeGrammars(): JSX.Element {
     // Setup State
     const [grammarList, setGrammarList] = useState<Array<GrammarDBEntry>>([]);
     // Fetch Context
@@ -68,11 +68,11 @@ export default function RegularGrammars(): JSX.Element {
     };
     const editGrammar = (itemId: string) => {
         // Go to editing page
-        history.push(`/grammars/regular/edit/${itemId}`);
+        history.push(`/grammars/context-free/edit/${itemId}`);
     };
     const createGrammar = async () => {
         // Instantiate Basic Grammar
-        const newGrammar = getNewGrammar(GrammarType.REGULAR);
+        const newGrammar = getNewGrammar(GrammarType.CONTEXT_FREE);
         // Add Grammar to database
         const db = await useDatabase();
         await db.add(FLWarriorDBTables.GRAMMAR, newGrammar);
@@ -104,7 +104,12 @@ export default function RegularGrammars(): JSX.Element {
         const fileContent = await importedFile.text();
         // Parse as Object
         const grammarDB: GrammarDBEntry = JSON.parse(fileContent);
-        if (checkGrammarType(grammarDB, [GrammarType.REGULAR])) {
+        if (
+            checkGrammarType(grammarDB, [
+                GrammarType.CONTEXT_FREE,
+                GrammarType.REGULAR,
+            ])
+        ) {
             // Add Grammar to database
             const db = await useDatabase();
             await db.add(FLWarriorDBTables.GRAMMAR, grammarDB);
@@ -132,7 +137,7 @@ export default function RegularGrammars(): JSX.Element {
                 <GrammarsList>
                     <PageHeader
                         onBack={history.goBack}
-                        title="Gramáticas Regulares"
+                        title="Gramáticas Livre de Contexto"
                         subTitle="Listagem"
                         extra={[
                             <Button

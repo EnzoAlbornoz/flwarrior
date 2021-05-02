@@ -37,9 +37,7 @@ import {
     toDBEntry,
     setStartSymbol as setGrammarStartSymbol,
 } from "@lib/grammar/Grammar";
-import { toDBEntry as machineToDBEntry } from "@/lib/automaton/Machine";
-import { convertRegularGrammarToNonDeterministicFiniteMachine } from "@/lib/conversion";
-import { GrammarType } from "@/database/schema/grammar";
+import { GrammarDBEntry, GrammarType } from "@/database/schema/grammar";
 // Define Typings
 export interface ITGEditPageProps {
     id: string;
@@ -130,7 +128,7 @@ const SelectBar = styled.section`
     flex-direction: column;
 `;
 // Define Page
-export default function RegularGrammarEdit(): JSX.Element {
+export default function ContextFreeGrammarEdit(): JSX.Element {
     // Setup State
     const [grammar, setGrammar] = useState<IIGrammar>();
     // Get Context
@@ -158,25 +156,38 @@ export default function RegularGrammarEdit(): JSX.Element {
         grammar,
     ]) as IGrammar["startSymbol"];
     // Components Handlers
+    const checkGrammarType = (
+        grammarEntry: GrammarDBEntry,
+        allowedTypes: Array<GrammarType>
+    ) => {
+        if (!allowedTypes.includes(grammarEntry.type)) {
+            message.error(
+                "".concat(
+                    `Gramática de tipo ${grammarEntry.type}} não pode ser aceita!`,
+                    "Por favor, utilize uma gramática mais restrita."
+                ),
+                3
+            );
+            return false;
+        }
+        return true;
+    };
     const renameGrammar = (newName: string) =>
         setGrammar(rename(grammar, newName));
     const saveGrammar = async () => {
         // Serialize grammar
         const serializedGrammar = toDBEntry(grammar);
-        if (![GrammarType.REGULAR].includes(serializedGrammar.type)) {
-            message.error(
-                "".concat(
-                    `Gramática de tipo ${serializedGrammar.type}} não pode ser aceita!`,
-                    "Por favor, utilize uma gramática regular."
-                ),
-                3
-            );
-            return;
+        if (
+            checkGrammarType(serializedGrammar, [
+                GrammarType.CONTEXT_FREE,
+                GrammarType.REGULAR,
+            ])
+        ) {
+            // Fetch Database
+            const db = await useDatabase();
+            await db.put(FLWarriorDBTables.GRAMMAR, serializedGrammar);
+            message.success("Gramática salva!", 1);
         }
-        // Fetch Database
-        const db = await useDatabase();
-        await db.put(FLWarriorDBTables.GRAMMAR, serializedGrammar);
-        message.success("Gramática salva!", 1);
     };
     const newRuleHead = (newRuleHeadSymbols: string) =>
         setGrammar(addProductionHead(grammar, newRuleHeadSymbols.split("")));
@@ -208,19 +219,6 @@ export default function RegularGrammarEdit(): JSX.Element {
     const setStartSymbol = (newStartSymbol: string) =>
         setGrammar(setGrammarStartSymbol(grammar, newStartSymbol));
     // Special Functions
-    const convertToMachine = async () => {
-        // Convert To Machine
-        const machine = convertRegularGrammarToNonDeterministicFiniteMachine(
-            grammar,
-            true
-        );
-        // Save New Machine
-        const serializedMachine = machineToDBEntry(machine);
-        const db = await useDatabase();
-        await db.put(FLWarriorDBTables.MACHINE, serializedMachine);
-        // Go to Machine Editor Page
-        return history.push(`/automata/finite/edit/${serializedMachine.id}`);
-    };
     // Setup Modals
     const [showModalAlphabetT, modalAlphabetTCH] = useModal({
         title: "Adicionar símbolo terminal",
@@ -274,19 +272,8 @@ export default function RegularGrammarEdit(): JSX.Element {
                     <PageHeader
                         onBack={history.goBack}
                         title={`Editar - ${name || idToEdit}`}
-                        subTitle="Gramática Regular"
+                        subTitle="Gramática Livre de Contexto"
                         extra={[
-                            <Tooltip
-                                title="Converte a gramática para um AFND"
-                                key="convert-machine-tooltip"
-                            >
-                                <Button
-                                    key="button-convert-machine"
-                                    onClick={convertToMachine}
-                                >
-                                    Converter - Autômato
-                                </Button>
-                            </Tooltip>,
                             <Button
                                 key="button-rename"
                                 onClick={showModalRename}
