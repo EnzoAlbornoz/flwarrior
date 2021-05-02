@@ -1,12 +1,31 @@
 import { IAlphabet } from "@/lib/Alphabet";
+import Immutable from "immutable";
 import {
     addNonTerminalSymbol,
     addTerminalSymbol,
     fromDBEntry as createGrammarFromDBEntry,
     removeTerminalSymbol,
     removeNonTerminalSymbol,
+    getBodiesOfHead,
+    IIGrammar,
 } from "../../lib/grammar/Grammar";
 import { GrammarType } from "../../database/schema/grammar";
+
+function buildGrammar1(): IIGrammar {
+    // S  -> Sa|b
+    return createGrammarFromDBEntry({
+        id: "test",
+        name: "test",
+        alphabetT: ["b", "a", "ε"],
+        alphabetNT: ["S"],
+        startSymbol: "S",
+        transitions: [
+            { from: ["S"], to: [["S", "a"], ["b"], ["B"]] },
+            { from: ["B"], to: [["a"], ["b"]] },
+        ],
+        type: GrammarType.REGULAR,
+    });
+}
 
 test("test add symbols to new IIGrammar", () => {
     // IIGrammar
@@ -68,4 +87,22 @@ test("test remove symbols to new IIGrammar", () => {
     expect(
         (modifiedGrammar.get("nonTerminalSymbols") as IAlphabet).includes("C")
     ).toBeFalsy();
+});
+
+test("test get bodies of head", () => {
+    const grammar = buildGrammar1();
+    expect(
+        getBodiesOfHead(grammar, ["B"]).equals(
+            Immutable.Set([Immutable.List(["a"]), Immutable.List(["b"])])
+        )
+    ).toBeTruthy();
+    expect(
+        getBodiesOfHead(grammar, ["S"]).equals(
+            Immutable.Set([
+                Immutable.List(["S", "a"]),
+                Immutable.List(["b"]),
+                Immutable.List(["B"]),
+            ])
+        )
+    ).toBeTruthy();
 });

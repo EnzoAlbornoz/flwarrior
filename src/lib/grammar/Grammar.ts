@@ -1,4 +1,5 @@
-import Immutable from "immutable";
+import Immutable, { remove } from "immutable";
+import { stringify } from "uuid";
 import { GrammarType, GrammarDBEntry } from "../../database/schema/grammar";
 import { IAlphabet } from "../Alphabet";
 import { ASymbol, EPSILON } from "../AlphabetSymbol";
@@ -61,48 +62,62 @@ export const removeNonTerminalSymbol = (
 
 export const addProductionHead = (
     grammar: IIGrammar,
-    from: Array<ASymbol>
+    head: Array<ASymbol>
 ): IIGrammar =>
     grammar.update(
         "productionRules",
         Immutable.Map<IGrammarWord, Immutable.Set<IGrammarWord>>(),
         (rules: Immutable.Map<IGrammarWord, Immutable.Set<IGrammarWord>>) =>
-            rules.has(Immutable.List(from))
+            rules.has(Immutable.List(head))
                 ? rules
-                : rules.set(Immutable.List(from), Immutable.Set())
+                : rules.set(Immutable.List(head), Immutable.Set())
     );
 
 export const addProductionBody = (
     grammar: IIGrammar,
-    from: Array<ASymbol>,
-    to: Array<ASymbol>
+    head: Array<ASymbol>,
+    body: Array<ASymbol>
 ): IIGrammar =>
     grammar.updateIn(
-        ["productionRules", Immutable.List(from)],
+        ["productionRules", Immutable.List(head)],
         Immutable.Set<IGrammarWord>(),
         (old: Immutable.Set<IGrammarWord>) =>
-            old.has(Immutable.List(to)) ? old : old.add(Immutable.List(to))
+            old.has(Immutable.List(body)) ? old : old.add(Immutable.List(body))
     );
 
 export const removeProductionHead = (
     grammar: IIGrammar,
-    from: Array<ASymbol>
+    head: Array<ASymbol>
 ): IIGrammar =>
     grammar.update(
         "productionRules",
         (old: Immutable.Map<IGrammarWord, Immutable.Set<IGrammarWord>>) =>
-            old.remove(Immutable.List(from))
+            old.remove(Immutable.List(head))
     );
 
 export const removeProductionBody = (
     grammar: IIGrammar,
-    from: Array<ASymbol>,
+    head: Array<ASymbol>,
     body: Array<ASymbol>
 ): IIGrammar =>
     grammar.updateIn(
-        ["productionRules", Immutable.List(from)],
+        ["productionRules", Immutable.List(head)],
         (old: Immutable.Set<IGrammarWord>) => old.remove(Immutable.List(body))
     );
+
+export const getBodiesOfHead = (
+    grammar: IIGrammar,
+    head: Array<ASymbol>
+): Immutable.Set<IGrammarWord> =>
+    (grammar.get("productionRules") as Immutable.Map<
+        IGrammarWord,
+        Immutable.Set<IGrammarWord>
+    >)
+        .filter((_, key) => {
+            return key.toArray().join() === head.join();
+        })
+        .valueSeq()
+        .first() as Immutable.Set<IGrammarWord>;
 
 export const setStartSymbol = (
     grammar: IIGrammar,
@@ -176,6 +191,125 @@ export const checkOwnType = (grammar: IIGrammar): GrammarType => {
         return GrammarType.CONTEXT_FREE;
     }
     return GrammarType.REGULAR;
+};
+
+export function* generateNewSymbol(): Generator<string> {
+    const symbolsList = "δ, θ, λ, ξ, σ, ψ, ω, я, ц, ж, д, ы, и, п, ь, л, б, ш, ю, ч, ф"
+        .toUpperCase()
+        .split(",");
+    yield symbolsList[0];
+    let i = 0;
+    while (true) {
+        i++;
+        yield symbolsList[i];
+    }
+}
+
+export const removeDirectLeftProduction = (grammar: IIGrammar): IIGrammar => {
+    const generator = generateNewSymbol();
+    let clonedGrammar = grammar;
+    // first find left recursive productions
+    let leftRecursiveHeads = Immutable.Set<IGrammarWord>();
+    let leftRecursiveHeadsToBody = Immutable.Map<IGrammarWord, IGrammarWord>();
+    for (const [head, productionSet] of grammar.get(
+        "productionRules"
+    ) as Immutable.Map<IGrammarWord, Immutable.Set<IGrammarWord>>) {
+        for (const body of productionSet) {
+            if ((head as IGrammarWord).size > 1)
+                console.error(
+                    "Head with more than 1 symbol, May be Unrestricted grammar"
+                );
+            if (
+                (head as IGrammarWord).first() ===
+                (body as IGrammarWord).first()
+            ) {
+                // if not already added
+                // add production to map for later
+                leftRecursiveHeads = leftRecursiveHeads.add(head);
+                leftRecursiveHeadsToBody = leftRecursiveHeadsToBody.set(
+                    head,
+                    body
+                );
+                // remove this production
+                clonedGrammar = removeProductionBody(
+                    clonedGrammar,
+                    (head as IGrammarWord).toArray(),
+                    (body as IGrammarWord).toArray()
+                );
+            }
+        }
+    }
+    // for every production head in the map
+    // create a new symbol and
+    // append it to the end of all the productions with this head
+    let headToNewHead = Immutable.Map<IGrammarWord, string>();
+    for (const head of leftRecursiveHeads) {
+        // create a new symbol
+        let next = generator.next();
+        while (
+            (clonedGrammar.get("nonTerminalSymbols") as IAlphabet).contains(
+                next.value
+            )
+        ) {
+            next = generator.next();
+        }
+        // add new symbol to the non terminal list
+        clonedGrammar = addNonTerminalSymbol(clonedGrammar, next.value);
+        // save for later
+        headToNewHead = headToNewHead.set(head, next.value);
+        // get the body of this head
+        for (const body of getBodiesOfHead(clonedGrammar, head.toArray())) {
+            // remove the old production
+            clonedGrammar = removeProductionBody(
+                clonedGrammar,
+                head.toArray(),
+                body.toArray()
+            );
+            // append the new symbol
+            clonedGrammar = addProductionBody(
+                clonedGrammar,
+                head.toArray(),
+                body.push(next.value).toArray()
+            );
+        }
+    }
+
+    for (const [oldHead, oldBody] of leftRecursiveHeadsToBody) {
+        // get the new head
+        const newHead = headToNewHead.get(oldHead);
+
+        // create new productions with the new head
+        clonedGrammar = addProductionHead(clonedGrammar, [newHead]);
+
+        // remove the original left recursion from each body
+        // and add a new production which is equal
+        // except this production has the new symbol appended at the end
+        const newProduction = oldBody.push(newHead).shift();
+        clonedGrammar = addProductionBody(
+            clonedGrammar,
+            [newHead],
+            newProduction.toArray()
+        );
+        // finally add ε to the production list
+        clonedGrammar = addProductionBody(clonedGrammar, [newHead], [EPSILON]);
+    }
+
+    // console.log(leftRecursiveHeads.toJS());
+    // for each of these productions we
+    return clonedGrammar;
+};
+
+export const removeLeftProduction = (grammar: IIGrammar): IIGrammar => {
+    // Following teachers algorithm
+    // first we should place the non-terminal symbols in some order
+    const nonTermianlSymbolsList = (grammar.get(
+        "nonTerminalSymbols"
+    ) as IAlphabet).toList();
+    // we eliminate the indirect recursion first
+    // eslint-disable-next-line no-empty
+    for (const iterator of nonTermianlSymbolsList) {
+    }
+    return grammar;
 };
 
 export const fromDBEntry = (dbEntry: GrammarDBEntry): IIGrammar =>
