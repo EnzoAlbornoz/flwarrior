@@ -26,6 +26,25 @@ function buildSimpleGrammar1(): IIGrammar {
     });
 }
 
+function buildSimpleGrammar2(): IIGrammar {
+    // S  -> Sa|b
+    return createGrammarFromDBEntry({
+        id: "test",
+        name: "test",
+        alphabetT: ["b", "a", "d"],
+        alphabetNT: ["S", "A"],
+        startSymbol: "S",
+        transitions: [
+            { from: ["S"], to: [["A", "a"], ["b"]] },
+            {
+                from: ["A"],
+                to: [["A", "c"], ["A", "a", "d"], ["b", "d"], ["a"]],
+            },
+        ],
+        type: GrammarType.REGULAR,
+    });
+}
+
 test("test remove left production", () => {
     const grammar = buildSimpleGrammar1();
     // expected:
@@ -45,6 +64,53 @@ test("test remove left production", () => {
                     Immutable.Set([
                         Immutable.List(["a", "Δ"]),
                         Immutable.List(["ε"]),
+                    ])
+                )
+        )
+    ).toBeTruthy();
+
+    expect(
+        (grammar.get("nonTerminalSymbols") as IAlphabet).equals(
+            Immutable.OrderedSet(["Δ", "S"])
+        )
+    );
+    expect(
+        (grammar.get("terminalSymbols") as IAlphabet).equals(
+            Immutable.OrderedSet(["b", "a", "ε"])
+        )
+    );
+});
+
+test("dude stop", () => {
+    const grammar = removeDirectLeftProduction(buildSimpleGrammar2());
+    // expected:
+    // S  -> bS'
+    // S' -> aS'| ε
+    expect(
+        (removeDirectLeftProduction(grammar).get(
+            "productionRules"
+        ) as Immutable.Map<IGrammarWord, Immutable.Set<IGrammarWord>>).equals(
+            Immutable.Map()
+                .set(
+                    Immutable.List(["S"]),
+                    Immutable.Set([
+                        Immutable.List(["A", "a"]),
+                        Immutable.List(["b"]),
+                    ])
+                )
+                .set(
+                    Immutable.List(["Δ"]),
+                    Immutable.Set([
+                        Immutable.List(["c", "Δ"]),
+                        Immutable.List(["a", "d", "Δ"]),
+                        Immutable.List(["ε"]),
+                    ])
+                )
+                .set(
+                    Immutable.List(["A"]),
+                    Immutable.Set([
+                        Immutable.List(["a", "Δ"]),
+                        Immutable.List(["b", "d", "Δ"]),
                     ])
                 )
         )

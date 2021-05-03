@@ -210,7 +210,10 @@ export const removeDirectLeftProduction = (grammar: IIGrammar): IIGrammar => {
     let clonedGrammar = grammar;
     // first find left recursive productions
     let leftRecursiveHeads = Immutable.Set<IGrammarWord>();
-    let leftRecursiveHeadsToBody = Immutable.Map<IGrammarWord, IGrammarWord>();
+    let leftRecursiveHeadsToBody = Immutable.Map<
+        IGrammarWord,
+        Immutable.Set<IGrammarWord>
+    >();
     for (const [head, productionSet] of grammar.get(
         "productionRules"
     ) as Immutable.Map<IGrammarWord, Immutable.Set<IGrammarWord>>) {
@@ -226,9 +229,16 @@ export const removeDirectLeftProduction = (grammar: IIGrammar): IIGrammar => {
                 // if not already added
                 // add production to map for later
                 leftRecursiveHeads = leftRecursiveHeads.add(head);
-                leftRecursiveHeadsToBody = leftRecursiveHeadsToBody.set(
+
+                if (!leftRecursiveHeadsToBody.has(head)) {
+                    leftRecursiveHeadsToBody = leftRecursiveHeadsToBody.set(
+                        head,
+                        Immutable.Set<IGrammarWord>()
+                    );
+                }
+                leftRecursiveHeadsToBody = leftRecursiveHeadsToBody.update(
                     head,
-                    body
+                    (setu) => (setu as Immutable.Set<IGrammarWord>).add(body)
                 );
                 // remove this production
                 clonedGrammar = removeProductionBody(
@@ -277,19 +287,19 @@ export const removeDirectLeftProduction = (grammar: IIGrammar): IIGrammar => {
     for (const [oldHead, oldBody] of leftRecursiveHeadsToBody) {
         // get the new head
         const newHead = headToNewHead.get(oldHead);
-
         // create new productions with the new head
         clonedGrammar = addProductionHead(clonedGrammar, [newHead]);
-
-        // remove the original left recursion from each body
-        // and add a new production which is equal
-        // except this production has the new symbol appended at the end
-        const newProduction = oldBody.push(newHead).shift();
-        clonedGrammar = addProductionBody(
-            clonedGrammar,
-            [newHead],
-            newProduction.toArray()
-        );
+        for (const production of oldBody) {
+            // remove the original left recursion from each body
+            // and add a new production which is equal
+            // except this production has the new symbol appended at the end
+            const newProduction = production.push(newHead).shift();
+            clonedGrammar = addProductionBody(
+                clonedGrammar,
+                [newHead],
+                newProduction.toArray()
+            );
+        }
         // finally add ε to the production list
         clonedGrammar = addProductionBody(clonedGrammar, [newHead], [EPSILON]);
     }
