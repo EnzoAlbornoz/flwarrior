@@ -10,6 +10,7 @@ import {
     IIGrammar,
     removeDirectLeftProduction,
     IGrammarWord,
+    removeLeftProduction,
 } from "../../lib/grammar/Grammar";
 import { GrammarType } from "../../database/schema/grammar";
 
@@ -45,8 +46,29 @@ function buildSimpleGrammar2(): IIGrammar {
     });
 }
 
-test("test remove left production", () => {
-    const grammar = buildSimpleGrammar1();
+function buildSimpleGrammar3(): IIGrammar {
+    // Indirect left recursion
+    // S  -> Sa | b
+    // A -> Ac | Sd | a
+    return createGrammarFromDBEntry({
+        id: "test",
+        name: "test",
+        alphabetT: ["b", "a", "d"],
+        alphabetNT: ["S", "A"],
+        startSymbol: "S",
+        transitions: [
+            { from: ["S"], to: [["A", "a"], ["b"]] },
+            {
+                from: ["A"],
+                to: [["A", "c"], ["S", "d"], ["a"]],
+            },
+        ],
+        type: GrammarType.REGULAR,
+    });
+}
+
+test("test remove direct left production", () => {
+    let grammar = buildSimpleGrammar1();
     // expected:
     // S  -> bS'
     // S' -> aS'| ε
@@ -79,13 +101,45 @@ test("test remove left production", () => {
             Immutable.OrderedSet(["b", "a", "ε"])
         )
     );
+
+    grammar = removeDirectLeftProduction(buildSimpleGrammar2());
+    // expected:
+    // S  -> Aa | b
+    // S' -> cS' | adS' | ε
+    // A -> aS' | bdS'
+    expect(
+        (removeDirectLeftProduction(grammar).get(
+            "productionRules"
+        ) as Immutable.Map<IGrammarWord, Immutable.Set<IGrammarWord>>).equals(
+            Immutable.Map()
+                .set(
+                    Immutable.List(["S"]),
+                    Immutable.Set([
+                        Immutable.List(["A", "a"]),
+                        Immutable.List(["b"]),
+                    ])
+                )
+                .set(
+                    Immutable.List(["Δ"]),
+                    Immutable.Set([
+                        Immutable.List(["c", "Δ"]),
+                        Immutable.List(["a", "d", "Δ"]),
+                        Immutable.List(["ε"]),
+                    ])
+                )
+                .set(
+                    Immutable.List(["A"]),
+                    Immutable.Set([
+                        Immutable.List(["a", "Δ"]),
+                        Immutable.List(["b", "d", "Δ"]),
+                    ])
+                )
+        )
+    ).toBeTruthy();
 });
 
-test("dude stop", () => {
-    const grammar = removeDirectLeftProduction(buildSimpleGrammar2());
-    // expected:
-    // S  -> bS'
-    // S' -> aS'| ε
+test("remove indirect left recursive production", () => {
+    const grammar = removeLeftProduction(buildSimpleGrammar3());
     expect(
         (removeDirectLeftProduction(grammar).get(
             "productionRules"
