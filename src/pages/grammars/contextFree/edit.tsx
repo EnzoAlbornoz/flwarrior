@@ -7,7 +7,6 @@ import {
     Tag,
     Select,
     message,
-    Tooltip,
 } from "antd";
 import IconBase, { SaveOutlined } from "@ant-design/icons";
 import { useState, useMemo } from "react";
@@ -37,7 +36,12 @@ import {
     toDBEntry,
     setStartSymbol as setGrammarStartSymbol,
 } from "@lib/grammar/Grammar";
-import { GrammarDBEntry, GrammarType } from "@/database/schema/grammar";
+import {
+    GrammarDBEntry,
+    GrammarType,
+    translateGrammarType,
+} from "@/database/schema/grammar";
+import { EPSILON } from "@/lib/AlphabetSymbol";
 // Define Typings
 export interface ITGEditPageProps {
     id: string;
@@ -163,7 +167,9 @@ export default function ContextFreeGrammarEdit(): JSX.Element {
         if (!allowedTypes.includes(grammarEntry.type)) {
             message.error(
                 "".concat(
-                    `Gramática de tipo ${grammarEntry.type}} não pode ser aceita!`,
+                    `Gramática de tipo ${translateGrammarType(
+                        grammarEntry.type
+                    ).toLowerCase()} não pode ser aceita! `,
                     "Por favor, utilize uma gramática mais restrita."
                 ),
                 3
@@ -175,6 +181,17 @@ export default function ContextFreeGrammarEdit(): JSX.Element {
     const renameGrammar = (newName: string) =>
         setGrammar(rename(grammar, newName));
     const saveGrammar = async () => {
+        // Check Grammar Complete
+        if (
+            (grammar.get(
+                "productionRules"
+            ) as IGrammar["productionRules"]).some((bodies) => !bodies.size)
+        ) {
+            message.error(
+                "[Erro] Não foi possível salvar pois há produções incompletas."
+            );
+            return;
+        }
         // Serialize grammar
         const serializedGrammar = toDBEntry(grammar);
         if (
@@ -203,11 +220,11 @@ export default function ContextFreeGrammarEdit(): JSX.Element {
             addProductionBody(
                 grammar,
                 context.ruleHead,
-                newRuleBodySymbols.split("")
+                newRuleBodySymbols.replace(/&/g, EPSILON).split("")
             )
         );
     const newAlphabetTSymbol = (newSymbol: string) =>
-        setGrammar(addTerminalSymbol(grammar, newSymbol));
+        setGrammar(addTerminalSymbol(grammar, newSymbol.replace("&", EPSILON)));
 
     const newAlphabetNTSymbol = (newSymbol: string) =>
         setGrammar(addNonTerminalSymbol(grammar, newSymbol));
@@ -239,14 +256,22 @@ export default function ContextFreeGrammarEdit(): JSX.Element {
         onSubmit: newRuleHead,
         placeholder: "Insira a nova cabeça de produção (Ex.: S)",
         submitText: "Adicionar",
-        submitDisabled: (ci) => ci.length < 1,
+        submitDisabled: (ci) => ci.length === 0 || !alphabetNT.includes(ci),
     });
     const [showModalNewRuleBody, modalNewRuleBodyCH] = useModal({
         title: "Adicionar novo corpo de produção",
         onSubmit: newRuleBody,
         placeholder: "Insira o novo corpo de produção (Ex.: aA)",
         submitText: "Adicionar",
-        submitDisabled: (ci) => ci.length < 1,
+        submitDisabled: (ci) =>
+            ci.length === 0 ||
+            ci.split("").some((bodySymbol) => {
+                const transBodySymbol = bodySymbol.replace("&", EPSILON);
+                return !(
+                    alphabetT.includes(transBodySymbol) ||
+                    alphabetNT.includes(transBodySymbol)
+                );
+            }),
     });
 
     const [showModalRename, modalRenameCH] = useModal({

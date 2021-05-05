@@ -14,6 +14,7 @@ import {
     getNewGrammar,
     GrammarDBEntry,
     GrammarType,
+    translateGrammarType,
 } from "@database/schema/grammar";
 // Define Style
 const GrammarsList = styled.section`
@@ -52,7 +53,9 @@ export default function RegularGrammars(): JSX.Element {
         if (!allowedTypes.includes(grammarEntry.type)) {
             message.error(
                 "".concat(
-                    `Gramática de tipo ${grammarEntry.type}} não pode ser aceita!`,
+                    `Gramática de tipo ${translateGrammarType(
+                        grammarEntry.type
+                    ).toLowerCase()} não pode ser aceita!`,
                     "Por favor, utilize uma gramática mais restrita."
                 ),
                 3
