@@ -168,9 +168,7 @@ test("[testRegexConversion] Test Working", () => {
         expression: regexstr,
     });
     // SUT
-    const machine = convertRegularExpressionToDeterministicFiniteMachine(
-        regex
-    );
+    const machine = convertRegularExpressionToDeterministicFiniteMachine(regex);
     // Log
     // console.log(inspect(machine.toJS(), { depth: null, colors: true }));
 });

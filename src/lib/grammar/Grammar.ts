@@ -1,5 +1,6 @@
 import Immutable, { remove } from "immutable";
 import { stringify } from "uuid";
+import { inspect } from "util";
 import { GrammarType, GrammarDBEntry } from "../../database/schema/grammar";
 import { IAlphabet } from "../Alphabet";
 import { ASymbol, EPSILON } from "../AlphabetSymbol";
@@ -194,7 +195,7 @@ export const checkOwnType = (grammar: IIGrammar): GrammarType => {
 };
 
 export function* generateNewSymbol(): Generator<string> {
-    const symbolsList = "δ, θ, λ, ξ, σ, ψ, ω, я, ц, ж, д, ы, и, п, ь, л, б, ш, ю, ч, ф"
+    const symbolsList = "δ,θ,λ,ξ,σ,ψ,ω,я,ц,ж,д,ы,и,п,ь,л,б,ш,ю,ч,ф"
         .toUpperCase()
         .split(",");
     yield symbolsList[0];
@@ -205,7 +206,21 @@ export function* generateNewSymbol(): Generator<string> {
     }
 }
 
-export const removeDirectLeftProduction = (grammar: IIGrammar): IIGrammar => {
+export const removeDirectLeftProduction = (
+    grammar: IIGrammar,
+    headToRemove = "stop"
+): IIGrammar => {
+    let productionRules = grammar.get("productionRules") as Immutable.Map<
+        IGrammarWord,
+        Immutable.Set<IGrammarWord>
+    >;
+    // if head is set, then look for only that head
+    if (headToRemove !== "stop") {
+        productionRules = (grammar.get("productionRules") as Immutable.Map<
+            IGrammarWord,
+            Immutable.Set<IGrammarWord>
+        >).filter((_, head) => head.join("") === headToRemove);
+    }
     const generator = generateNewSymbol();
     let clonedGrammar = grammar;
     // first find left recursive productions
@@ -214,9 +229,7 @@ export const removeDirectLeftProduction = (grammar: IIGrammar): IIGrammar => {
         IGrammarWord,
         Immutable.Set<IGrammarWord>
     >();
-    for (const [head, productionSet] of grammar.get(
-        "productionRules"
-    ) as Immutable.Map<IGrammarWord, Immutable.Set<IGrammarWord>>) {
+    for (const [head, productionSet] of productionRules) {
         for (const body of productionSet) {
             if ((head as IGrammarWord).size > 1)
                 console.error(
@@ -302,14 +315,36 @@ export const removeDirectLeftProduction = (grammar: IIGrammar): IIGrammar => {
         }
         // finally add ε to the production list
         clonedGrammar = addProductionBody(clonedGrammar, [newHead], [EPSILON]);
+        clonedGrammar = addTerminalSymbol(clonedGrammar, EPSILON);
     }
-
-    // console.log(leftRecursiveHeads.toJS());
-    // for each of these productions we
     return clonedGrammar;
 };
 
+// Only works on grammars which don't have circular productions & without ε
 export const removeLeftProduction = (grammar: IIGrammar): IIGrammar => {
+    const findProductionAiAj = (
+        clonedGrammar: IIGrammar,
+        ai: string,
+        aj: string
+    ): Immutable.Set<[IGrammarWord, IGrammarWord]> => {
+        let productions = Immutable.Set();
+        for (const production of (clonedGrammar.get(
+            "productionRules"
+        ) as Immutable.Map<
+            IGrammarWord,
+            Immutable.Set<IGrammarWord>
+        >).entrySeq()) {
+            if (production[0].first() === ai) {
+                for (const body of production[1]) {
+                    if (body.first() === aj)
+                        productions = productions.add([production[0], body]);
+                }
+            }
+        }
+        return productions;
+    };
+    // return grammar
+    let clonedGrammar = grammar;
     // Following teachers algorithm
     // first we should place the non-terminal symbols in some order
     const nonTermianlSymbolsList = (grammar.get(
@@ -317,9 +352,91 @@ export const removeLeftProduction = (grammar: IIGrammar): IIGrammar => {
     ) as IAlphabet).toList();
     // we eliminate the indirect recursion first
     // eslint-disable-next-line no-empty
-    for (const iterator of nonTermianlSymbolsList) {
+    for (let i = 0; i < nonTermianlSymbolsList.size; i++) {
+        for (let j = 0; j < i; j++) {
+            // if Ai -> Aja is in P
+            // find a production that takes from Ai to Aj
+            const productionsAiAj = findProductionAiAj(
+                clonedGrammar,
+                nonTermianlSymbolsList.get(i),
+                nonTermianlSymbolsList.get(j)
+            );
+            // should be only 1
+            if (productionsAiAj.size > 1) {
+                console.error(
+                    "should be only one, this should be dealt with now"
+                );
+            }
+
+            if (productionsAiAj.size === 1) {
+                // remove the production Ai -> Aj
+                clonedGrammar = removeProductionBody(
+                    clonedGrammar,
+                    (productionsAiAj.first() as [
+                        IGrammarWord,
+                        IGrammarWord
+                    ])[0].toArray(),
+                    (productionsAiAj.first() as [
+                        IGrammarWord,
+                        IGrammarWord
+                    ])[1].toArray()
+                );
+                if (
+                    (productionsAiAj.first() as [IGrammarWord, IGrammarWord])[1]
+                        .size === 1
+                ) {
+                    // one single symbol, we can just append all the productions directly
+
+                    for (const body of getBodiesOfHead(clonedGrammar, [
+                        nonTermianlSymbolsList.get(j),
+                    ])) {
+                        // append them to the Ai
+                        clonedGrammar = addProductionBody(
+                            clonedGrammar,
+                            (productionsAiAj.first() as [
+                                IGrammarWord,
+                                IGrammarWord
+                            ])[0].toArray(),
+                            body.toArray()
+                        );
+                    }
+                } else {
+                    // more than one symbol, must shift
+                    const bodyToAppend = (productionsAiAj.first() as [
+                        IGrammarWord,
+                        IGrammarWord
+                    ])[1].shift();
+
+                    // for every production Aj -> B in P, add these productions
+                    // to the bodies that contain the symbol Ai -> Ba
+                    // S -> Aa | b
+                    // A -> Ac | Sd | a
+                    //           ^ so far we removed this
+                    // becomes
+                    // A -> Ac | Aad | bd | a
+                    for (const body of getBodiesOfHead(clonedGrammar, [
+                        nonTermianlSymbolsList.get(j),
+                    ])) {
+                        // append them to Ai
+                        clonedGrammar = addProductionBody(
+                            clonedGrammar,
+                            (productionsAiAj.first() as [
+                                IGrammarWord,
+                                IGrammarWord
+                            ])[0].toArray(),
+                            body.push(...bodyToAppend.toArray()).toArray()
+                        );
+                    }
+                }
+            }
+        }
+        // eliminate direct recursions
+        clonedGrammar = removeDirectLeftProduction(
+            clonedGrammar,
+            nonTermianlSymbolsList.get(i)
+        );
     }
-    return grammar;
+    return clonedGrammar;
 };
 
 export const fromDBEntry = (dbEntry: GrammarDBEntry): IIGrammar =>
