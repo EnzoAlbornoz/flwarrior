@@ -67,6 +67,34 @@ function buildSimpleGrammar3(): IIGrammar {
     });
 }
 
+function buildSimpleGrammar4(): IIGrammar {
+    // S->Sc ∣ Aa ∣ c
+    // A->Sa ∣ Bb ∣ a
+    // B->Sc ∣ Bb
+    return createGrammarFromDBEntry({
+        id: "test",
+        name: "test",
+        alphabetT: ["b", "a", "c"],
+        alphabetNT: ["S", "A", "B"],
+        startSymbol: "S",
+        transitions: [
+            { from: ["S"], to: [["S", "c"], ["A", "a"], ["c"]] },
+            {
+                from: ["A"],
+                to: [["S", "a"], ["B", "b"], ["a"]],
+            },
+            {
+                from: ["B"],
+                to: [
+                    ["S", "c"],
+                    ["B", "b"],
+                ],
+            },
+        ],
+        type: GrammarType.REGULAR,
+    });
+}
+
 test("test remove direct left production", () => {
     let grammar = buildSimpleGrammar1();
     // expected:
@@ -139,7 +167,7 @@ test("test remove direct left production", () => {
 });
 
 test("remove indirect left recursive production", () => {
-    const grammar = removeLeftProduction(buildSimpleGrammar3());
+    let grammar = removeLeftProduction(buildSimpleGrammar3());
     expect(
         (removeDirectLeftProduction(grammar).get(
             "productionRules"
@@ -165,6 +193,71 @@ test("remove indirect left recursive production", () => {
                     Immutable.Set([
                         Immutable.List(["a", "Δ"]),
                         Immutable.List(["b", "d", "Δ"]),
+                    ])
+                )
+        )
+    ).toBeTruthy();
+
+    grammar = buildSimpleGrammar4();
+
+    expect(
+        (removeLeftProduction(grammar).get("productionRules") as Immutable.Map<
+            IGrammarWord,
+            Immutable.Set<IGrammarWord>
+        >).equals(
+            Immutable.Map()
+                .set(
+                    Immutable.List(["S"]),
+                    Immutable.Set([
+                        Immutable.List(["c", "Δ"]),
+                        Immutable.List(["A", "a", "Δ"]),
+                    ])
+                )
+                .set(
+                    Immutable.List(["A"]),
+                    Immutable.Set([
+                        Immutable.List(["B", "b", "Θ"]),
+                        Immutable.List(["a", "Θ"]),
+                        Immutable.List(["c", "Δ", "a", "Θ"]),
+                    ])
+                )
+                .set(
+                    Immutable.List(["B"]),
+                    Immutable.Set([
+                        Immutable.List(["c", "Δ", "c", "Λ"]),
+                        Immutable.List([
+                            "c",
+                            "Δ",
+                            "a",
+                            "Θ",
+                            "a",
+                            "Δ",
+                            "c",
+                            "Λ",
+                        ]),
+                        Immutable.List(["a", "Θ", "a", "Δ", "c", "Λ"]),
+                    ])
+                )
+                .set(
+                    Immutable.List(["Δ"]),
+                    Immutable.Set([
+                        Immutable.List(["c", "Δ"]),
+                        Immutable.List(["ε"]),
+                    ])
+                )
+                .set(
+                    Immutable.List(["Θ"]),
+                    Immutable.Set([
+                        Immutable.List(["a", "Δ", "a", "Θ"]),
+                        Immutable.List(["ε"]),
+                    ])
+                )
+                .set(
+                    Immutable.List(["Λ"]),
+                    Immutable.Set([
+                        Immutable.List(["b", "Λ"]),
+                        Immutable.List(["b", "Θ", "a", "Δ", "c", "Λ"]),
+                        Immutable.List(["ε"]),
                     ])
                 )
         )

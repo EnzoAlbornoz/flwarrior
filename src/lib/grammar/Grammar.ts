@@ -1,5 +1,6 @@
 import Immutable, { remove } from "immutable";
 import { stringify } from "uuid";
+import { inspect } from "util";
 import { GrammarType, GrammarDBEntry } from "../../database/schema/grammar";
 import { IAlphabet } from "../Alphabet";
 import { ASymbol, EPSILON } from "../AlphabetSymbol";
@@ -356,7 +357,7 @@ export const removeLeftProduction = (grammar: IIGrammar): IIGrammar => {
             // if Ai -> Aja is in P
             // find a production that takes from Ai to Aj
             const productionsAiAj = findProductionAiAj(
-                grammar,
+                clonedGrammar,
                 nonTermianlSymbolsList.get(i),
                 nonTermianlSymbolsList.get(j)
             );
