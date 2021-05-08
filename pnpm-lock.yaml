@@ -72,6 +72,7 @@ specifiers:
   tsconfig-paths: ^3.9.0
   tsconfig-paths-webpack-plugin: ^3.3.0
   typescript: ^4.1.5
+  unicode: ^13.0.0
   url-loader: ^4.1.1
   uuid: ^8.3.2
   webpack: ^5.23.0
@@ -100,6 +101,7 @@ dependencies:
   react-is: 17.0.1
   react-router-dom: 5.2.0_react@17.0.1
   styled-components: 5.2.1_5544908854c626bd13d8795d8f0cae8d
+  unicode: 13.0.0
   uuid: 8.3.2
 
 devDependencies:
@@ -10147,6 +10149,11 @@ packages:
     resolution: {integrity: sha512-PqSoPh/pWetQ2phoj5RLiaqIk4kCNwoV3CI+LfGmWLKI3rE3kl1h59XpX2BjgDrmbxD9ARtQobPGU1SguCYuQg==}
     engines: {node: '>=4'}
     dev: true
+
+  /unicode/13.0.0:
+    resolution: {integrity: sha512-osNPLT4Lqna/sV6DQikrB8m4WxR61/k0fnhfKnkPGcZImczW3IysRXvWxfdqGUjh0Ju2o/tGGgu46mlfc/cpZw==}
+    engines: {node: '>= 0.8.x'}
+    dev: false
 
   /union-value/1.0.1:
     resolution: {integrity: sha512-tJfXmxMeWYnczCVs7XAEvIV7ieppALdyepWMkHkwciRpZraG/xwT+s2JN8+pr1+8jCRf80FFzvr+MpQeeoF4Xg==}

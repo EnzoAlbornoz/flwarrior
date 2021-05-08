@@ -1,9 +1,10 @@
+import { getUnicodeLettersUpper } from "@/utils/unicode";
 import Immutable from "immutable";
 import { GrammarType, GrammarDBEntry } from "../../database/schema/grammar";
 import { IAlphabet } from "../Alphabet";
 import { ASymbol, EPSILON } from "../AlphabetSymbol";
+import { identifyCommomPrefix } from "../utils";
 
-// Immutability Port
 export type IGrammarWord = Immutable.List<ASymbol>;
 export interface IGrammar {
     id: string;
@@ -191,6 +192,15 @@ export const checkOwnType = (grammar: IIGrammar): GrammarType => {
     }
     return GrammarType.REGULAR;
 };
+
+export function* generateNonTerminalSymbols(
+    inUseSymbols: Array<string> = []
+): Generator<string> {
+    const symbols = getUnicodeLettersUpper(inUseSymbols);
+    for (const symbol of symbols) {
+        yield symbol;
+    }
+}
 
 export function* generateNewSymbol(): Generator<string> {
     const symbolsList = "δ,θ,λ,ξ,σ,ψ,ω,я,ц,ж,д,ы,и,п,ь,л,б,ш,ю,ч,ф"
@@ -435,6 +445,203 @@ export const removeLeftProduction = (grammar: IIGrammar): IIGrammar => {
         );
     }
     return clonedGrammar;
+};
+
+export const getRuleBodiesGroupedByPrefix = (
+    bodies: Immutable.Set<IGrammarWord>
+): Immutable.Set<Immutable.Set<IGrammarWord>> => {
+    // Create Body Groups
+    let workingList = bodies;
+    let bodyGroups = Immutable.Set<Immutable.Set<IGrammarWord>>();
+    while (!workingList.isEmpty()) {
+        // Mark Iteriation
+        const currentIteration = workingList.first<IGrammarWord>();
+        workingList = workingList.remove(currentIteration);
+        // Define Body Group
+        let bodyGroup = Immutable.Set([currentIteration]);
+        // Iterate Over the Rest of the Working List
+        for (const body of workingList) {
+            const commonPrefix = identifyCommomPrefix(
+                currentIteration.join(""),
+                body.join("")
+            );
+            if (commonPrefix) {
+                // Remove from list and add it to the group
+                workingList = workingList.remove(body);
+                bodyGroup = bodyGroup.add(body);
+            }
+        }
+        // Merge with Body Groups
+        bodyGroups = bodyGroups.add(bodyGroup);
+    }
+    return bodyGroups;
+};
+
+export const directFatorization = (grammar: IIGrammar) => {
+    // Define Transformed Grammar
+    let transGrammar = grammar;
+    // Create Non Terminal Generator
+    const ntGen = generateNonTerminalSymbols(
+        (grammar.get(
+            "nonTerminalSymbols"
+        ) as IGrammar["nonTerminalSymbols"]).toArray()
+    );
+    // Iterate over productions
+    for (const rule of grammar.get(
+        "productionRules"
+    ) as IGrammar["productionRules"]) {
+        // Destructure production
+        const [head, bodies] = rule;
+        const bodyGroups = getRuleBodiesGroupedByPrefix(bodies);
+        // Body Groups Done
+        for (const group of bodyGroups) {
+            // Common Prefix -> Need Factorization
+            if (group.size > 1) {
+                // Get Common Prefix
+                const commonPrefix = identifyCommomPrefix(
+                    ...group.map((word) => word.join("")).toArray()
+                );
+                const prefixSize = commonPrefix.length;
+                // Generate Custom Non Terminal
+                const newNonTerminal: string = ntGen.next().value;
+                // Map Group Elements and Remove from Grammar too
+                // eslint-disable-next-line @typescript-eslint/no-loop-func
+                const mappedGroup = group.map((word) => {
+                    // Remove Word from Grammar
+                    transGrammar = transGrammar?.updateIn(
+                        ["productionRules", head],
+                        (bodiesOld: Immutable.Set<IGrammarWord>) =>
+                            bodiesOld.remove(word)
+                    );
+                    // Remove Prefix from Word
+                    return word.slice(prefixSize);
+                });
+                // Add New Symbol to Grammar
+                transGrammar = transGrammar
+                    .updateIn(
+                        ["productionRules", head],
+                        (bodiesOld: Immutable.Set<IGrammarWord>) =>
+                            bodiesOld.add(
+                                Immutable.List([
+                                    ...commonPrefix.split(""),
+                                    newNonTerminal,
+                                ])
+                            )
+                    )
+                    .update(
+                        "productionRules",
+                        (productions: IGrammar["productionRules"]) =>
+                            productions.set(
+                                Immutable.List([newNonTerminal]),
+                                Immutable.Set(mappedGroup)
+                            )
+                    )
+                    .update(
+                        "nonTerminalSymbols",
+                        (symbols: IGrammar["nonTerminalSymbols"]) =>
+                            symbols.add(newNonTerminal)
+                    );
+            }
+        }
+    }
+    // Return Transformed Grammar
+    return transGrammar;
+};
+
+export const firstDerivatedBodies = (
+    word: IGrammarWord,
+    grammar: IIGrammar
+): Immutable.Set<IGrammarWord> => {
+    // Define Derivated Bodies
+    const charToCheck = word.get(0);
+    // Check Leaf
+    if (
+        (grammar.get(
+            "terminalSymbols"
+        ) as IGrammar["terminalSymbols"]).includes(charToCheck)
+    ) {
+        return Immutable.Set(charToCheck === EPSILON ? [] : [word]);
+    }
+    // Need to derivate the word
+    const shiftedWord = word.shift();
+    const resultingWords = (grammar.get(
+        "productionRules"
+    ) as IGrammar["productionRules"])
+        .get(Immutable.List(charToCheck))
+        .flatMap((toDerivateWord) => {
+            // Derivate Word
+            const derivatedWords = firstDerivatedBodies(
+                toDerivateWord,
+                grammar
+            );
+            // Join With the Shifted Word
+            return derivatedWords.map((derivatedWord) =>
+                derivatedWord.concat(shiftedWord)
+            );
+        });
+    // Return Resultin Words
+    return resultingWords;
+};
+
+export const indirectFactorization = (grammar: IIGrammar): IIGrammar => {
+    // Define Transformed Grammar
+    let transGrammar = grammar;
+    // Iterate over productions
+    for (const rule of grammar.get(
+        "productionRules"
+    ) as IGrammar["productionRules"]) {
+        // Destructure production
+        const [head, bodies] = rule;
+        // Create a Factorization Map
+        let factorMap = Immutable.Map<
+            IGrammarWord,
+            Immutable.Set<IGrammarWord>
+        >();
+        // Populate the Map
+        for (const body of bodies) {
+            // Derivate
+            const derivatedBodies = firstDerivatedBodies(body, grammar);
+            // Add to Factor Map
+            factorMap = factorMap.set(body, derivatedBodies);
+        }
+        // Check if Exists Indirect Non Determinism
+        const groups = getRuleBodiesGroupedByPrefix(
+            factorMap.toList().flatten(1).toSet()
+        );
+        const indirectDeterminismGroups = groups.filter(
+            (group) => group.size > 1
+        );
+        // Modify Grammar if has Indirect Non Determinism
+        if (indirectDeterminismGroups.size) {
+            for (const group of indirectDeterminismGroups) {
+                // Filter original bodies that reach this group
+                const bodiesThatReach = factorMap.filter(
+                    (derivable) => derivable.intersect(group).size
+                );
+                // Change the Original Body by their Derivable Bodies
+                // eslint-disable-next-line @typescript-eslint/no-loop-func
+                bodiesThatReach.forEach((derivable, body) => {
+                    transGrammar = transGrammar.updateIn(
+                        ["productionRules", head],
+                        (transBodies: Immutable.Set<IGrammarWord>) =>
+                            transBodies.remove(body).union(derivable)
+                    );
+                });
+            }
+        }
+    }
+    // Return Transformed Grammar
+    return directFatorization(transGrammar);
+};
+
+export const factorize = (grammar: IIGrammar, maxIterations = 5): IIGrammar => {
+    // Define Transformed Grammar
+    let transGrammar = grammar;
+    for (let iterations = 0; iterations < maxIterations; iterations++) {
+        transGrammar = indirectFactorization(directFatorization(transGrammar));
+    }
+    // Return the Transformed Grammar
+    return transGrammar;
 };
 
 export const fromDBEntry = (dbEntry: GrammarDBEntry): IIGrammar =>
