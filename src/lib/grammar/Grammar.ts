@@ -195,11 +195,12 @@ export const checkOwnType = (grammar: IIGrammar): GrammarType => {
 
 export function* generateNonTerminalSymbols(
     inUseSymbols: Array<string> = []
-): Generator<string> {
+): Generator<string, string, string> {
     const symbols = getUnicodeLettersUpper(inUseSymbols);
     for (const symbol of symbols) {
         yield symbol;
     }
+    return "";
 }
 
 export function* generateNewSymbol(): Generator<string> {
@@ -641,6 +642,277 @@ export const factorize = (grammar: IIGrammar, maxIterations = 5): IIGrammar => {
         transGrammar = indirectFactorization(directFatorization(transGrammar));
     }
     // Return the Transformed Grammar
+    return transGrammar;
+};
+
+export const removeImproductiveSymbols = (grammar: IIGrammar): IIGrammar => {
+    // Define Transformed Grammar
+    let transGrammar = grammar;
+    //  Get Grammar Productions
+    const productions = grammar.get(
+        "productionRules"
+    ) as IGrammar["productionRules"];
+    const ntSymbols = grammar.get(
+        "nonTerminalSymbols"
+    ) as IGrammar["nonTerminalSymbols"];
+    // Define Productive Symbols set (SP)
+    let productiveSymbols = (grammar.get(
+        "terminalSymbols"
+    ) as IGrammar["terminalSymbols"]).add(EPSILON);
+    // Define Iteration
+    const genQSet = (prodSymbols: IAlphabet) =>
+        // X ∈ N
+        ntSymbols.filter(
+            (nonTerminalSymbol) =>
+                // X ∉ SP
+                !prodSymbols.includes(nonTerminalSymbol) &&
+                // Exists at least one production X -> X1X2..XN that X1X2..X3 ∈ SP
+                productions
+                    // Production X -> X1X2..XN
+                    .find((_, head) =>
+                        head.equals(Immutable.List([nonTerminalSymbol]))
+                    )
+                    // X1X2..X3 ∈ SP
+                    .some((production) =>
+                        production.every((symbol) =>
+                            prodSymbols.includes(symbol)
+                        )
+                    )
+        );
+    // Iterate
+    let qSet = Immutable.OrderedSet();
+    do {
+        // Step 1  - Q = X ∈ N and X ∉ SP and exists at least one production X -> X1X2..XN that X1X2..X3 ∈ SP
+        qSet = genQSet(productiveSymbols);
+        // Step 2 - SP = SP ∪ Q
+        productiveSymbols = productiveSymbols.union(qSet);
+    } while (!qSet.isEmpty());
+    // Filter Non Productive Symbols
+    const productiveNTSymbols = ntSymbols.intersect(productiveSymbols);
+    // Update Grammar
+    transGrammar = transGrammar
+        // Update Non Terminal Symbols
+        .set("nonTerminalSymbols", productiveNTSymbols)
+        // Update Productions
+        .update("productionRules", (prodRules: IGrammar["productionRules"]) =>
+            // If S ∈ SP then P = {p | p ∈ P and all symbols of p are in SP} else P = ∅
+            productiveSymbols.includes(
+                grammar.get("startSymbol") as IGrammar["startSymbol"]
+            )
+                ? // P = {p | p ∈ P and all symbols of p are in SP}
+                  prodRules
+                      .filter(
+                          (_, head) =>
+                              head.size === 1 &&
+                              productiveNTSymbols.includes(head.get(0))
+                      )
+                      .map((bodies) =>
+                          bodies.filter((body) =>
+                              body.every((char) =>
+                                  productiveSymbols.includes(char)
+                              )
+                          )
+                      )
+                : // P = ∅
+                  Immutable.Map()
+        );
+    // Return Transformed Grammar
+    return transGrammar;
+};
+
+export const removeUnreachableSymbols = (grammar: IIGrammar): IIGrammar => {
+    // Define Transformed Grammar
+    let transGrammar = grammar;
+    //  Get Grammar Productions
+    const productions = grammar.get(
+        "productionRules"
+    ) as IGrammar["productionRules"];
+    const ntSymbols = grammar.get(
+        "nonTerminalSymbols"
+    ) as IGrammar["nonTerminalSymbols"];
+    const tSymbols = grammar.get(
+        "terminalSymbols"
+    ) as IGrammar["terminalSymbols"];
+    // Define Reachable Symbols set (SA)
+    let reachableSymbols = Immutable.OrderedSet([
+        grammar.get("startSymbol") as IGrammar["startSymbol"],
+    ]);
+    // Define Iteration
+    const genMSet = (prodSymbols: IAlphabet) =>
+        // X ∈ N
+        ntSymbols.union(tSymbols).filter(
+            (symbol) =>
+                // X ∉ SA
+                !prodSymbols.includes(symbol) &&
+                // Exists at least one production Y -> αXβ that Y ∈ SA
+                productions.some(
+                    (bodies, head) =>
+                        head.size === 1 &&
+                        // Y ∈ SA
+                        reachableSymbols.includes(head.get(0)) &&
+                        bodies.some((body) =>
+                            // Production Y -> αXβ
+                            body.some((bodySymbol) => bodySymbol === symbol)
+                        )
+                )
+        );
+    // Iterate
+    let mSet = Immutable.OrderedSet();
+    do {
+        // Step 1  - M = X ∈ N and X ∉ SA and exists at least one production Y -> αXβ that Y ∈ SA
+        mSet = genMSet(reachableSymbols);
+        // Step 2 - SA = SA ∪ M
+        reachableSymbols = reachableSymbols.union(mSet);
+    } while (!mSet.isEmpty());
+    // Filter Non Productive Symbols
+    const reachableNTSymbols = ntSymbols.intersect(reachableSymbols);
+    const reachableTSymbols = tSymbols.intersect(reachableSymbols);
+    // Update Grammar
+    transGrammar = transGrammar
+        // Update Non Terminal Symbols
+        .set("nonTerminalSymbols", reachableNTSymbols)
+        // Update Terminal Symbols
+        .set("terminalSymbols", reachableTSymbols)
+        // Update Productions
+        .update("productionRules", (prodRules: IGrammar["productionRules"]) =>
+            // P = {p | p ∈ P and all symbols of p are in SA}
+            prodRules
+                .filter(
+                    (_, head) =>
+                        head.size === 1 &&
+                        reachableNTSymbols.includes(head.get(0))
+                )
+                .map((bodies) =>
+                    bodies.filter((body) =>
+                        body.every((char) => reachableSymbols.includes(char))
+                    )
+                )
+        );
+    // Return Transformed Grammar
+    return transGrammar;
+};
+
+export const removeEpsilonProductions = (grammar: IIGrammar): IIGrammar => {
+    // Define Transformed Grammar
+    let transGrammar = grammar;
+    //  Get Grammar Productions
+    const productions = grammar.get(
+        "productionRules"
+    ) as IGrammar["productionRules"];
+    const ntSymbols = grammar.get(
+        "nonTerminalSymbols"
+    ) as IGrammar["nonTerminalSymbols"];
+    // Define Epsilon Non Terminal Set (E)
+    let eSet = Immutable.OrderedSet([EPSILON]);
+    // Define Iteration
+    const genQSet = (symbols: IAlphabet) =>
+        // X ∈ N
+        ntSymbols.filter(
+            (nonTerminalSymbol) =>
+                // X ∉ E
+                !symbols.includes(nonTerminalSymbol) &&
+                // Exists at least one production X -> X1X2..XN that X1X2..X3 ∈ E
+                productions
+                    // Production X -> X1X2..XN
+                    .find((_, head) =>
+                        head.equals(Immutable.List([nonTerminalSymbol]))
+                    )
+                    // X1X2..X3 ∈ E
+                    .some((production) =>
+                        production.every((symbol) => symbols.includes(symbol))
+                    )
+        );
+    // Iterate
+    let qSet = Immutable.OrderedSet();
+    do {
+        // Step 1  - Q = X ∈ N and X ∉ E and exists at least one production X -> X1X2..XN that X1X2..X3 ∈ E
+        qSet = genQSet(eSet);
+        // Step 2 - E = E ∪ Q
+        eSet = eSet.union(qSet);
+    } while (!qSet.isEmpty());
+    // Create the P' set (P' = {p | p ∈ P and p is not an epsilon production}) (transformed productions)
+    let pQuoteSet = (grammar.get(
+        "productionRules"
+    ) as IGrammar["productionRules"]).map((bodies) =>
+        bodies.filter((body) => !body.includes(EPSILON))
+    );
+    // Create Iteration Step for P'
+    const genNewPQuoteElements = (
+        pSet: Immutable.Map<IGrammarWord, Immutable.Set<IGrammarWord>>
+    ) =>
+        pSet
+            .map((bodies) => {
+                // A -> 𝛂B𝛃 that B ∈ E and 𝛂𝛃 (N ∪ T)⋆ and 𝛂𝛃 ≠ 𝛆
+                const bodiesToInclude = bodies
+                    .filter(
+                        // Filter Nullable Bodies
+                        (body) =>
+                            // 𝛂𝛃 ≠ 𝛆
+                            body.size > 1 &&
+                            // A -> 𝛂B𝛃 that B ∈ E
+                            body.some((symbol) => eSet.includes(symbol))
+                    )
+                    // Compute 𝛂𝛃
+                    .map((body) => {
+                        const idxToRemove = body.findIndex((symbol) =>
+                            eSet.includes(symbol)
+                        );
+                        return body.remove(idxToRemove);
+                    });
+                return bodiesToInclude;
+            })
+            .filter((bodies) => !bodies.isEmpty());
+    // Iterate P' set
+    let toIncludeInPQuote = Immutable.Map<
+        IGrammarWord,
+        Immutable.Set<IGrammarWord>
+    >();
+    let pQuoteChanged = false;
+    do {
+        // Save Old P'
+        const oldPQuoteSet = pQuoteSet;
+        // If exists A -> 𝛂B𝛃 that B ∈ E and 𝛂𝛃 (N ∪ T)⋆ and 𝛂𝛃 ≠ 𝛆
+        toIncludeInPQuote = genNewPQuoteElements(pQuoteSet);
+        // Add A -> 𝛂𝛃 in P'
+        // eslint-disable-next-line @typescript-eslint/no-loop-func
+        toIncludeInPQuote.forEach((bodies, head) => {
+            pQuoteSet = pQuoteSet.update(
+                head,
+                Immutable.Set<IGrammarWord>(),
+                (oldBodies) => oldBodies.union(bodies)
+            );
+        });
+        // Compare Sets
+        pQuoteChanged = !pQuoteSet.equals(oldPQuoteSet);
+    } while (pQuoteChanged);
+    // Check S ∈ E
+    const startSymbol = grammar.get("startSymbol") as IGrammar["startSymbol"];
+    if (eSet.includes(startSymbol)) {
+        // Generate new Start Symbol
+        const nonTerminalSymbols = grammar.get(
+            "nonTerminalSymbols"
+        ) as IGrammar["nonTerminalSymbols"];
+        const idGen = generateNonTerminalSymbols(nonTerminalSymbols.toArray());
+        const newId = idGen.next().value;
+        // N' = N ∪ {S'}
+        transGrammar = transGrammar.set(
+            "nonTerminalSymbols",
+            nonTerminalSymbols.add(newId)
+        );
+        // Add S' -> S | 𝛆 into P'
+        pQuoteSet = pQuoteSet.set(
+            Immutable.List([newId]),
+            Immutable.Set([
+                Immutable.List([startSymbol]),
+                Immutable.List([EPSILON]),
+            ])
+        );
+        // Set S' as start symbol
+        transGrammar = transGrammar.set("startSymbol", newId);
+    }
+    // Update Grammar Productions
+    transGrammar = transGrammar.set("productionRules", pQuoteSet);
+    // Return Transformed Grammar
     return transGrammar;
 };
 

@@ -10,10 +10,13 @@ import {
     IGrammar,
     IGrammarWord,
     indirectFactorization,
+    removeEpsilonProductions,
+    removeImproductiveSymbols,
+    removeUnreachableSymbols,
 } from "@/lib/grammar/Grammar";
 import { test } from "@jest/globals";
 import { inspect } from "util";
-import { identifyCommomPrefix } from "@/lib/utils";
+import { EPSILON } from "@/lib/AlphabetSymbol";
 
 const grammar1 = fromDBEntry({
     id: "test1",
@@ -116,10 +119,98 @@ const grammarCannonicalFactorized = fromDBEntry({
     type: GrammarType.CONTEXT_FREE,
 });
 
+const grammarWithImproductive = fromDBEntry({
+    id: "test3",
+    name: "test3",
+    alphabetNT: ["S", "A", "B", "C"],
+    alphabetT: ["a", "b", "c"],
+    startSymbol: "S",
+    transitions: [
+        {
+            from: ["S"],
+            to: ["ABB".split(""), "CAC".split("")],
+        },
+        {
+            from: ["A"],
+            to: ["a".split("")],
+        },
+        {
+            from: ["B"],
+            to: ["Bc".split(""), "ABB".split("")],
+        },
+        {
+            from: ["C"],
+            to: ["bB".split(""), "a".split("")],
+        },
+    ],
+    type: GrammarType.CONTEXT_FREE,
+});
+
+const grammarWithUnreachable = fromDBEntry({
+    id: "test4",
+    name: "test4",
+    alphabetNT: ["S", "A", "B"],
+    alphabetT: ["a", "b", "c"],
+    startSymbol: "S",
+    transitions: [
+        {
+            from: ["S"],
+            to: ["aS".split(""), "SB".split(""), "SS".split(""), "b".split("")],
+        },
+        {
+            from: ["A"],
+            to: ["ASB".split(""), "c".split("")],
+        },
+        {
+            from: ["B"],
+            to: ["b".split("")],
+        },
+    ],
+    type: GrammarType.CONTEXT_FREE,
+});
+
+const grammarWithEpsilonProd = fromDBEntry({
+    id: "test5",
+    name: "test5",
+    alphabetNT: ["S", "A", "B"],
+    alphabetT: ["a", "b", "c"],
+    startSymbol: "S",
+    transitions: [
+        {
+            from: ["S"],
+            to: ["AB".split(""), "Sc".split("")],
+        },
+        {
+            from: ["A"],
+            to: ["aA".split(""), [EPSILON]],
+        },
+        {
+            from: ["B"],
+            to: ["bB".split(""), [EPSILON]],
+        },
+    ],
+    type: GrammarType.CONTEXT_FREE,
+});
+
 test("factoring", () => {
     const dateInit = Date.now();
     const factorizedGrammar = factorize(grammarCannonical);
     const dateEnd = Date.now();
     console.log(dateEnd - dateInit);
-    // expect(factorizedGrammar).toEqual(grammarCannonicalFactorized);
+    expect(factorizedGrammar).toEqual(grammarCannonicalFactorized);
+});
+
+test("remove improductive symbols", () => {
+    const grammar = removeImproductiveSymbols(grammarWithImproductive);
+    console.log(inspect(grammar.toJS(), { depth: null, colors: true }));
+});
+
+test("remove unreachable symbols", () => {
+    const grammar = removeUnreachableSymbols(grammarWithUnreachable);
+    console.log(inspect(grammar.toJS(), { depth: null, colors: true }));
+});
+
+test("remove epsilon productions", () => {
+    const grammar = removeEpsilonProductions(grammarWithEpsilonProd);
+    console.log(inspect(grammar.toJS(), { depth: null, colors: true }));
 });
