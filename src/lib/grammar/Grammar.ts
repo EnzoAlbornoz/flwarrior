@@ -916,6 +916,69 @@ export const removeEpsilonProductions = (grammar: IIGrammar): IIGrammar => {
     return transGrammar;
 };
 
+export const removeUnitProductions = (grammar: IIGrammar): IIGrammar => {
+    // Define Transformed Grammar
+    let transGrammar = grammar;
+    const productions = grammar.get(
+        "productionRules"
+    ) as IGrammar["productionRules"];
+    const ntSymbols = grammar.get(
+        "nonTerminalSymbols"
+    ) as IGrammar["nonTerminalSymbols"];
+    // Define N Base Sets (N(A) = {A})
+    let nSet = (grammar.get(
+        "nonTerminalSymbols"
+    ) as IGrammar["nonTerminalSymbols"]).reduce(
+        (nSetRed, ntSymbol) =>
+            nSetRed.set(
+                ntSymbol,
+                productions
+                    .get(Immutable.List([ntSymbol]))
+                    .flatMap((body) =>
+                        body.filter((char) => ntSymbols.includes(char))
+                    )
+                    .add(ntSymbol)
+            ),
+        Immutable.Map<string, Immutable.Set<string>>()
+    );
+    // Define N construction iteration
+    const genNewNSet = (
+        currNSet: Immutable.Map<string, Immutable.Set<string>>
+    ) =>
+        currNSet.map((nOfNt) =>
+            // N(A) = {B | A => B with B ∈ N} ∪ A
+            nOfNt.flatMap((ntInsideNOfNt) => currNSet.get(ntInsideNOfNt))
+        );
+    // Iterate to build N Sets
+    let hasDiff = false;
+    do {
+        // Save Old nSet
+        const oldNSet = nSet;
+        // Compute new N Set
+        nSet = genNewNSet(nSet);
+        // Check diff
+        hasDiff = !oldNSet.equals(nSet);
+    } while (hasDiff);
+    // Pre-Compute all non unitary production
+    const nonUnitaryProductions = productions.map((bodies) =>
+        bodies.filter(
+            (body) => body.size > 1 || !ntSymbols.includes(body.get(0))
+        )
+    );
+    // Define New Productions
+    const newProductions = nSet
+        .map((nOfNT) =>
+            nOfNT.flatMap((nonTerminalSymbol) =>
+                nonUnitaryProductions.get(Immutable.List([nonTerminalSymbol]))
+            )
+        )
+        .mapKeys((ntSymbol) => Immutable.List([ntSymbol]));
+    // Update Grammar
+    transGrammar = transGrammar.set("productionRules", newProductions);
+    // Return Transformed Grammar
+    return transGrammar;
+};
+
 export const fromDBEntry = (dbEntry: GrammarDBEntry): IIGrammar =>
     Immutable.Map<IGrammar[keyof IGrammar]>({
         id: dbEntry.id,

@@ -10,6 +10,7 @@ import {
     IGrammar,
     IGrammarWord,
     indirectFactorization,
+    removeUnitProductions,
     removeEpsilonProductions,
     removeImproductiveSymbols,
     removeUnreachableSymbols,
@@ -192,6 +193,44 @@ const grammarWithEpsilonProd = fromDBEntry({
     type: GrammarType.CONTEXT_FREE,
 });
 
+const grammarWithUnitProd = fromDBEntry({
+    id: "test6",
+    name: "test6",
+    alphabetNT: ["D", "A", "B", "C", "S"],
+    alphabetT: ["0", "1"],
+    startSymbol: "D",
+    transitions: [
+        {
+            from: ["D"],
+            to: ["S".split(""), [EPSILON]],
+        },
+        {
+            from: ["S"],
+            to: [
+                "0A0".split(""),
+                "1B1".split(""),
+                "BB".split(""),
+                "00".split(""),
+                "11".split(""),
+                "B".split(""),
+            ],
+        },
+        {
+            from: ["A"],
+            to: ["C".split("")],
+        },
+        {
+            from: ["B"],
+            to: ["S".split(""), "A".split("")],
+        },
+        {
+            from: ["C"],
+            to: ["S".split("")],
+        },
+    ],
+    type: GrammarType.CONTEXT_FREE,
+});
+
 test("factoring", () => {
     const dateInit = Date.now();
     const factorizedGrammar = factorize(grammarCannonical);
@@ -212,5 +251,10 @@ test("remove unreachable symbols", () => {
 
 test("remove epsilon productions", () => {
     const grammar = removeEpsilonProductions(grammarWithEpsilonProd);
+    console.log(inspect(grammar.toJS(), { depth: null, colors: true }));
+});
+
+test("remove unit productions", () => {
+    const grammar = removeUnitProductions(grammarWithUnitProd);
     console.log(inspect(grammar.toJS(), { depth: null, colors: true }));
 });
