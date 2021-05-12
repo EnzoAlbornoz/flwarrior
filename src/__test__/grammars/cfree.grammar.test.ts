@@ -1,19 +1,13 @@
 import Immutable from "immutable";
 import { GrammarType } from "@/database/schema/grammar";
 import {
-    directFatorization,
     factorize,
-    firstDerivatedBodies,
     fromDBEntry,
-    generateNonTerminalSymbols,
-    getRuleBodiesGroupedByPrefix,
-    IGrammar,
-    IGrammarWord,
-    indirectFactorization,
     removeUnitProductions,
     removeEpsilonProductions,
     removeImproductiveSymbols,
     removeUnreachableSymbols,
+    getFirsts,
 } from "@/lib/grammar/Grammar";
 import { test } from "@jest/globals";
 import { inspect } from "util";
@@ -231,6 +225,52 @@ const grammarWithUnitProd = fromDBEntry({
     type: GrammarType.CONTEXT_FREE,
 });
 
+const grammarToTestFirsts = fromDBEntry({
+    id: "test7",
+    name: "test7",
+    alphabetNT: ["A", "B", "C", "S"],
+    alphabetT: ["a", "b", "c", "d", EPSILON],
+    startSymbol: "S",
+    transitions: [
+        {
+            from: ["S"],
+            to: ["ABC".split("")],
+        },
+        {
+            from: ["A"],
+            to: ["aA".split(""), [EPSILON]],
+        },
+        {
+            from: ["B"],
+            to: ["bB".split(""), "ACd".split("")],
+        },
+        {
+            from: ["C"],
+            to: ["cC".split(""), [EPSILON]],
+        },
+    ],
+    type: GrammarType.CONTEXT_FREE,
+});
+
+const grammarToTestFirsts2 = fromDBEntry({
+    id: "test7",
+    name: "test7",
+    alphabetT: ["c", "com", "ε", ";", "v", "f", "b"],
+    alphabetNT: ["P", "V", "C", "K", "F"],
+    startSymbol: "P",
+    transitions: [
+        { from: ["P"], to: [["K", "V", "C"]] },
+        { from: ["K"], to: [["c", "K"], ["ε"]] },
+        { from: ["V"], to: [["v"], ["V"], ["F"]] },
+        { from: ["F"], to: [["f", "P", ";", "F"], ["ε"]] },
+        {
+            from: ["C"],
+            to: [["b", "V", "C", "e"], ["com", ";", "C"], ["ε"]],
+        },
+    ],
+    type: GrammarType.CONTEXT_FREE,
+});
+
 test("factoring", () => {
     const dateInit = Date.now();
     const factorizedGrammar = factorize(grammarCannonical);
@@ -256,5 +296,15 @@ test("remove epsilon productions", () => {
 
 test("remove unit productions", () => {
     const grammar = removeUnitProductions(grammarWithUnitProd);
+    console.log(inspect(grammar.toJS(), { depth: null, colors: true }));
+});
+
+test("get firsts", () => {
+    const grammar = getFirsts(grammarToTestFirsts);
+    console.log(inspect(grammar.toJS(), { depth: null, colors: true }));
+});
+
+test("get firsts 2", () => {
+    const grammar = getFirsts(grammarToTestFirsts2);
     console.log(inspect(grammar.toJS(), { depth: null, colors: true }));
 });
