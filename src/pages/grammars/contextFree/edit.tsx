@@ -306,11 +306,8 @@ export default function ContextFreeGrammarEdit(): JSX.Element {
 
     const testGrammarRecognition = (text: string) => {
         try {
-            // Prepare Grammar
-            const preparedGrammar = removeEpsilonProductions(grammar);
-
             // Create Analysis Table
-            const analysisTable = getAnalysisTable(preparedGrammar);
+            const analysisTable = getAnalysisTable(grammar);
             // Test Against String
             const recognized = runTableLL1(
                 text,
