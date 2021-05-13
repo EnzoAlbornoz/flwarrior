@@ -1,5 +1,6 @@
 import { IAlphabet } from "@/lib/Alphabet";
 import Immutable from "immutable";
+import { inspect } from "util";
 import {
     addNonTerminalSymbol,
     addTerminalSymbol,
@@ -8,6 +9,7 @@ import {
     removeNonTerminalSymbol,
     getBodiesOfHead,
     IIGrammar,
+    getFollows,
 } from "../../lib/grammar/Grammar";
 import { GrammarType } from "../../database/schema/grammar";
 
@@ -24,6 +26,28 @@ function buildGrammar1(): IIGrammar {
             { from: ["B"], to: [["a"], ["b"]] },
         ],
         type: GrammarType.REGULAR,
+    });
+}
+
+function buildGrammar2(): IIGrammar {
+    // S  -> Sa|b
+    return createGrammarFromDBEntry({
+        id: "test",
+        name: "test",
+        alphabetT: ["c", "com", "ε", ";", "v", "f", "b", "e"],
+        alphabetNT: ["P", "V", "C", "K", "F"],
+        startSymbol: "P",
+        transitions: [
+            { from: ["P"], to: [["K", "V", "C"]] },
+            { from: ["K"], to: [["c", "K"], ["ε"]] },
+            { from: ["V"], to: [["v", "V"], ["F"]] },
+            { from: ["F"], to: [["f", "P", ";", "F"], ["ε"]] },
+            {
+                from: ["C"],
+                to: [["b", "V", "C", "e"], ["com", ";", "C"], ["ε"]],
+            },
+        ],
+        type: GrammarType.CONTEXT_FREE,
     });
 }
 
@@ -105,4 +129,24 @@ test("test get bodies of head", () => {
             ])
         )
     ).toBeTruthy();
+});
+
+test("test get follows of grammar", () => {
+    const grammar = buildGrammar2();
+    const firsts = Immutable.Map({
+        com: Immutable.Set(["com"]),
+        b: Immutable.Set(["b"]),
+        C: Immutable.Set(["b", "com", "ε"]),
+        c: Immutable.Set(["c"]),
+        F: Immutable.Set(["f", "ε"]),
+        f: Immutable.Set(["f"]),
+        K: Immutable.Set(["c", "ε"]),
+        P: Immutable.Set(["c", "v", "f", "b", "com", "ε"]),
+        ε: Immutable.Set(["ε"]),
+        V: Immutable.Set(["v", "f", "ε"]),
+        v: Immutable.Set(["v"]),
+        ";": Immutable.Set([";"]),
+        e: Immutable.Set(["e"]),
+    });
+    // console.log(inspect(getFollows(grammar, firsts).toJS(), false, null, true));
 });
