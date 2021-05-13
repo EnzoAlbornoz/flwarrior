@@ -1153,17 +1153,6 @@ export const getFirsts = (
 export const getAnalysisTable = (
     grammar: IIGrammar
 ): Immutable.Map<IGrammarWord, Immutable.Map<string, IGrammarWord>> => {
-    // Mock
-    const getFollows = ((() =>
-        Immutable.Map({
-            P: Immutable.Set(["$", ";"]),
-            K: Immutable.Set(["$", ";", "v", "f", "b", "com"]),
-            V: Immutable.Set(["$", ";", "b", "com", "e"]),
-            C: Immutable.Set(["$", ";", "e"]),
-            F: Immutable.Set(["$", ";", "b", "com", "e"]),
-        })) as unknown) as (
-        g: IIGrammar
-    ) => Immutable.Map<string, Immutable.Set<string>>;
     const grammarWithEndOfStack = grammar.update(
         "terminalSymbols",
         (tSymbols: IGrammar["terminalSymbols"]) => tSymbols.add(END_OF_STACK)
@@ -1179,7 +1168,7 @@ export const getAnalysisTable = (
         "productionRules"
     ) as IGrammar["productionRules"];
     const firsts = getFirsts(grammarWithEndOfStack);
-    const follows = getFollows(grammarWithEndOfStack);
+    const follows = getFollows(grammarWithEndOfStack, firsts);
     // Define Table Base (NT -> T -> error (null))
     let analysisTable: Immutable.Map<
         IGrammarWord,
