@@ -314,7 +314,6 @@ export default function ContextFreeGrammarEdit(): JSX.Element {
             if (recognized) {
                 Modal.success({
                     icon: <CheckCircleOutlined />,
-
                     content: "Texto reconhecido!",
                 });
             } else {
