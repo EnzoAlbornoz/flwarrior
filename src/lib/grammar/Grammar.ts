@@ -2,7 +2,7 @@ import { getUnicodeLettersUpper } from "@/utils/unicode";
 import Immutable from "immutable";
 import { GrammarType, GrammarDBEntry } from "../../database/schema/grammar";
 import { IAlphabet } from "../Alphabet";
-import { ASymbol, EPSILON } from "../AlphabetSymbol";
+import { ASymbol, END_OF_STACK, EPSILON } from "../AlphabetSymbol";
 import { identifyCommomPrefix } from "../utils";
 
 export type IGrammarWord = Immutable.List<ASymbol>;
@@ -1062,6 +1062,74 @@ export const getFirsts = (
     } while (hasDiff);
     // Return the Firsts Set
     return firstsSet;
+};
+
+export const getAnalysisTable = (
+    grammar: IIGrammar
+): Immutable.Map<IGrammarWord, Immutable.Map<string, IGrammarWord>> => {
+    // Mock
+    const getFollows = ((() =>
+        Immutable.Map({
+            P: Immutable.Set(["$", ";"]),
+            K: Immutable.Set(["$", ";", "v", "f", "b", "com"]),
+            V: Immutable.Set(["$", ";", "b", "com", "e"]),
+            C: Immutable.Set(["$", ";", "e"]),
+            F: Immutable.Set(["$", ";", "b", "com", "e"]),
+        })) as unknown) as (
+        g: IIGrammar
+    ) => Immutable.Map<string, Immutable.Set<string>>;
+    const grammarWithEndOfStack = grammar.update(
+        "terminalSymbols",
+        (tSymbols: IGrammar["terminalSymbols"]) => tSymbols.add(END_OF_STACK)
+    );
+    const nonTerminalSymbols = grammarWithEndOfStack.get(
+        "nonTerminalSymbols"
+    ) as IGrammar["nonTerminalSymbols"];
+    const terminalSymbols = grammarWithEndOfStack.get(
+        "terminalSymbols"
+    ) as IGrammar["terminalSymbols"];
+    // Get Grammar productions
+    const productions = grammarWithEndOfStack.get(
+        "productionRules"
+    ) as IGrammar["productionRules"];
+    const firsts = getFirsts(grammarWithEndOfStack);
+    const follows = getFollows(grammarWithEndOfStack);
+    // Define Table Base (NT -> T -> error (null))
+    let analysisTable: Immutable.Map<
+        IGrammarWord,
+        Immutable.Map<string, IGrammarWord>
+    > = nonTerminalSymbols
+        .toMap()
+        .mapEntries(([ntSymbol]) => [
+            Immutable.List([ntSymbol]),
+            terminalSymbols.toMap().map(() => null),
+        ]);
+    // For every production A -> 𝛂 of the grammar
+    for (const [head, bodies] of productions.entries()) {
+        for (const body of bodies) {
+            const firstChar = body.get(0);
+            const firstCharFirst = firsts.get(firstChar);
+            // For every a in FIRST(𝛂), add A -> 𝛂, in M[A,a]
+            for (const char of firstCharFirst) {
+                analysisTable = analysisTable.setIn([head, char], body);
+            }
+            // If 𝛆 ∈ FIRST(𝛂)
+            if (firstCharFirst.includes(EPSILON)) {
+                // Then add A -> 𝛂 in M[A,b], ∀b ∈ FOLLOW(A)
+                for (const char of follows.get(head.get(0))) {
+                    analysisTable = analysisTable.setIn([head, char], body);
+                }
+                // Then add A -> 𝛂 in M[A,b], ∀b ∈ FOLLOW(𝛂)
+                if (nonTerminalSymbols.includes(firstChar)) {
+                    for (const char of follows.get(firstChar)) {
+                        analysisTable = analysisTable.setIn([head, char], body);
+                    }
+                }
+            }
+        }
+    }
+    // Return Analysis table
+    return analysisTable;
 };
 
 export const fromDBEntry = (dbEntry: GrammarDBEntry): IIGrammar =>

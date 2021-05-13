@@ -7,6 +7,7 @@ import {
     removeEpsilonProductions,
     removeImproductiveSymbols,
     removeUnreachableSymbols,
+    getAnalysisTable,
     getFirsts,
 } from "@/lib/grammar/Grammar";
 import { test } from "@jest/globals";
@@ -255,7 +256,7 @@ const grammarToTestFirsts = fromDBEntry({
 const grammarToTestFirsts2 = fromDBEntry({
     id: "test7",
     name: "test7",
-    alphabetT: ["c", "com", "ε", ";", "v", "f", "b"],
+    alphabetT: ["c", "com", "ε", ";", "v", "f", "b", "e"],
     alphabetNT: ["P", "V", "C", "K", "F"],
     startSymbol: "P",
     transitions: [
@@ -306,5 +307,10 @@ test("get firsts", () => {
 
 test("get firsts 2", () => {
     const grammar = getFirsts(grammarToTestFirsts2);
+    console.log(inspect(grammar.toJS(), { depth: null, colors: true }));
+});
+
+test("get analysis table", () => {
+    const grammar = getAnalysisTable(grammarToTestFirsts2);
     console.log(inspect(grammar.toJS(), { depth: null, colors: true }));
 });
