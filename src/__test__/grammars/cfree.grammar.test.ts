@@ -85,7 +85,7 @@ const grammarCannonicalFactorized = fromDBEntry({
     transitions: [
         {
             from: ["S"],
-            to: ["aE".split(""), "cCC".split(""), "dDC".split("")],
+            to: ["aF".split(""), "cCC".split(""), "dDC".split("")],
         },
         {
             from: ["A"],

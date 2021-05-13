@@ -1207,6 +1207,54 @@ export const getAnalysisTable = (
     return analysisTable;
 };
 
+export const runTableLL1 = (
+    input: string,
+    grammar: IIGrammar,
+    table: Immutable.Map<IGrammarWord, Immutable.Map<string, IGrammarWord>>
+): boolean => {
+    const adjustedInput = [...input.split(""), "$"];
+    console.log(adjustedInput.toString());
+    let stack = Immutable.Stack<string>()
+        .push("$")
+        .push(grammar.get("startSymbol") as string);
+    console.log(stack.toJS());
+
+    let head = 0;
+    while (true) {
+        if (stack.peek() === adjustedInput[head] && stack.peek() === "$") {
+            return true;
+            // eslint-disable-next-line no-else-return
+        } else if (stack.peek() === adjustedInput[head]) {
+            // unstack
+            stack = stack.pop();
+            // get next simbol
+            head++;
+        } else if (
+            (grammar.get("nonTerminalSymbols") as IAlphabet).contains(
+                stack.peek()
+            )
+        ) {
+            const tableEntry = table.getIn([
+                Immutable.List([stack.peek()]),
+                adjustedInput[head],
+            ]) as IGrammarWord;
+            if (tableEntry === null || tableEntry === undefined) return false;
+            if (tableEntry.join() !== EPSILON) {
+                // pop backwards
+                stack = stack.pop();
+                // push backwards
+                for (const symbol of tableEntry.reverse()) {
+                    stack = stack.push(symbol);
+                }
+            } else {
+                // is epsilon, must pop
+                stack = stack.pop();
+            }
+        } else return false;
+        console.log(stack.toJS());
+    }
+    return false;
+};
 export const fromDBEntry = (dbEntry: GrammarDBEntry): IIGrammar =>
     Immutable.Map<IGrammar[keyof IGrammar]>({
         id: dbEntry.id,

@@ -10,6 +10,8 @@ import {
     getBodiesOfHead,
     IIGrammar,
     getFollows,
+    getAnalysisTable,
+    runTableLL1,
 } from "../../lib/grammar/Grammar";
 import { GrammarType } from "../../database/schema/grammar";
 
@@ -149,4 +151,10 @@ test("test get follows of grammar", () => {
         e: Immutable.Set(["e"]),
     });
     // console.log(inspect(getFollows(grammar, firsts).toJS(), false, null, true));
+});
+
+test("run table", () => {
+    const grammar = buildGrammar2();
+    const table = getAnalysisTable(grammar);
+    console.log(runTableLL1("ccvfbe;", grammar, table));
 });
