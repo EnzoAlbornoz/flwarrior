@@ -6,10 +6,14 @@ import {
     Typography,
     Tag,
     Select,
+    Modal,
     message,
-    Tooltip,
 } from "antd";
-import IconBase, { SaveOutlined } from "@ant-design/icons";
+import IconBase, {
+    CheckCircleOutlined,
+    CloseCircleOutlined,
+    SaveOutlined,
+} from "@ant-design/icons";
 import { useState, useMemo } from "react";
 import { useParams, useHistory } from "react-router-dom";
 import styled from "styled-components";
@@ -36,11 +40,20 @@ import {
     rename,
     toDBEntry,
     setStartSymbol as setGrammarStartSymbol,
+    removeLeftProduction,
+    factorize,
+    removeUnreachableSymbols,
+    removeEpsilonProductions,
+    removeUnitProductions,
+    getAnalysisTable,
+    runTableLL1,
 } from "@lib/grammar/Grammar";
-import { toDBEntry as machineToDBEntry } from "@/lib/automaton/Machine";
-import { convertRegularGrammarToNonDeterministicFiniteMachine } from "@/lib/conversion";
-import { GrammarType, translateGrammarType } from "@/database/schema/grammar";
-import { EPSILON } from "@/lib/AlphabetSymbol";
+import {
+    GrammarDBEntry,
+    GrammarType,
+    translateGrammarType,
+} from "@/database/schema/grammar";
+import { END_OF_STACK, EPSILON } from "@/lib/AlphabetSymbol";
 // Define Typings
 export interface ITGEditPageProps {
     id: string;
@@ -131,7 +144,7 @@ const SelectBar = styled.section`
     flex-direction: column;
 `;
 // Define Page
-export default function RegularGrammarEdit(): JSX.Element {
+export default function ContextFreeGrammarEdit(): JSX.Element {
     // Setup State
     const [grammar, setGrammar] = useState<IIGrammar>();
     // Get Context
@@ -159,6 +172,24 @@ export default function RegularGrammarEdit(): JSX.Element {
         grammar,
     ]) as IGrammar["startSymbol"];
     // Components Handlers
+    const checkGrammarType = (
+        grammarEntry: GrammarDBEntry,
+        allowedTypes: Array<GrammarType>
+    ) => {
+        if (!allowedTypes.includes(grammarEntry.type)) {
+            message.warning(
+                "".concat(
+                    `Gramática de tipo ${translateGrammarType(
+                        grammarEntry.type
+                    ).toLowerCase()} não pode ser aceita! `,
+                    "Por favor, utilize uma gramática mais restrita."
+                ),
+                3
+            );
+            return false;
+        }
+        return true;
+    };
     const renameGrammar = (newName: string) =>
         setGrammar(rename(grammar, newName));
     const saveGrammar = async () => {
@@ -175,18 +206,10 @@ export default function RegularGrammarEdit(): JSX.Element {
         }
         // Serialize grammar
         const serializedGrammar = toDBEntry(grammar);
-        if (![GrammarType.REGULAR].includes(serializedGrammar.type)) {
-            message.error(
-                "".concat(
-                    `Gramática de tipo ${translateGrammarType(
-                        serializedGrammar.type
-                    )} não pode ser aceita ! `,
-                    "Por favor, utilize uma gramática regular."
-                ),
-                3
-            );
-            return;
-        }
+        checkGrammarType(serializedGrammar, [
+            GrammarType.CONTEXT_FREE,
+            GrammarType.REGULAR,
+        ]);
         // Fetch Database
         const db = await useDatabase();
         await db.put(FLWarriorDBTables.GRAMMAR, serializedGrammar);
@@ -210,7 +233,7 @@ export default function RegularGrammarEdit(): JSX.Element {
             )
         );
     const newAlphabetTSymbol = (newSymbol: string) =>
-        setGrammar(addTerminalSymbol(grammar, newSymbol));
+        setGrammar(addTerminalSymbol(grammar, newSymbol.replace("&", EPSILON)));
 
     const newAlphabetNTSymbol = (newSymbol: string) =>
         setGrammar(addNonTerminalSymbol(grammar, newSymbol));
@@ -222,18 +245,26 @@ export default function RegularGrammarEdit(): JSX.Element {
     const setStartSymbol = (newStartSymbol: string) =>
         setGrammar(setGrammarStartSymbol(grammar, newStartSymbol));
     // Special Functions
-    const convertToMachine = async () => {
-        // Convert To Machine
-        const machine = convertRegularGrammarToNonDeterministicFiniteMachine(
-            grammar,
-            true
+    const removeLeftRecursionFromGrammar = () =>
+        setGrammar(
+            removeLeftProduction(
+                removeEpsilonProductions(removeUnreachableSymbols(grammar))
+            )
         );
-        // Save New Machine
-        const serializedMachine = machineToDBEntry(machine);
-        const db = await useDatabase();
-        await db.put(FLWarriorDBTables.MACHINE, serializedMachine);
-        // Go to Machine Editor Page
-        return history.push(`/automata/finite/edit/${serializedMachine.id}`);
+    const factorizeGrammar = () => {
+        try {
+            setGrammar(
+                factorize(
+                    removeLeftProduction(
+                        removeEpsilonProductions(
+                            removeUnreachableSymbols(grammar)
+                        )
+                    )
+                )
+            );
+        } catch (error) {
+            message.error(error?.message, 2);
+        }
     };
     // Setup Modals
     const [showModalAlphabetT, modalAlphabetTCH] = useModal({
@@ -241,7 +272,7 @@ export default function RegularGrammarEdit(): JSX.Element {
         onSubmit: newAlphabetTSymbol,
         placeholder: "Insira o novo símbolo",
         submitText: "Adicionar",
-        submitDisabled: (ci) => ci.length !== 1,
+        submitDisabled: (ci) => ci.length !== 1 || ci === END_OF_STACK,
     });
     const [showModalAlphabetNT, modalAlphabetNTCH] = useModal({
         title: "Adicionar símbolo não terminal",
@@ -264,8 +295,44 @@ export default function RegularGrammarEdit(): JSX.Element {
         submitText: "Adicionar",
         submitDisabled: (ci) =>
             ci.length === 0 ||
-            !alphabetT.includes(ci[0].replace("&", EPSILON)) ||
-            (ci[1] && !alphabetNT.includes(ci[1])),
+            ci.split("").some((bodySymbol) => {
+                const transBodySymbol = bodySymbol.replace("&", EPSILON);
+                return !(
+                    alphabetT.includes(transBodySymbol) ||
+                    alphabetNT.includes(transBodySymbol)
+                );
+            }),
+    });
+
+    const testGrammarRecognition = (text: string) => {
+        try {
+            // Create Analysis Table
+            const analysisTable = getAnalysisTable(grammar);
+            // Test Against String
+            const recognized = runTableLL1(text, grammar, analysisTable);
+            // Show Message
+            if (recognized) {
+                Modal.success({
+                    icon: <CheckCircleOutlined />,
+                    content: "Texto reconhecido!",
+                });
+            } else {
+                Modal.error({
+                    icon: <CloseCircleOutlined />,
+                    content: "Não foi possível reconhecer o texto",
+                });
+            }
+        } catch (error) {
+            message.error(error?.message, 3);
+        }
+    };
+
+    const [showRecognitionModal, modalRecognitionModal] = useModal({
+        title: "Reconhecimento de Sentença",
+        onSubmit: testGrammarRecognition,
+        placeholder: "Insira a senteça a ser reconhecida",
+        submitText: "Verificar",
+        submitDisabled: () => false,
     });
 
     const [showModalRename, modalRenameCH] = useModal({
@@ -286,24 +353,32 @@ export default function RegularGrammarEdit(): JSX.Element {
                     {modalNewRuleBodyCH}
                     {modalAlphabetTCH}
                     {modalAlphabetNTCH}
+                    {modalRecognitionModal}
                 </>
                 <GrammarEditContent>
                     <PageHeader
                         onBack={history.goBack}
                         title={`Editar - ${name || idToEdit}`}
-                        subTitle="Gramática Regular"
+                        subTitle="Gramática Livre de Contexto"
                         extra={[
-                            <Tooltip
-                                title="Converte a gramática para um AFND"
-                                key="convert-machine-tooltip"
+                            <Button
+                                key="button-recognize"
+                                onClick={showRecognitionModal}
                             >
-                                <Button
-                                    key="button-convert-machine"
-                                    onClick={convertToMachine}
-                                >
-                                    Converter - Autômato
-                                </Button>
-                            </Tooltip>,
+                                Reconhecer sentença
+                            </Button>,
+                            <Button
+                                key="button-remove-left-recursion"
+                                onClick={removeLeftRecursionFromGrammar}
+                            >
+                                Remover Rec. à Esquerda
+                            </Button>,
+                            <Button
+                                key="button-factorize"
+                                onClick={factorizeGrammar}
+                            >
+                                Fatorar
+                            </Button>,
                             <Button
                                 key="button-rename"
                                 onClick={showModalRename}

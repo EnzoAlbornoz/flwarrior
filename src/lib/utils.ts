@@ -26,3 +26,32 @@ export function verifyMachineDBType(machine: MachineDBEntry): MachineType {
     if (hasMemory) return MachineType.PUSHDOWN_MACHINE;
     return MachineType.FINITE_STATE_MACHINE;
 }
+
+export function identifyCommomPrefix(...strings: string[]): string {
+    const shortestSize = strings.reduce(
+        (minV, curS) => Math.min(minV, curS.length),
+        strings[0].length
+    );
+    let commonPrefix = "";
+    // Iterate over strings
+    const charsAreTheSame = (
+        currentChar: string,
+        currentIteration: number
+    ): boolean => {
+        for (let j = 1; j < strings.length; j++) {
+            if (currentChar !== strings[j][currentIteration]) {
+                return false;
+            }
+        }
+        return true;
+    };
+    for (let i = 0; i < shortestSize; i++) {
+        const currentChar = strings[0][i];
+        if (charsAreTheSame(currentChar, i)) {
+            commonPrefix += currentChar;
+        } else {
+            break;
+        }
+    }
+    return commonPrefix;
+}

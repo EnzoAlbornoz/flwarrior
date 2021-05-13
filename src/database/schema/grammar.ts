@@ -9,6 +9,22 @@ export enum GrammarType {
     CONTEXT_SENSITIVE = "ctxs",
     UNRESTRICTED = "urtd",
 }
+
+export const translateGrammarType = (gType: GrammarType): string => {
+    switch (gType) {
+        case GrammarType.REGULAR:
+            return "Regular";
+        case GrammarType.CONTEXT_FREE:
+            return "Livre de Contexto";
+        case GrammarType.CONTEXT_SENSITIVE:
+            return "Sensível ao Contexto";
+        case GrammarType.UNRESTRICTED:
+            return "Irrestrita";
+        default:
+            throw new TypeError("Invalid GrammarType");
+    }
+};
+
 export type Char = string;
 export interface GrammarDBEntry {
     id: string;

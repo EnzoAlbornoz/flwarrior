@@ -1,5 +1,10 @@
 
-# FLWarrior <img src="./src/assets/knight.svg" width="324" height="324">
+# FLWarrior
+
+<p align="center">
+    <img src="./src/assets/knight.svg" width="324" height="324">
+</p>
+
 #### Formal Languages Class Project
 
 This project has is divided between **back-end** and **front-end**.
@@ -18,4 +23,6 @@ npm run start # runs (be patient)
 ```
 
 ### Interface capture:
-<img src="./printFLWarrior.png" width="824" height="524">
+<p align="center">
+    <img src="./printFLWarrior.png" width="824" height="524">
+</p>

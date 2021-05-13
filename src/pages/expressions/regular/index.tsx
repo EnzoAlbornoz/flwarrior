@@ -15,7 +15,6 @@ import {
     ExpressionType,
     getNewExpression,
 } from "@/database/schema/expression";
-import { UploadChangeParam } from "antd/lib/upload";
 // Define Style
 const ExpressionssList = styled.section`
     height: 100%;

@@ -8,6 +8,8 @@ import FiniteAutomataEditPage from "@pages/automata/finite/edit";
 import FiniteAutomataExecutePage from "@pages/automata/finite/execute";
 import RegularGrammarsPage from "@pages/grammars/regular";
 import RegularGrammarEditPage from "@pages/grammars/regular/edit";
+import ContexFreeGrammarsPage from "@pages/grammars/contextFree";
+import ContexFreeGrammarEditPage from "@pages/grammars/contextFree/edit";
 import RegularExpressionsPage from "@pages/expressions/regular";
 import RegularExpressionEditPage from "@pages/expressions/regular/edit";
 import AnalysisLexicalPage from "@pages/analysis/lexical";
@@ -42,6 +44,14 @@ export default function Router(): JSX.Element {
                     <Route path="/grammars/regular/edit/:id" exact>
                         <Helmet title="Editar - Gramática Regular - FL Warrior" />
                         <RegularGrammarEditPage />
+                    </Route>
+                    <Route path="/grammars/context-free" exact>
+                        <Helmet title="Gramáticas Livre de Contexto - FL Warrior" />
+                        <ContexFreeGrammarsPage />
+                    </Route>
+                    <Route path="/grammars/context-free/edit/:id" exact>
+                        <Helmet title="Editar - Gramática Livre de Contexto - FL Warrior" />
+                        <ContexFreeGrammarEditPage />
                     </Route>
                     {/* Expressions */}
                     <Route path="/expressions/regular" exact>

@@ -3,7 +3,7 @@ import cy from "cytoscape";
 import dagre from "cytoscape-dagre";
 import styled from "styled-components";
 import { Modal } from "antd";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { IIMachine, IMachine } from "@/lib/automaton/Machine";
 import type { FunctionComponent, ReactNode } from "react";
 // Define Layout for Cytoscape
@@ -42,7 +42,7 @@ const MachineVisualizer: FunctionComponent<IMachineVisualizerProps> = ({
             .valueSeq()
             .toArray();
         // Create Visualization
-        const graph = cy({
+        cy({
             // Define where it will be mounted
             container: canvas.current,
             // Define Layout (Import Dagre)
