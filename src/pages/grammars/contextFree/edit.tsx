@@ -177,7 +177,7 @@ export default function ContextFreeGrammarEdit(): JSX.Element {
         allowedTypes: Array<GrammarType>
     ) => {
         if (!allowedTypes.includes(grammarEntry.type)) {
-            message.error(
+            message.warning(
                 "".concat(
                     `Gramática de tipo ${translateGrammarType(
                         grammarEntry.type
@@ -206,17 +206,14 @@ export default function ContextFreeGrammarEdit(): JSX.Element {
         }
         // Serialize grammar
         const serializedGrammar = toDBEntry(grammar);
-        if (
-            checkGrammarType(serializedGrammar, [
-                GrammarType.CONTEXT_FREE,
-                GrammarType.REGULAR,
-            ])
-        ) {
-            // Fetch Database
-            const db = await useDatabase();
-            await db.put(FLWarriorDBTables.GRAMMAR, serializedGrammar);
-            message.success("Gramática salva!", 1);
-        }
+        checkGrammarType(serializedGrammar, [
+            GrammarType.CONTEXT_FREE,
+            GrammarType.REGULAR,
+        ]);
+        // Fetch Database
+        const db = await useDatabase();
+        await db.put(FLWarriorDBTables.GRAMMAR, serializedGrammar);
+        message.success("Gramática salva!", 1);
     };
     const newRuleHead = (newRuleHeadSymbols: string) =>
         setGrammar(addProductionHead(grammar, newRuleHeadSymbols.split("")));
