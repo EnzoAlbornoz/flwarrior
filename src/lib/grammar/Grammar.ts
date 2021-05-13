@@ -916,6 +916,92 @@ export const removeEpsilonProductions = (grammar: IIGrammar): IIGrammar => {
     return transGrammar;
 };
 
+export const getFollows = (
+    grammar: IIGrammar,
+    first: Immutable.Map<string, Immutable.Set<string>>
+): Immutable.Map<string, Immutable.Set<string>> => {
+    // initialize non terminal symbols and follow set
+    const nonTerminalSymbolsSet = grammar.get("nonTerminalSymbols");
+    let follows = Immutable.Map<string, Immutable.Set<string>>();
+    const hasDiff = true;
+
+    // initial symbol receives $ in its follow set
+    follows = follows.update(
+        grammar.get("startSymbol") as string,
+        Immutable.Set(),
+        (set) => set.add("$")
+    );
+
+    for (const [, productionRules] of grammar.get(
+        "productionRules"
+    ) as Immutable.Map<IGrammarWord, Immutable.Set<IGrammarWord>>) {
+        for (const body of productionRules) {
+            for (const [i, symbol] of body.toIndexedSeq().entries()) {
+                const isNonTerminal = (grammar.get(
+                    "nonTerminalSymbols"
+                ) as IAlphabet).contains(symbol);
+                if (isNonTerminal) {
+                    // the follow of this non terminal will receive whatever is next
+                    // and whatever comes after that if they all have ε
+                    for (const [, nextSymbol] of body
+                        .toIndexedSeq()
+                        .slice(i + 1)
+                        .entries()) {
+                        // add this symbol's first set to the follow set
+                        follows = follows.update(
+                            symbol,
+                            Immutable.Set(),
+                            (set) => set.union(first.get(nextSymbol))
+                        );
+                        const containsEpsilonInFirstSet = (first.get(
+                            nextSymbol
+                        ) as IAlphabet).contains("ε");
+                        if (!containsEpsilonInFirstSet) {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    for (const head of grammar.get("nonTerminalSymbols")) {
+        for (const body of getBodiesOfHead(grammar, [head as string])) {
+            if (
+                body.last() !== EPSILON &&
+                (grammar.get("nonTerminalSymbols") as IAlphabet).contains(
+                    body.last()
+                )
+            )
+                for (const [
+                    ,
+                    symbol,
+                ] of body.reverse().toIndexedSeq().entries()) {
+                    if (
+                        symbol !== EPSILON &&
+                        (grammar.get(
+                            "nonTerminalSymbols"
+                        ) as IAlphabet).contains(symbol)
+                    ) {
+                        // add the follow set of the head to the follow of this symbol
+                        // TODO optimize without eslint ignore
+                        follows = follows.update(
+                            symbol,
+                            Immutable.Set(),
+                            // eslint-disable-next-line @typescript-eslint/no-loop-func
+                            (set) => set.union(follows.get(head as string))
+                        );
+                        if (!first.get(symbol).contains(EPSILON)) break;
+                    } else break;
+                }
+        }
+    }
+
+    // before returning, remove epsilon from each follow set
+    follows = follows.map((set) => set.remove(EPSILON));
+    return follows;
+};
+
 export const removeUnitProductions = (grammar: IIGrammar): IIGrammar => {
     // Define Transformed Grammar
     let transGrammar = grammar;
