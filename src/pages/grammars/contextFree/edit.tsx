@@ -6,9 +6,14 @@ import {
     Typography,
     Tag,
     Select,
+    Modal,
     message,
 } from "antd";
-import IconBase, { SaveOutlined } from "@ant-design/icons";
+import IconBase, {
+    CheckCircleOutlined,
+    CloseCircleOutlined,
+    SaveOutlined,
+} from "@ant-design/icons";
 import { useState, useMemo } from "react";
 import { useParams, useHistory } from "react-router-dom";
 import styled from "styled-components";
@@ -35,13 +40,18 @@ import {
     rename,
     toDBEntry,
     setStartSymbol as setGrammarStartSymbol,
+    removeLeftProduction,
+    factorize,
+    removeUnreachableSymbols,
+    removeEpsilonProductions,
+    removeUnitProductions,
 } from "@lib/grammar/Grammar";
 import {
     GrammarDBEntry,
     GrammarType,
     translateGrammarType,
 } from "@/database/schema/grammar";
-import { EPSILON } from "@/lib/AlphabetSymbol";
+import { END_OF_STACK, EPSILON } from "@/lib/AlphabetSymbol";
 // Define Typings
 export interface ITGEditPageProps {
     id: string;
@@ -236,13 +246,40 @@ export default function ContextFreeGrammarEdit(): JSX.Element {
     const setStartSymbol = (newStartSymbol: string) =>
         setGrammar(setGrammarStartSymbol(grammar, newStartSymbol));
     // Special Functions
+    const removeLeftRecursionFromGrammar = () =>
+        setGrammar(
+            removeLeftProduction(
+                factorize(
+                    removeUnitProductions(
+                        removeEpsilonProductions(
+                            removeUnreachableSymbols(grammar)
+                        )
+                    )
+                )
+            )
+        );
+    const factorizeGrammar = () => {
+        try {
+            setGrammar(
+                factorize(
+                    removeLeftProduction(
+                        removeEpsilonProductions(
+                            removeUnreachableSymbols(grammar)
+                        )
+                    )
+                )
+            );
+        } catch (error) {
+            message.error(error?.message, 2);
+        }
+    };
     // Setup Modals
     const [showModalAlphabetT, modalAlphabetTCH] = useModal({
         title: "Adicionar símbolo terminal",
         onSubmit: newAlphabetTSymbol,
         placeholder: "Insira o novo símbolo",
         submitText: "Adicionar",
-        submitDisabled: (ci) => ci.length !== 1,
+        submitDisabled: (ci) => ci.length !== 1 || ci === END_OF_STACK,
     });
     const [showModalAlphabetNT, modalAlphabetNTCH] = useModal({
         title: "Adicionar símbolo não terminal",
@@ -274,6 +311,42 @@ export default function ContextFreeGrammarEdit(): JSX.Element {
             }),
     });
 
+    const testGrammarRecognition = (text: string) => {
+        try {
+            // Prepare Grammar
+            const preparedGrammar = factorize(
+                removeLeftProduction(
+                    removeEpsilonProductions(removeUnreachableSymbols(grammar))
+                )
+            );
+            // Test Against String
+            const recognized = true;
+            // Show Message
+            if (recognized) {
+                Modal.success({
+                    icon: <CheckCircleOutlined />,
+
+                    content: "Texto reconhecido!",
+                });
+            } else {
+                Modal.error({
+                    icon: <CloseCircleOutlined />,
+                    content: "Não foi possível reconhecer o texto",
+                });
+            }
+        } catch (error) {
+            message.error(error?.message, 3);
+        }
+    };
+
+    const [showRecognitionModal, modalRecognitionModal] = useModal({
+        title: "Reconhecimento de Sentença",
+        onSubmit: testGrammarRecognition,
+        placeholder: "Insira a senteça a ser reconhecida",
+        submitText: "Verificar",
+        submitDisabled: () => false,
+    });
+
     const [showModalRename, modalRenameCH] = useModal({
         title: "Renomear Gramática",
         onSubmit: renameGrammar,
@@ -292,6 +365,7 @@ export default function ContextFreeGrammarEdit(): JSX.Element {
                     {modalNewRuleBodyCH}
                     {modalAlphabetTCH}
                     {modalAlphabetNTCH}
+                    {modalRecognitionModal}
                 </>
                 <GrammarEditContent>
                     <PageHeader
@@ -299,6 +373,24 @@ export default function ContextFreeGrammarEdit(): JSX.Element {
                         title={`Editar - ${name || idToEdit}`}
                         subTitle="Gramática Livre de Contexto"
                         extra={[
+                            <Button
+                                key="button-recognize"
+                                onClick={showRecognitionModal}
+                            >
+                                Reconhecer sentença
+                            </Button>,
+                            <Button
+                                key="button-remove-left-recursion"
+                                onClick={removeLeftRecursionFromGrammar}
+                            >
+                                Remover Rec. à Esquerda
+                            </Button>,
+                            <Button
+                                key="button-factorize"
+                                onClick={factorizeGrammar}
+                            >
+                                Fatorar
+                            </Button>,
                             <Button
                                 key="button-rename"
                                 onClick={showModalRename}

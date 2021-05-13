@@ -85,7 +85,7 @@ const grammarCannonicalFactorized = fromDBEntry({
     transitions: [
         {
             from: ["S"],
-            to: ["aE".split(""), "cCC".split(""), "dDC".split("")],
+            to: ["aF".split(""), "cCC".split(""), "dDC".split("")],
         },
         {
             from: ["A"],
@@ -97,7 +97,7 @@ const grammarCannonicalFactorized = fromDBEntry({
         },
         {
             from: ["C"],
-            to: ["eF".split("")],
+            to: ["eE".split("")],
         },
         {
             from: ["D"],
@@ -105,11 +105,11 @@ const grammarCannonicalFactorized = fromDBEntry({
         },
         {
             from: ["E"],
-            to: ["DC".split(""), "BC".split("")],
+            to: ["C".split(""), "A".split("")],
         },
         {
             from: ["F"],
-            to: ["C".split(""), "A".split("")],
+            to: ["BC".split(""), "DC".split("")],
         },
     ],
     type: GrammarType.CONTEXT_FREE,
@@ -273,10 +273,7 @@ const grammarToTestFirsts2 = fromDBEntry({
 });
 
 test("factoring", () => {
-    const dateInit = Date.now();
     const factorizedGrammar = factorize(grammarCannonical);
-    const dateEnd = Date.now();
-    console.log(dateEnd - dateInit);
     expect(factorizedGrammar).toEqual(grammarCannonicalFactorized);
 });
 
