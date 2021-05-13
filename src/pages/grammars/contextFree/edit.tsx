@@ -248,13 +248,7 @@ export default function ContextFreeGrammarEdit(): JSX.Element {
     const removeLeftRecursionFromGrammar = () =>
         setGrammar(
             removeLeftProduction(
-                factorize(
-                    removeUnitProductions(
-                        removeEpsilonProductions(
-                            removeUnreachableSymbols(grammar)
-                        )
-                    )
-                )
+                removeEpsilonProductions(removeUnreachableSymbols(grammar))
             )
         );
     const factorizeGrammar = () => {
