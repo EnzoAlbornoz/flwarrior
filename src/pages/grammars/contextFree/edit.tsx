@@ -45,6 +45,8 @@ import {
     removeUnreachableSymbols,
     removeEpsilonProductions,
     removeUnitProductions,
+    getAnalysisTable,
+    runTableLL1,
 } from "@lib/grammar/Grammar";
 import {
     GrammarDBEntry,
@@ -319,8 +321,14 @@ export default function ContextFreeGrammarEdit(): JSX.Element {
                     removeEpsilonProductions(removeUnreachableSymbols(grammar))
                 )
             );
+            // Create Analysis Table
+            const analysisTable = getAnalysisTable(preparedGrammar);
             // Test Against String
-            const recognized = true;
+            const recognized = runTableLL1(
+                text,
+                preparedGrammar,
+                analysisTable
+            );
             // Show Message
             if (recognized) {
                 Modal.success({

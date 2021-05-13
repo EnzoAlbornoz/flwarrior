@@ -1213,11 +1213,9 @@ export const runTableLL1 = (
     table: Immutable.Map<IGrammarWord, Immutable.Map<string, IGrammarWord>>
 ): boolean => {
     const adjustedInput = [...input.split(""), "$"];
-    console.log(adjustedInput.toString());
     let stack = Immutable.Stack<string>()
         .push("$")
         .push(grammar.get("startSymbol") as string);
-    console.log(stack.toJS());
 
     let head = 0;
     while (true) {
@@ -1251,9 +1249,7 @@ export const runTableLL1 = (
                 stack = stack.pop();
             }
         } else return false;
-        console.log(stack.toJS());
     }
-    return false;
 };
 export const fromDBEntry = (dbEntry: GrammarDBEntry): IIGrammar =>
     Immutable.Map<IGrammar[keyof IGrammar]>({
