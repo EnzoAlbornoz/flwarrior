@@ -309,11 +309,7 @@ export default function ContextFreeGrammarEdit(): JSX.Element {
             // Create Analysis Table
             const analysisTable = getAnalysisTable(grammar);
             // Test Against String
-            const recognized = runTableLL1(
-                text,
-                preparedGrammar,
-                analysisTable
-            );
+            const recognized = runTableLL1(text, grammar, analysisTable);
             // Show Message
             if (recognized) {
                 Modal.success({
