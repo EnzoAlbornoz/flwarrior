@@ -1065,6 +1065,91 @@ export const removeUnitProductions = (grammar: IIGrammar): IIGrammar => {
     return transGrammar;
 };
 
+export const getFirsts = (
+    grammar: IIGrammar
+): Immutable.Map<string, Immutable.Set<string>> => {
+    // Fetch Productions
+    const productions = grammar.get(
+        "productionRules"
+    ) as IGrammar["productionRules"];
+    const terminalSymbols = grammar.get(
+        "terminalSymbols"
+    ) as IGrammar["terminalSymbols"];
+    // Define Firsts Set (Start with the terminal Symbols)
+    let firstsSet = terminalSymbols
+        .toMap()
+        .map((symbol) => Immutable.Set([symbol]));
+    // Compute Firsts of Non Terminal Symbols
+    const getNewFirstsSet = (
+        firstsSetOriginal: Immutable.Map<string, Immutable.Set<string>>
+    ) => {
+        // Iterate over all productions
+        return productions.reduce(
+            (firstsSetIt, bodies, head) =>
+                // Update the FIRST(X) (or create it)
+                firstsSetIt.update(
+                    head.get(0),
+                    Immutable.Set(),
+                    (firstsSetItOld) =>
+                        firstsSetItOld.union(
+                            // Compute FIRST(X) with previously computed FIRSTs
+                            bodies.reduce((firstSymbolsSet, body) => {
+                                // Cases
+                                // a) X -> 𝛂Y
+                                // b) X -> 𝛆
+                                const firstElementOfBody = body.get(0);
+                                if (
+                                    terminalSymbols
+                                        .add(EPSILON)
+                                        .includes(firstElementOfBody)
+                                ) {
+                                    return firstSymbolsSet.add(
+                                        firstElementOfBody
+                                    );
+                                }
+                                // Case c) X -> Y1Y2..YK
+                                let bodyFirsts = firstSymbolsSet;
+                                // Iterate over YN, N = 1..K
+                                for (const char of body) {
+                                    // Get FIRST(YN)
+                                    const firstsOfChar = firstsSetOriginal.get(
+                                        char,
+                                        Immutable.Set<string>()
+                                    );
+                                    // Add FIRST(YN) into FIRST(X) (Without adding epsilon)
+                                    bodyFirsts = bodyFirsts.union(
+                                        firstsOfChar.remove(EPSILON)
+                                    );
+                                    // Check if need to add FIRST(YN+1) into FIRST(X)
+                                    const epsilonInElement = firstsOfChar.includes(
+                                        EPSILON
+                                    );
+                                    if (!epsilonInElement) {
+                                        return bodyFirsts;
+                                    }
+                                }
+                                // Here, all YN have epsilon, so, add it to FIRST(X) (Case c-iii)
+                                return bodyFirsts.add(EPSILON);
+                            }, Immutable.Set<string>())
+                        )
+                ),
+            firstsSetOriginal
+        );
+    };
+    // Compute while has diff between firsts sets
+    let hasDiff = false;
+    do {
+        // Save Old Iteration
+        const oldFirstsSet = firstsSet;
+        // Iterate
+        firstsSet = getNewFirstsSet(firstsSet);
+        // Check Diff
+        hasDiff = !firstsSet.equals(oldFirstsSet);
+    } while (hasDiff);
+    // Return the Firsts Set
+    return firstsSet;
+};
+
 export const fromDBEntry = (dbEntry: GrammarDBEntry): IIGrammar =>
     Immutable.Map<IGrammar[keyof IGrammar]>({
         id: dbEntry.id,
